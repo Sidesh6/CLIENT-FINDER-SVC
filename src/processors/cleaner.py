@@ -1,0 +1,41 @@
+from typing import Any
+
+
+class ProjectCleaner:
+    """
+    Cleans and normalizes raw project data.
+    """
+
+    def clean(self, project: dict[str, Any]) -> dict[str, Any]:
+        """
+        Clean a single project.
+
+        Args:
+            project: Raw project data.
+
+        Returns:
+            Cleaned project data.
+        """
+
+        cleaned_project = {}
+
+        for key, value in project.items():
+            if isinstance(value, str):
+                value = value.strip()
+
+            cleaned_project[key] = value
+
+        return cleaned_project
+
+    def clean_many(
+        self,
+        projects: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Clean multiple projects.
+        """
+
+        return [
+            self.clean(project)
+            for project in projects
+        ]
