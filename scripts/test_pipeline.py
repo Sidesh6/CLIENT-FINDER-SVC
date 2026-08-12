@@ -1,61 +1,45 @@
-from src.processors.cleaner import ProjectCleaner
 from src.ai.extractor import ProjectExtractor
+from src.collectors.example_collector import ExampleCollector
+from src.processors.cleaner import ProjectCleaner
 
 
 def main():
 
-    raw_project = {
-        "title": "AI Chatbot Development",
+    # 1. Collect
+    collector = ExampleCollector()
 
-        "description": (
-            "  Build an AI chatbot using Python, "
-            "FastAPI and RAG.  "
-        ),
+    raw_projects = collector.collect()
 
-        "source": "Example Source",
+    print(f"Collected {len(raw_projects)} projects")
 
-        "source_url": "https://example.com/project/123",
-
-        "client_name": "Example Client",
-
-        "budget": 2000,
-
-        "currency": "USD",
-
-        "project_type": "AI Development",
-
-        "skills": [
-            "Python",
-            "FastAPI",
-            "RAG"
-        ]
-    }
-
-    print("RAW PROJECT")
-    print(raw_project)
-
+    # 2. Clean
     cleaner = ProjectCleaner()
 
-    cleaned_project = cleaner.clean(raw_project)
+    cleaned_projects = cleaner.clean_many(raw_projects)
 
-    print("\nCLEANED PROJECT")
-    print(cleaned_project)
+    print(f"Cleaned {len(cleaned_projects)} projects")
 
+    # 3. Extract and validate
     extractor = ProjectExtractor()
 
-    extracted_project = extractor.extract(cleaned_project)
+    projects = []
 
-    print("\nEXTRACTED PROJECT")
-    print(extracted_project)
+    for project in cleaned_projects:
+        extracted_project = extractor.extract(project)
+        projects.append(extracted_project)
 
-    print("\nPROJECT TYPE:")
-    print(type(extracted_project))
+    # 4. Display
+    print("\nVALIDATED PROJECTS")
 
-    print("\nPROJECT TITLE:")
-    print(extracted_project.title)
+    for project in projects:
 
-    print("\nPROJECT URL:")
-    print(extracted_project.source_url)
+        print("\n------------------------------")
+
+        print(f"Title: {project.title}")
+        print(f"Source: {project.source}")
+        print(f"Budget: {project.budget} {project.currency}")
+        print(f"Skills: {project.skills}")
+        print(f"URL: {project.source_url}")
 
 
 if __name__ == "__main__":
