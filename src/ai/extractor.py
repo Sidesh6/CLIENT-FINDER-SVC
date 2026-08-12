@@ -1,4 +1,5 @@
 from typing import Any
+from src.models.project import Project
 
 
 class ProjectExtractor:
@@ -8,7 +9,7 @@ class ProjectExtractor:
     The actual LLM integration will be added later.
     """
 
-    def extract(self, project: dict[str, Any]) -> dict[str, Any]:
+    def extract(self, project: dict[str, Any]) -> Project:
         """
         Extract structured project information.
 
@@ -19,15 +20,18 @@ class ProjectExtractor:
             Structured project information.
         """
 
-        description = project.get("description", "")
 
-        return {
-            "title": project.get("title"),
-            "description": description,
-            "skills": [],
-            "budget": None,
-            "currency": None,
-            "project_type": None,
-            "client_name": None,
-            "deadline": None,
-        }
+        return Project(
+            title = project["title"],
+            description = project["description"],
+            source = project["source"],
+            source_url = project["source_url"],
+            client_name = project.get("client_name", None),
+            budget = project.get("budget", None),
+            currency = project.get("currency", None),
+            project_type = project.get("project_type", None),
+            skills = project.get("skills", []),
+            project_start_date = project.get("project_start_date", None),
+            project_end_date = project.get("project_end_date", None),
+            score = project.get("score", None),
+        )
