@@ -41,6 +41,15 @@ def main():
         print(f"Skills: {project.skills}")
         print(f"URL: {project.source_url}")
 
+    print("\nPROJECT TYPE:")
+    print(type(extracted_project))
+
+    print("\nPROJECT TITLE:")
+    print(extracted_project.title)
+
+    print("\nPROJECT URL:")
+    print(extracted_project.source_url)
+
 
 if __name__ == "__main__":
     main()
