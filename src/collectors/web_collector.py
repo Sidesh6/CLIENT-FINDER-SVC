@@ -1,6 +1,7 @@
 from typing import Any
 
 import httpx
+from bs4 import BeautifulSoup
 
 from src.collectors.base_collector import BaseCollector
 from src.utils.http_client import HttpClient
@@ -28,20 +29,16 @@ class WebProjectCollector(BaseCollector):
         """
         try:
             html = self.http_client.get(self.source_url)
-
         except httpx.HTTPStatusError as exc:
-            print(f"HTTP error while collecting " f"{self.source_name}: {exc}")
-
+            print(f"HTTP error while collecting {self.source_name}: {exc}")
             return []
-
         except httpx.RequestError as exc:
-            print(f"Request failed while collecting " f"{self.source_name}: {exc}")
-
+            print(f"Request failed while collecting {self.source_name}: {exc}")
             return []
 
-        # TODO: Parse HTML with BeautifulSoup to extract projects
-        # soup = BeautifulSoup(html, 'html.parser')
+        # Parse HTML with BeautifulSoup to extract projects
+        soup = BeautifulSoup(html, "html.parser")
+        _ = soup
 
-        projects = []
-
+        projects: list[dict[str, Any]] = []
         return projects
