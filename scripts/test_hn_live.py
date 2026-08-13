@@ -1,6 +1,6 @@
 """
-Live verification script for HackerNewsCollector and discovery pipeline.
-Fetches real public opportunities from Hacker News without mock data.
+Live verification script for HackerNewsCollector, Deduplicator, and Database persistence.
+Fetches real public opportunities from Hacker News and stores them in SQLite.
 """
 
 import logging
@@ -8,7 +8,10 @@ import sys
 
 from src.ai.extractor import ProjectExtractor
 from src.collectors.hackernews_collector import HackerNewsCollector
+from src.database.database import get_db_session, get_engine, get_session_factory, init_db
+from src.database.repository import CollectionRunRepository, ProjectRepository
 from src.processors.cleaner import ProjectCleaner
+from src.processors.deduplicator import ProjectDeduplicator
 
 # Configure UTF-8 handling for Windows stdout if available
 if sys.stdout.encoding.lower() != "utf-8":
@@ -25,8 +28,13 @@ logger = logging.getLogger("HNLiveTest")
 
 def main():
     print("=================================================================")
-    print("[*] CLIENT FINDER SVC - Hacker News Live Opportunity Discovery")
+    print("[*] CLIENT FINDER SVC - Live Discovery & Persistence Pipeline")
     print("=================================================================\n")
+
+    # Step 0: Initialize Database
+    engine = get_engine()
+    init_db(engine)
+    session_factory = get_session_factory(engine)
 
     # Step 1: Collect from public Hacker News API
     logger.info("Initializing HackerNewsCollector (max_projects=5)...")
@@ -43,31 +51,72 @@ def main():
     cleaned_projects = cleaner.clean_many(raw_projects)
     print(f"[+] Step 2: Cleaned {len(cleaned_projects)} opportunities")
 
-    # Step 3: Extract & Validate into Pydantic Project models
+    # Step 3: Deduplicate against existing Database hashes
+    with get_db_session(session_factory) as session:
+        proj_repo = ProjectRepository(session)
+        existing_url_hashes = proj_repo.get_all_url_hashes()
+        existing_content_hashes = proj_repo.get_all_content_hashes()
+
+    deduplicator = ProjectDeduplicator()
+    unique_projects, dup_count = deduplicator.deduplicate_batch(
+        cleaned_projects,
+        existing_url_hashes=existing_url_hashes,
+        existing_content_hashes=existing_content_hashes,
+    )
+    print(
+        f"[+] Step 3: Deduplication complete: {len(unique_projects)} new unique, {dup_count} duplicates skipped"
+    )
+
+    # Step 4: Extract & Validate into Pydantic Project models
     extractor = ProjectExtractor()
-    validated_projects = [extractor.extract(p) for p in cleaned_projects]
-    print(f"[+] Step 3: Validated {len(validated_projects)} Pydantic Project models\n")
+    validated_projects = [extractor.extract(p) for p in unique_projects]
+    print(f"[+] Step 4: Validated {len(validated_projects)} Pydantic Project models\n")
 
-    # Step 4: Display discovered opportunities
-    print("=" * 65)
-    print("DISCOVERED OPPORTUNITIES")
+    # Step 5: Persist to Database & Log Collection Run
+    with get_db_session(session_factory) as session:
+        proj_repo = ProjectRepository(session)
+        run_repo = CollectionRunRepository(session)
+
+        run = run_repo.start_run(collector.get_source_name())
+        saved_records, skipped_in_db = proj_repo.save_many(validated_projects)
+        total_skipped = dup_count + skipped_in_db
+
+        run_repo.complete_run(
+            run_id=run.id,
+            items_collected=len(raw_projects),
+            items_saved=len(saved_records),
+            duplicates_skipped=total_skipped,
+            status="SUCCESS",
+        )
+
+        total_db_count = proj_repo.count()
+        recent_records = proj_repo.list_projects(limit=5)
+
+    print(
+        f"[+] Step 5: Database updated: {len(saved_records)} newly saved, Total in DB: {total_db_count}"
+    )
+
+    # Display summary of stored opportunities
+    print("\n" + "=" * 65)
+    print("📋 LATEST STORED OPPORTUNITIES IN DATABASE")
     print("=" * 65)
 
-    for i, proj in enumerate(validated_projects, 1):
-        print(f"\n[{i}] {proj.title}")
-        print(f"    Source      : {proj.source}")
-        print(f"    Client/User : {proj.client_name}")
-        print(f"    Type        : {proj.project_type}")
-        print(f"    Source URL  : {proj.source_url}")
+    for i, rec in enumerate(recent_records, 1):
+        print(f"\n[{i}] {rec.title}")
+        print(f"    DB ID       : {rec.id}")
+        print(f"    Source      : {rec.source}")
+        print(f"    Client/User : {rec.client_name}")
+        print(f"    URL Hash    : {rec.url_hash[:12]}...")
+        print(f"    Source URL  : {rec.source_url}")
         snippet = (
-            proj.description.replace("\n", " ")[:160] + "..."
-            if len(proj.description) > 160
-            else proj.description
+            rec.description.replace("\n", " ")[:140] + "..."
+            if len(rec.description) > 140
+            else rec.description
         )
         print(f"    Summary     : {snippet}")
 
     print("\n" + "=" * 65)
-    print("[SUCCESS] Pipeline executed successfully!")
+    print("[SUCCESS] Pipeline executed and stored successfully!")
     print("=" * 65)
 
 

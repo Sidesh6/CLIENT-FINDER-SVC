@@ -25,6 +25,9 @@ htmlcov/
 *.log
 
 # Data
+*.db
+*.sqlite
+*.sqlite3
 data/raw/*
 data/processed/*
 data/exports/*

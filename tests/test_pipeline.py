@@ -250,3 +250,76 @@ class TestEndToEndPipeline:
         assert proj.client_name == "hire_founder"
         assert "LangChain" in proj.description
         assert str(proj.source_url) == "https://news.ycombinator.com/item?id=55555"
+
+    def test_full_pipeline_with_deduplicator_and_database(self):
+        from src.database.database import get_db_session, get_engine, get_session_factory, init_db
+        from src.database.repository import CollectionRunRepository, ProjectRepository
+        from src.processors.deduplicator import ProjectDeduplicator
+
+        # 1. Setup in-memory DB
+        engine = get_engine("sqlite:///:memory:")
+        init_db(engine)
+        session_factory = get_session_factory(engine)
+
+        mock_http = MagicMock()
+        mock_http.get_json.return_value = {
+            "hits": [
+                {
+                    "objectID": "77701",
+                    "author": "client_alpha",
+                    "comment_text": "<p>SEEKING FREELANCER: Fullstack React + FastAPI developer needed.</p>",
+                },
+                {
+                    "objectID": "77702",
+                    "author": "client_beta",
+                    "comment_text": "<p>SEEKING FREELANCER: AI prompt engineer needed.</p>",
+                },
+                {
+                    "objectID": "77701",  # duplicate
+                    "author": "client_alpha",
+                    "comment_text": "<p>SEEKING FREELANCER: Fullstack React + FastAPI developer needed.</p>",
+                },
+            ]
+        }
+
+        # Step 1: Collect
+        collector = HackerNewsCollector(http_client=mock_http, search_query="SEEKING FREELANCER")
+        raw_projects = collector.collect()
+        assert len(raw_projects) == 3
+
+        # Step 2: Clean
+        cleaner = ProjectCleaner()
+        cleaned_projects = cleaner.clean_many(raw_projects)
+
+        # Step 3: Deduplicate
+        deduplicator = ProjectDeduplicator()
+        unique_raw, dup_count = deduplicator.deduplicate_batch(cleaned_projects)
+        assert len(unique_raw) == 2
+        assert dup_count == 1
+
+        # Step 4: Extract
+        extractor = ProjectExtractor()
+        validated_projects = [extractor.extract(p) for p in unique_raw]
+        assert len(validated_projects) == 2
+
+        # Step 5: Persist to DB
+        with get_db_session(session_factory) as session:
+            run_repo = CollectionRunRepository(session)
+            proj_repo = ProjectRepository(session)
+
+            run = run_repo.start_run(collector.get_source_name())
+            saved_records, skipped = proj_repo.save_many(validated_projects)
+            run_repo.complete_run(
+                run_id=run.id,
+                items_collected=len(raw_projects),
+                items_saved=len(saved_records),
+                duplicates_skipped=dup_count + skipped,
+            )
+
+            assert len(saved_records) == 2
+            assert proj_repo.count() == 2
+
+            # Query persisted items
+            stored = proj_repo.list_projects()
+            assert len(stored) == 2
+            assert stored[0].source == "Hacker News"
