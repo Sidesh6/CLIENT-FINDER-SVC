@@ -2,7 +2,6 @@ from src.collectors.example_collector import ExampleCollector
 
 
 def test_example_collector_returns_projects():
-
     collector = ExampleCollector()
 
     projects = collector.collect()
@@ -11,7 +10,6 @@ def test_example_collector_returns_projects():
 
 
 def test_example_collector_returns_required_fields():
-
     collector = ExampleCollector()
 
     projects = collector.collect()
@@ -25,7 +23,6 @@ def test_example_collector_returns_required_fields():
 
 
 def test_example_collector_source_name():
-
     collector = ExampleCollector()
 
     assert collector.get_source_name() == "Example Source"
