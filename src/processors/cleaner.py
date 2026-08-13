@@ -27,15 +27,9 @@ class ProjectCleaner:
 
         return cleaned_project
 
-    def clean_many(
-        self,
-        projects: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def clean_many(self, projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Clean multiple projects.
         """
 
-        return [
-            self.clean(project)
-            for project in projects
-        ]
+        return [self.clean(project) for project in projects]

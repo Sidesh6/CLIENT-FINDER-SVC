@@ -12,7 +12,7 @@ def test_valid_project():
         source_url="https://example.com/project/1",
         budget=1000,
         currency="USD",
-        skills=["Python", "FastAPI"]
+        skills=["Python", "FastAPI"],
     )
 
     assert project.title == "AI Chatbot"
@@ -26,7 +26,7 @@ def test_project_requires_title():
             title="",
             description="Build an AI chatbot.",
             source="Example",
-            source_url="https://example.com/project/1"
+            source_url="https://example.com/project/1",
         )
 
 
@@ -37,7 +37,7 @@ def test_budget_cannot_be_negative():
             description="Build an AI chatbot.",
             source="Example",
             source_url="https://example.com/project/1",
-            budget=-500
+            budget=-500,
         )
 
 
@@ -48,5 +48,5 @@ def test_score_must_be_between_zero_and_hundred():
             description="Build an AI chatbot.",
             source="Example",
             source_url="https://example.com/project/1",
-            score=150
+            score=150,
         )
