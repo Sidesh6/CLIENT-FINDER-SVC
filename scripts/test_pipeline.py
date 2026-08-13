@@ -4,7 +4,6 @@ from src.processors.cleaner import ProjectCleaner
 
 
 def main():
-
     # 1. Collect
     collector = ExampleCollector()
 
@@ -32,7 +31,6 @@ def main():
     print("\nVALIDATED PROJECTS")
 
     for project in projects:
-
         print("\n------------------------------")
 
         print(f"Title: {project.title}")

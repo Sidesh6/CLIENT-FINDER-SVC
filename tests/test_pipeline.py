@@ -1,8 +1,12 @@
 """Tests for the project discovery pipeline."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from src.ai.extractor import ProjectExtractor
+from src.collectors.example_collector import ExampleCollector
+from src.collectors.hackernews_collector import HackerNewsCollector
 from src.models.project import Project
 from src.processors.cleaner import ProjectCleaner
 
@@ -193,3 +197,56 @@ class TestProjectModel:
                 source_url="https://ex.com",
                 score=101,
             )
+
+
+class TestEndToEndPipeline:
+    """Tests for the complete discovery pipeline: Collector -> Cleaner -> Extractor -> Project."""
+
+    def test_example_collector_pipeline(self):
+        collector = ExampleCollector()
+        cleaner = ProjectCleaner()
+        extractor = ProjectExtractor()
+
+        raw_projects = collector.collect()
+        assert len(raw_projects) > 0
+
+        cleaned_projects = cleaner.clean_many(raw_projects)
+        assert len(cleaned_projects) == len(raw_projects)
+
+        validated_projects = [extractor.extract(p) for p in cleaned_projects]
+        assert len(validated_projects) == len(raw_projects)
+        for proj in validated_projects:
+            assert isinstance(proj, Project)
+            assert proj.title
+            assert proj.source == "Example Source"
+            assert str(proj.source_url).startswith("https://")
+
+    def test_hackernews_collector_pipeline(self):
+        mock_http = MagicMock()
+        mock_http.get_json.return_value = {
+            "hits": [
+                {
+                    "objectID": "55555",
+                    "author": "hire_founder",
+                    "comment_text": "<p>SEEKING FREELANCER: Need a Python + LangChain engineer to build a project scoring engine.</p>",
+                }
+            ]
+        }
+
+        collector = HackerNewsCollector(http_client=mock_http, search_query="SEEKING FREELANCER")
+        cleaner = ProjectCleaner()
+        extractor = ProjectExtractor()
+
+        raw_projects = collector.collect()
+        assert len(raw_projects) == 1
+
+        cleaned_projects = cleaner.clean_many(raw_projects)
+        validated_projects = [extractor.extract(p) for p in cleaned_projects]
+
+        assert len(validated_projects) == 1
+        proj = validated_projects[0]
+        assert isinstance(proj, Project)
+        assert proj.source == "Hacker News"
+        assert proj.client_name == "hire_founder"
+        assert "LangChain" in proj.description
+        assert str(proj.source_url) == "https://news.ycombinator.com/item?id=55555"
