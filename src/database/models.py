@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -11,18 +10,18 @@ class Project:
     title: str
     description: str
 
-    source: Optional[str] = None
-    source_url: Optional[str] = None
+    source: str | None = None
+    source_url: str | None = None
 
-    client_name: Optional[str] = None
+    client_name: str | None = None
 
-    budget: Optional[float] = None
-    currency: Optional[str] = None
+    budget: float | None = None
+    currency: str | None = None
 
-    project_type: Optional[str] = None
+    project_type: str | None = None
 
     skills: list[str] = field(default_factory=list)
 
-    deadline: Optional[str] = None
+    deadline: str | None = None
 
-    score: Optional[float] = None
+    score: float | None = None
