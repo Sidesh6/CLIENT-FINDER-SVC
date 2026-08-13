@@ -12,12 +12,7 @@ class HttpClient:
         ) as client:
             response = client.get(
                 url,
-                headers={
-                    "User-Agent": (
-                        "ClientFinder/1.0 "
-                        "(development project;)"
-                    )
-                },
+                headers={"User-Agent": ("ClientFinder/1.0 " "(development project;)")},
             )
         response.raise_for_status()
         return response.text
