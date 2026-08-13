@@ -1,6 +1,0 @@
-ai
-api
-collectors
-database
-models
-processors
