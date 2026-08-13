@@ -49,7 +49,9 @@ class HackerNewsCollector(BaseCollector):
         lines = [line.strip() for line in clean.split("\n")]
         return "\n".join(line for line in lines if line)
 
-    def _find_latest_hiring_thread(self, query: str = "Freelancer? Seeking Freelancer?") -> str | None:
+    def _find_latest_hiring_thread(
+        self, query: str = "Freelancer? Seeking Freelancer?"
+    ) -> str | None:
         """
         Find the story ID of the latest monthly freelance or hiring thread.
         """
@@ -84,7 +86,11 @@ class HackerNewsCollector(BaseCollector):
 
         comment_id = comment.get("id") or comment.get("objectID")
         author = comment.get("author", "Hacker News User")
-        source_url = f"https://news.ycombinator.com/item?id={comment_id}" if comment_id else "https://news.ycombinator.com"
+        source_url = (
+            f"https://news.ycombinator.com/item?id={comment_id}"
+            if comment_id
+            else "https://news.ycombinator.com"
+        )
 
         lines = [line.strip() for line in clean_text.split("\n") if line.strip()]
         first_line = lines[0] if lines else "HN Project Opportunity"
@@ -125,7 +131,11 @@ class HackerNewsCollector(BaseCollector):
                     parsed = self._parse_comment(hit)
                     if parsed:
                         projects.append(parsed)
-                logger.info("Collected %d projects from custom HN query '%s'", len(projects), self.search_query)
+                logger.info(
+                    "Collected %d projects from custom HN query '%s'",
+                    len(projects),
+                    self.search_query,
+                )
                 return projects[: self.max_projects]
 
             # Mode 2: "Ask HN: Freelancer? Seeking Freelancer?" thread
@@ -142,7 +152,11 @@ class HackerNewsCollector(BaseCollector):
                     comment_text = hit.get("comment_text") or hit.get("text") or ""
                     # Filter for clients looking to hire freelancers
                     upper_text = comment_text.upper()
-                    if "SEEKING FREELANCER" in upper_text or "LOOKING FOR FREELANCER" in upper_text or "HIRING" in upper_text:
+                    if (
+                        "SEEKING FREELANCER" in upper_text
+                        or "LOOKING FOR FREELANCER" in upper_text
+                        or "HIRING" in upper_text
+                    ):
                         parsed = self._parse_comment(hit)
                         if parsed:
                             projects.append(parsed)
@@ -158,7 +172,9 @@ class HackerNewsCollector(BaseCollector):
                 data = self.http_client.get_json(self.ALGOLIA_SEARCH_URL, params=params)
                 for hit in data.get("hits", []):
                     parsed = self._parse_comment(hit)
-                    if parsed and not any(p["source_url"] == parsed["source_url"] for p in projects):
+                    if parsed and not any(
+                        p["source_url"] == parsed["source_url"] for p in projects
+                    ):
                         projects.append(parsed)
 
         except (HttpClientError, Exception) as exc:

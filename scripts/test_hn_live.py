@@ -59,7 +59,11 @@ def main():
         print(f"    Client/User : {proj.client_name}")
         print(f"    Type        : {proj.project_type}")
         print(f"    Source URL  : {proj.source_url}")
-        snippet = proj.description.replace("\n", " ")[:160] + "..." if len(proj.description) > 160 else proj.description
+        snippet = (
+            proj.description.replace("\n", " ")[:160] + "..."
+            if len(proj.description) > 160
+            else proj.description
+        )
         print(f"    Summary     : {snippet}")
 
     print("\n" + "=" * 65)

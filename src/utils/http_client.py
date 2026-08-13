@@ -9,21 +9,25 @@ logger = logging.getLogger(__name__)
 
 class HttpClientError(Exception):
     """Base exception for all HttpClient errors."""
+
     pass
 
 
 class HttpTimeoutError(HttpClientError):
     """Raised when an HTTP request times out."""
+
     pass
 
 
 class HttpRateLimitError(HttpClientError):
     """Raised when an HTTP request is rate-limited (HTTP 429)."""
+
     pass
 
 
 class HttpStatusError(HttpClientError):
     """Raised when an HTTP request returns an error status code."""
+
     def __init__(self, status_code: int, message: str, url: str):
         self.status_code = status_code
         self.url = url
@@ -173,7 +177,9 @@ class HttpClient:
                     time.sleep(backoff)
                     backoff *= self.retry_backoff_factor
                     continue
-                raise HttpTimeoutError(f"Request timed out after {self.timeout}s for {url}") from exc
+                raise HttpTimeoutError(
+                    f"Request timed out after {self.timeout}s for {url}"
+                ) from exc
 
             except httpx.RequestError as exc:
                 duration_ms = (time.time() - start_time) * 1000
