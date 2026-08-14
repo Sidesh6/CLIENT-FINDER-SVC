@@ -335,7 +335,6 @@ class HeuristicExtractor:
         exp_level = self.estimate_experience_level(combined)
         deliverables = self.extract_deliverables(description)
 
-        # Separate into required vs optional if clues exist
         required_skills = skills
         optional_skills: list[str] = []
 
