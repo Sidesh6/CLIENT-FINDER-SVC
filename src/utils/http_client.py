@@ -239,3 +239,38 @@ class HttpClient:
             return response.json()
         except Exception as exc:
             raise HttpClientError(f"Failed to parse JSON response from {url}: {exc}") from exc
+
+    def post(
+        self,
+        url: str,
+        data: Any = None,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        """
+        Execute POST request and return the HTTP Response object.
+        """
+        return self.request(
+            "POST",
+            url,
+            params=params,
+            headers=headers,
+            data=data,
+            json=json,
+            **kwargs,
+        )
+
+    def post_json(
+        self,
+        url: str,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        """
+        Execute POST request with JSON payload and return the HTTP Response object.
+        """
+        return self.post(url, json=json, params=params, headers=headers, **kwargs)
