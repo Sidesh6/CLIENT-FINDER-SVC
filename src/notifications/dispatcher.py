@@ -56,7 +56,9 @@ class NotificationDispatcher:
 
         # Score filter threshold
         if score_breakdown.overall_score < threshold:
-            proj_title = project.title if isinstance(project, Project) else str(project.get("title", ""))
+            proj_title = (
+                project.title if isinstance(project, Project) else str(project.get("title", ""))
+            )
             logger.debug(
                 "Skipping dispatch for '%s' (Score %s < Threshold %s)",
                 proj_title[:30],
