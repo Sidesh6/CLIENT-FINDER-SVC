@@ -1,8 +1,9 @@
 """
 FastAPI Main Application for CLIENT FINDER SVC.
-Coordinates REST endpoints, CORS policies, static web dashboard serving, and database initialization.
+Coordinates REST endpoints, CORS policies, WebSockets, static web dashboard serving, and database initialization.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -14,11 +15,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from src.api.events import GLOBAL_EVENT_BROADCASTER
 from src.api.routes import (
     analytics,
     applications,
     collectors,
+    events,
+    export,
     health,
+    integrations,
     notifications,
     opportunities,
     profile,
@@ -39,6 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle management."""
     logger.info("Initializing database schema for Client Finder Service...")
     init_db()
+    GLOBAL_EVENT_BROADCASTER.set_event_loop(asyncio.get_running_loop())
     logger.info("Client Finder Service REST API initialized successfully.")
     yield
     logger.info("Client Finder Service REST API shutting down...")
@@ -74,6 +80,9 @@ app.include_router(notifications.router)
 app.include_router(scheduler.router)
 app.include_router(applications.router)
 app.include_router(analytics.router)
+app.include_router(events.router)
+app.include_router(export.router)
+app.include_router(integrations.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():

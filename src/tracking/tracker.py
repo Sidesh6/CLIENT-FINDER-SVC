@@ -210,6 +210,21 @@ class ApplicationTracker:
                 sess.refresh(updated)
 
             logger.info("Application #%d transitioned to %s", app_id, target_status.value)
+
+            try:
+                from src.api.events import GLOBAL_EVENT_BROADCASTER, EventType
+
+                GLOBAL_EVENT_BROADCASTER.broadcast_sync(
+                    event_type=EventType.APPLICATION_UPDATED,
+                    data={
+                        "application_id": app_id,
+                        "project_id": updated.project_id,
+                        "new_status": target_status.value,
+                    },
+                )
+            except Exception:
+                pass
+
             return updated
         finally:
             if own_session:

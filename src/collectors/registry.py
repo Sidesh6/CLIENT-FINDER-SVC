@@ -165,6 +165,16 @@ class CollectorRegistry:
             return True
         return False
 
+    def register_custom_feed(
+        self, source_name: str, feed_url: str, enabled: bool = True
+    ) -> BaseCollector:
+        """Dynamically create and register an RSSFeedCollector for a custom feed URL."""
+        from src.collectors.rss_collector import RSSFeedCollector
+
+        collector = RSSFeedCollector(source_name=source_name, feed_url=feed_url)
+        self.register(collector, enabled=enabled)
+        return collector
+
     def get_all_states(self) -> list[CollectorHealthState]:
         """Return health telemetry for all registered sources."""
         return list(self._states.values())

@@ -295,6 +295,15 @@ When generating proposals, the system executes dynamic Retrieval-Augmented Gener
 | **Applications** | `/api/applications/{id}/status` | `PUT` | Progress application through 12 lifecycle stages |
 | **Analytics** | `/api/analytics/funnel` | `GET` | Conversion funnel drop-off rates and metrics |
 | **Analytics** | `/api/analytics/insights` | `GET` | AI-generated conversion velocity and pitch insights |
+| **Real-Time** | `/api/ws/events` | `WebSocket` | Bi-directional live stream of discovery, scoring, and lifecycle events |
+| **Real-Time** | `/api/events/stream` | `GET` | Server-Sent Events (SSE) fallback event stream |
+| **Collectors** | `/api/collectors/custom` | `POST` | Dynamically verify, persist, and register arbitrary RSS/Atom feed |
+| **Collectors** | `/api/collectors/custom/{source}` | `DELETE` | Unregister and remove dynamic custom source |
+| **Export** | `/api/export/csv` | `GET` | Download RFC 4180 CSV spreadsheet of scored opportunities |
+| **Export** | `/api/export/json` | `GET` | Download formatted JSON dump of opportunity records |
+| **Export** | `/api/export/proposals/{id}/markdown` | `GET` | Download standalone proposal formatted in GitHub Markdown |
+| **Integrations** | `/api/integrations/webhooks` | `GET` / `POST` | Manage outbound HMAC-SHA256 authenticated webhook targets |
+| **Integrations** | `/api/integrations/webhooks/test` | `POST` | Dispatch test payload to verify target webhook reception |
 
 ---
 

@@ -46,13 +46,21 @@ const DOM = {
   skillsAnalyticsContainer: document.getElementById("skills-analytics-container"),
   insightsContainer: document.getElementById("insights-container"),
 
-  // Sources Modal & Harvest
+  // Live Stream & Export
+  wsStatusBadge: document.getElementById("ws-status-badge"),
+  btnExportCsv: document.getElementById("btn-export-csv"),
+  btnExportJson: document.getElementById("btn-export-json"),
+
+  // Sources Modal & Custom Feed
   selectHarvestSource: document.getElementById("select-harvest-source"),
   btnTriggerCollector: document.getElementById("btn-trigger-collector"),
   btnOpenSources: document.getElementById("btn-open-sources"),
   btnCloseSources: document.getElementById("btn-close-sources"),
   sourcesModal: document.getElementById("sources-modal"),
   sourcesListContainer: document.getElementById("sources-list-container"),
+  inputCustomFeedName: document.getElementById("input-custom-feed-name"),
+  inputCustomFeedUrl: document.getElementById("input-custom-feed-url"),
+  btnAddCustomFeed: document.getElementById("btn-add-custom-feed"),
 
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
@@ -93,6 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProfile();
   loadStats();
   fetchOpportunities();
+  initWebSocket();
 });
 
 function initEventListeners() {
@@ -149,6 +158,21 @@ function initEventListeners() {
   DOM.btnTriggerCollector.addEventListener("click", triggerLiveHarvest);
   if (DOM.btnOpenSources) DOM.btnOpenSources.addEventListener("click", openSourcesModal);
   if (DOM.btnCloseSources) DOM.btnCloseSources.addEventListener("click", closeSourcesModal);
+  if (DOM.btnAddCustomFeed) DOM.btnAddCustomFeed.addEventListener("click", handleAddCustomFeed);
+
+  // Data Export Buttons
+  if (DOM.btnExportCsv) {
+    DOM.btnExportCsv.addEventListener("click", () => {
+      window.open("/api/export/csv", "_blank");
+      showToast("Downloading CSV spreadsheet...", "info");
+    });
+  }
+  if (DOM.btnExportJson) {
+    DOM.btnExportJson.addEventListener("click", () => {
+      window.open("/api/export/json", "_blank");
+      showToast("Downloading JSON export...", "info");
+    });
+  }
 
   // Profile Drawer
   DOM.btnOpenProfile.addEventListener("click", openProfileDrawer);
@@ -608,3 +632,102 @@ window.resetFilters = function () {
   DOM.sliderVal.textContent = "0";
   fetchOpportunities();
 };
+
+// Custom Feed Registration Handler
+async function handleAddCustomFeed() {
+  const name = DOM.inputCustomFeedName ? DOM.inputCustomFeedName.value.trim() : "";
+  const feedUrl = DOM.inputCustomFeedUrl ? DOM.inputCustomFeedUrl.value.trim() : "";
+
+  if (!name || !feedUrl) {
+    showToast("Please provide both feed name and valid URL", "info");
+    return;
+  }
+
+  DOM.btnAddCustomFeed.disabled = true;
+  DOM.btnAddCustomFeed.textContent = "Verifying XML...";
+
+  try {
+    const res = await fetch("/api/collectors/custom", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, feed_url: feedUrl, enabled: true }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail || "Failed to register feed");
+    }
+
+    const data = await res.json();
+    showToast(data.message || `Feed '${name}' verified & registered!`, "success");
+    DOM.inputCustomFeedName.value = "";
+    DOM.inputCustomFeedUrl.value = "";
+    loadSourcesHealth();
+  } catch (err) {
+    showToast(err.message, "info");
+  } finally {
+    DOM.btnAddCustomFeed.disabled = false;
+    DOM.btnAddCustomFeed.textContent = "Verify & Register Feed";
+  }
+}
+
+// Real-Time WebSocket Streaming Client
+let wsConnection = null;
+
+function initWebSocket() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/api/ws/events`;
+
+  try {
+    wsConnection = new WebSocket(wsUrl);
+
+    wsConnection.onopen = () => {
+      if (DOM.wsStatusBadge) {
+        DOM.wsStatusBadge.textContent = "🟢 LIVE";
+        DOM.wsStatusBadge.style.display = "inline-block";
+      }
+    };
+
+    wsConnection.onmessage = (evt) => {
+      try {
+        const payload = JSON.parse(evt.data);
+        handleLiveEvent(payload);
+      } catch (err) {
+        console.warn("Invalid WebSocket message payload:", evt.data);
+      }
+    };
+
+    wsConnection.onclose = () => {
+      if (DOM.wsStatusBadge) {
+        DOM.wsStatusBadge.textContent = "🟡 CONNECTING...";
+      }
+      // Attempt reconnection after 5s
+      setTimeout(initWebSocket, 5000);
+    };
+
+    wsConnection.onerror = () => {
+      if (wsConnection) wsConnection.close();
+    };
+  } catch (err) {
+    console.warn("WebSocket initialization error:", err);
+  }
+}
+
+function handleLiveEvent(event) {
+  const type = event.event_type;
+  const data = event.data || {};
+
+  if (type === "NEW_OPPORTUNITY") {
+    showToast(`⚡ New Opportunity Discovered: ${data.title} (${data.score ? data.score.toFixed(0) : "New"})`, "success");
+    fetchOpportunities();
+    loadStats();
+  } else if (type === "CYCLE_COMPLETED") {
+    showToast(`🔄 Harvest Cycle Completed: Found ${data.collected_count} leads across ${data.sources?.length || 0} sources`, "info");
+    loadStats();
+  } else if (type === "APPLICATION_UPDATED") {
+    fetchApplications();
+    fetchAnalytics();
+  } else if (type === "COLLECTOR_STATUS_CHANGED") {
+    loadSourcesHealth();
+  }
+}

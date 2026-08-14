@@ -16,12 +16,17 @@
       <div class="header-left">
         <div class="logo-badge">⚡</div>
         <div class="brand-info">
-          <h1 class="brand-title">CLIENT FINDER <span class="badge-pro">PRO</span></h1>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h1 class="brand-title">CLIENT FINDER <span class="badge-pro">PRO</span></h1>
+            <span id="ws-status-badge" class="badge-live">🟢 LIVE</span>
+          </div>
           <p class="brand-subtitle">Autonomous Multi-Source Lead Intelligence & Proposal Engine</p>
         </div>
       </div>
       <div class="header-actions">
-        <select id="select-harvest-source" class="select-control" style="max-width: 180px; font-size: 13px;">
+        <button id="btn-export-csv" class="btn btn-sm btn-ghost">📥 Export CSV</button>
+        <button id="btn-export-json" class="btn btn-sm btn-ghost">📥 Export JSON</button>
+        <select id="select-harvest-source" class="select-control" style="max-width: 160px; font-size: 13px;">
           <option value="all">🌐 All Sources</option>
           <option value="Hacker News">🟠 Hacker News</option>
           <option value="RemoteOK">🔴 RemoteOK</option>
@@ -308,6 +313,18 @@
       </div>
       <div class="modal-body">
         <div id="sources-list-container" class="sources-list-grid"></div>
+
+        <!-- Custom Feed Registration Form -->
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--accent-indigo);">➕ Register Custom RSS / Atom Feed</h4>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="text" id="input-custom-feed-name" placeholder="Feed Name (e.g., 'StackOverflow Jobs RSS')" class="text-input">
+            <input type="url" id="input-custom-feed-url" placeholder="Feed URL (https://example.com/feed.xml)" class="text-input">
+            <button id="btn-add-custom-feed" class="btn btn-sm btn-primary" style="align-self: flex-start;">
+              Verify & Register Feed
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

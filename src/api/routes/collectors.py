@@ -1,21 +1,36 @@
 """
-Endpoints for inspecting, configuring, and triggering multi-source data collection pipelines.
+Endpoints for inspecting, configuring, triggering, and adding custom multi-source data collection pipelines.
 """
 
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 from src.ai.extractor import ProjectExtractor
+from src.api.events import GLOBAL_EVENT_BROADCASTER, EventType
 from src.api.routes.profile import get_current_active_profile
 from src.api.schemas import CollectorTriggerResponse
 from src.collectors.registry import DEFAULT_REGISTRY
+from src.collectors.rss_collector import RSSFeedCollector
 from src.database.connection import SessionLocal
-from src.database.repository import ProjectRepository
+from src.database.repository import ProjectRepository, SourceRepository
 from src.processors.cleaner import ProjectCleaner
 from src.scoring.engine import OpportunityScorer
 
 router = APIRouter(prefix="/api/collectors", tags=["Collectors & Multi-Source Feeds"])
+
+
+class CustomFeedCreateRequest(BaseModel):
+    """Payload for dynamically registering a custom RSS or Atom opportunity feed."""
+
+    name: str = Field(
+        min_length=2, max_length=100, description="Unique display name for the custom feed"
+    )
+    feed_url: str = Field(description="Direct URL to RSS 2.0 or Atom XML feed")
+    enabled: bool = Field(
+        default=True, description="Whether the feed should be activated immediately"
+    )
 
 
 @router.get("", response_model=list[dict[str, Any]])
@@ -34,6 +49,72 @@ def get_collectors_health() -> list[dict[str, Any]]:
     return [state.to_dict() for state in DEFAULT_REGISTRY.get_all_states()]
 
 
+@router.post("/custom")
+def add_custom_feed(req: CustomFeedCreateRequest) -> dict[str, Any]:
+    """
+    Dynamically test, persist, and register an arbitrary RSS or Atom feed.
+    """
+    # 1. Test Ingestion
+    test_collector = RSSFeedCollector(source_name=req.name, feed_url=req.feed_url)
+    try:
+        sample_items = test_collector.collect()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to fetch or parse feed from '{req.feed_url}': {exc}",
+        ) from None
+
+    # 2. Persist to Database SourceModel
+    with SessionLocal() as session:
+        source_repo = SourceRepository(session)
+        source_repo.get_or_create(
+            name=req.name,
+            base_url=req.feed_url,
+            source_type="RSS_ATOM",
+        )
+
+    # 3. Register to Global Singleton Registry
+    DEFAULT_REGISTRY.register(test_collector, enabled=req.enabled)
+
+    # 4. Broadcast Real-Time Update
+    GLOBAL_EVENT_BROADCASTER.broadcast_sync(
+        event_type=EventType.COLLECTOR_STATUS_CHANGED,
+        data={"action": "added", "source_name": req.name, "sample_count": len(sample_items)},
+    )
+
+    return {
+        "source_name": req.name,
+        "feed_url": req.feed_url,
+        "enabled": req.enabled,
+        "sample_items_found": len(sample_items),
+        "message": f"Successfully registered and verified custom feed '{req.name}'.",
+    }
+
+
+@router.delete("/custom/{source_name}")
+def delete_custom_feed(source_name: str) -> dict[str, Any]:
+    """
+    Unregister and remove a custom source collector.
+    """
+    if source_name not in DEFAULT_REGISTRY.list_sources():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Collector '{source_name}' not found.",
+        )
+
+    DEFAULT_REGISTRY.unregister(source_name)
+
+    GLOBAL_EVENT_BROADCASTER.broadcast_sync(
+        event_type=EventType.COLLECTOR_STATUS_CHANGED,
+        data={"action": "removed", "source_name": source_name},
+    )
+
+    return {
+        "source_name": source_name,
+        "message": f"Collector '{source_name}' unregistered successfully.",
+    }
+
+
 @router.post("/{source_name}/toggle")
 def toggle_collector(
     source_name: str,
@@ -44,6 +125,10 @@ def toggle_collector(
     """
     try:
         new_state = DEFAULT_REGISTRY.toggle(source_name, enable=enable)
+        GLOBAL_EVENT_BROADCASTER.broadcast_sync(
+            event_type=EventType.COLLECTOR_STATUS_CHANGED,
+            data={"action": "toggled", "source_name": source_name, "enabled": new_state},
+        )
         return {
             "source_name": source_name,
             "enabled": new_state,
@@ -145,6 +230,18 @@ def trigger_collector(
                 project_id=pm.id, project=p_obj, session=session, profile=profile
             )
             scored_count += 1
+
+            # Emit real-time event for each new opportunity
+            GLOBAL_EVENT_BROADCASTER.broadcast_sync(
+                event_type=EventType.NEW_OPPORTUNITY,
+                data={
+                    "id": pm.id,
+                    "title": pm.title,
+                    "source": pm.source,
+                    "budget": pm.budget,
+                    "score": pm.opportunity.overall_score if pm.opportunity else None,
+                },
+            )
 
     return CollectorTriggerResponse(
         collector_name=collector_name,

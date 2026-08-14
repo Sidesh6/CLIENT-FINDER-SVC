@@ -214,6 +214,23 @@ class PipelineCoordinator:
         result.duration_seconds = time.perf_counter() - start_time
         result.success = len(result.errors) == 0
 
+        # Broadcast real-time cycle completion event
+        try:
+            from src.api.events import GLOBAL_EVENT_BROADCASTER, EventType
+
+            GLOBAL_EVENT_BROADCASTER.broadcast_sync(
+                event_type=EventType.CYCLE_COMPLETED,
+                data={
+                    "duration_seconds": round(result.duration_seconds, 2),
+                    "collected_count": result.collected_count,
+                    "new_saved": result.new_projects_saved,
+                    "high_priority_count": result.high_priority_count,
+                    "sources": result.sources_used,
+                },
+            )
+        except Exception:
+            pass
+
         logger.info(
             "Pipeline cycle completed in %.2fs across %s. Found: %d, Saved: %d, High-Priority: %d, Alerts: %d",
             result.duration_seconds,

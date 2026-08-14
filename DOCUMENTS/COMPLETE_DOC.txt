@@ -136,6 +136,13 @@ subpackages in `src/`:
 - Added collector health recording on every harvest cycle.
 - Authored comprehensive documentation (`SYSTEM_ARCHITECTURE.md`, `SOURCE.md`, `COMPLETE_DOC.txt`).
 
+[PHASE 13: Real-Time Event Streaming, Dynamic Custom Feeds & Integration Hub]
+- Built `EventBroadcaster` for bi-directional WebSockets (`/api/ws/events`) and SSE streams (`/api/events/stream`).
+- Added dynamic runtime custom RSS/Atom feed registration (`POST /api/collectors/custom`).
+- Built RFC 4180 CSV and formatted JSON data export endpoints (`/api/export/csv`, `/api/export/json`).
+- Implemented outbound webhook integration manager (`OutboundWebhookManager`) with HMAC-SHA256 payload signing.
+- Enhanced Glassmorphic Web Dashboard with live status badge, instant toast stream, and custom feed manager.
+
 ===============================================================================
 4. DATA PIPELINE & END-TO-END EXECUTION FLOW
 ===============================================================================
