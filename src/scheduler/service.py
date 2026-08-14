@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from src.database.connection import SessionLocal
 from src.database.models import ProjectModel
-from src.models.profile import UserProfile, get_default_profile
+from src.models.profile import UserProfile
 from src.models.project import Project
 from src.notifications.dispatcher import NotificationDispatcher
 from src.notifications.schemas import NotificationResult
@@ -25,7 +25,7 @@ logger = logging.getLogger("PipelineScheduler")
 
 class PipelineScheduler:
     """
-    Background daemon running periodic lead harvesting and automated digest dispatches.
+    Background worker daemon running periodic pipeline harvest cycles and daily digests.
     """
 
     def __init__(
@@ -34,33 +34,42 @@ class PipelineScheduler:
         harvest_interval_minutes: float = 15.0,
         digest_interval_hours: float = 24.0,
         min_notification_score: float = 75.0,
-        default_profile: UserProfile | None = None,
     ):
         self.coordinator = coordinator or PipelineCoordinator()
         self.harvest_interval_minutes = harvest_interval_minutes
         self.digest_interval_hours = digest_interval_hours
         self.min_notification_score = min_notification_score
-        self.default_profile = default_profile or get_default_profile()
 
+        self._running = False
+        self._paused = False
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
-        self._paused = False
-
-        self._total_cycles = 0
         self._last_run_at: datetime | None = None
         self._last_digest_at: datetime | None = None
-        self._last_result: PipelineRunResult | None = None
+        self._total_cycles = 0
+        self._last_run_result: PipelineRunResult | None = None
+
+    def is_running(self) -> bool:
+        """Return True if background scheduler thread is alive and running."""
+        return self._running and self._thread is not None and self._thread.is_alive()
+
+    def is_paused(self) -> bool:
+        """Return True if scheduler is active but paused."""
+        return self._paused
 
     def start(self) -> None:
-        """Start the background scheduler thread."""
+        """Start background daemon worker thread."""
         if self.is_running():
-            logger.warning("Scheduler daemon is already running.")
+            logger.warning("PipelineScheduler is already running.")
             return
 
-        self._stop_event.clear()
+        self._running = True
         self._paused = False
+        self._stop_event.clear()
         self._thread = threading.Thread(
-            target=self._run_loop, name="PipelineSchedulerDaemon", daemon=True
+            target=self._worker_loop,
+            daemon=True,
+            name="ClientFinderSchedulerWorker",
         )
         self._thread.start()
         logger.info(
@@ -69,46 +78,49 @@ class PipelineScheduler:
             self.digest_interval_hours,
         )
 
-    def stop(self, timeout: float = 5.0) -> None:
-        """Stop the background scheduler daemon."""
+    def pause(self) -> None:
+        """Pause automated pipeline harvest cycles."""
+        self._paused = True
+        logger.info("PipelineScheduler paused.")
+
+    def resume(self) -> None:
+        """Resume automated pipeline harvest cycles."""
+        self._paused = False
+        logger.info("PipelineScheduler resumed.")
+
+    def stop(self) -> None:
+        """Signal background worker to terminate and wait for clean shutdown."""
         if not self.is_running():
             return
 
         logger.info("Stopping scheduler daemon...")
+        self._running = False
         self._stop_event.set()
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=timeout)
-        self._thread = None
+        if self._thread:
+            self._thread.join(timeout=5.0)
+            self._thread = None
         logger.info("Scheduler daemon stopped.")
 
-    def pause(self) -> None:
-        """Pause automated pipeline triggers without terminating the background thread."""
-        self._paused = True
-        logger.info("Scheduler daemon paused.")
-
-    def resume(self) -> None:
-        """Resume automated pipeline triggers."""
-        self._paused = False
-        logger.info("Scheduler daemon resumed.")
-
-    def is_running(self) -> bool:
-        """Check if background daemon thread is alive."""
-        return self._thread is not None and self._thread.is_alive()
-
-    def is_paused(self) -> bool:
-        """Check if scheduler is currently paused."""
-        return self._paused
-
-    def trigger_cycle_now(self, dry_run: bool = False) -> PipelineRunResult:
-        """Manually execute an immediate pipeline cycle."""
+    def trigger_cycle_now(
+        self,
+        min_notification_score: float | None = None,
+        limit_per_collector: int = 10,
+    ) -> PipelineRunResult:
+        """
+        Execute an immediate on-demand pipeline harvest cycle.
+        """
+        score_thresh = (
+            min_notification_score
+            if min_notification_score is not None
+            else self.min_notification_score
+        )
         logger.info("Executing immediate on-demand pipeline cycle...")
         result = self.coordinator.run_cycle(
-            profile=self.default_profile,
-            min_notification_score=self.min_notification_score,
-            dry_run=dry_run,
+            min_notification_score=score_thresh,
+            limit_per_collector=limit_per_collector,
         )
         self._last_run_at = datetime.now(UTC)
-        self._last_result = result
+        self._last_run_result = result
         self._total_cycles += 1
         return result
 
@@ -173,38 +185,65 @@ class PipelineScheduler:
         """Retrieve telemetry and operational status of scheduler daemon."""
         next_run = None
         if self.is_running() and not self._paused and self._last_run_at:
-            next_run = (
-                self._last_run_at + timedelta(minutes=self.harvest_interval_minutes)
-            ).isoformat()
+            next_run_dt = self._last_run_at + timedelta(minutes=self.harvest_interval_minutes)
+            next_run = next_run_dt.isoformat()
 
         return {
             "running": self.is_running(),
-            "paused": self._paused,
+            "paused": self.is_paused(),
             "harvest_interval_minutes": self.harvest_interval_minutes,
             "digest_interval_hours": self.digest_interval_hours,
             "min_notification_score": self.min_notification_score,
-            "total_cycles_executed": self._total_cycles,
             "last_run_at": self._last_run_at.isoformat() if self._last_run_at else None,
             "last_digest_at": self._last_digest_at.isoformat() if self._last_digest_at else None,
-            "next_run_at": next_run,
-            "last_run_result": self._last_result.to_dict() if self._last_result else None,
+            "next_run_estimated": next_run,
+            "total_cycles_executed": self._total_cycles,
+            "last_run_summary": {
+                "collected": self._last_run_result.collected_count,
+                "saved": self._last_run_result.new_projects_saved,
+                "scored": self._last_run_result.opportunities_scored,
+                "high_priority": self._last_run_result.high_priority_count,
+                "alerts_sent": self._last_run_result.notifications_sent,
+                "duration_seconds": self._last_run_result.duration_seconds,
+            }
+            if self._last_run_result
+            else None,
         }
 
-    def _run_loop(self) -> None:
-        """Internal daemon loop sleeping in short increments to allow rapid responsive shutdown."""
-        harvest_interval_sec = self.harvest_interval_minutes * 60
-        last_harvest_time = 0.0
+    def _worker_loop(self) -> None:
+        """Continuous daemon execution loop running periodic harvests and digests."""
+        logger.info("Scheduler worker thread initialized.")
+
+        # Run an initial cycle on startup
+        try:
+            self.trigger_cycle_now()
+        except Exception as exc:
+            logger.error("Initial harvest cycle failed: %s", exc)
 
         while not self._stop_event.is_set():
-            now = time.time()
+            # Check for harvest cycle interval
             if not self._paused:
-                # Check harvest timer
-                if now - last_harvest_time >= harvest_interval_sec:
+                now = datetime.now(UTC)
+                interval_delta = timedelta(minutes=self.harvest_interval_minutes)
+
+                if self._last_run_at is None or (now - self._last_run_at) >= interval_delta:
                     try:
                         self.trigger_cycle_now()
-                        last_harvest_time = time.time()
                     except Exception as exc:
-                        logger.error("Error during scheduled harvest cycle: %s", exc)
+                        logger.error("Scheduled harvest cycle failed: %s", exc)
 
-            # Sleep in short 1-second chunks for responsive cancellation
-            self._stop_event.wait(timeout=1.0)
+                # Check for daily digest interval
+                digest_delta = timedelta(hours=self.digest_interval_hours)
+                if self._last_digest_at is None or (now - self._last_digest_at) >= digest_delta:
+                    try:
+                        self.send_daily_digest()
+                    except Exception as exc:
+                        logger.error("Scheduled daily digest failed: %s", exc)
+
+            # Sleep in short increments to allow rapid clean interruption
+            for _ in range(50):
+                if self._stop_event.is_set():
+                    break
+                time.sleep(0.1)
+
+        logger.info("Scheduler worker thread exited.")

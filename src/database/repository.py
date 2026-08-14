@@ -11,6 +11,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from src.database.models import (
+    ApplicationModel,
+    ApplicationStatus,
     CollectionRunRecord,
     OpportunityModel,
     ProjectModel,
@@ -612,3 +614,174 @@ class CollectionRunRepository:
     ) -> list[CollectionRunRecord]:
         """Alias for list_recent_runs."""
         return self.list_recent_runs(limit=limit, session=session)
+
+
+class ApplicationRepository:
+    """
+    Repository for managing application submissions, status lifecycle transitions, and revenue outcomes.
+    """
+
+    def __init__(self, session: Session | None = None):
+        self.session = session
+
+    def _get_session(self, session: Session | None) -> Session:
+        s = session or self.session
+        if s is None:
+            raise ValueError("A valid database session must be provided.")
+        return s
+
+    def create(
+        self,
+        project_id: int,
+        status: str = ApplicationStatus.APPLIED.value,
+        proposed_budget: float | None = None,
+        currency: str = "USD",
+        proposal_text: str | None = None,
+        pitch_angle: str | None = None,
+        notes: str | None = None,
+        session: Session | None = None,
+    ) -> ApplicationModel:
+        """
+        Record a new application and synchronize the parent project's status.
+        """
+        sess = self._get_session(session)
+
+        # Check if application already exists for this project
+        existing = sess.scalar(
+            select(ApplicationModel).where(ApplicationModel.project_id == project_id)
+        )
+        if existing:
+            existing.status = status
+            if proposed_budget is not None:
+                existing.proposed_budget = proposed_budget
+            if currency:
+                existing.currency = currency
+            if proposal_text:
+                existing.proposal_text = proposal_text
+            if pitch_angle:
+                existing.pitch_angle = pitch_angle
+            if notes:
+                existing.notes = notes
+            sess.flush()
+            return existing
+
+        app = ApplicationModel(
+            project_id=project_id,
+            status=status,
+            applied_at=datetime.now(UTC),
+            proposed_budget=proposed_budget,
+            currency=currency,
+            proposal_text=proposal_text,
+            pitch_angle=pitch_angle,
+            notes=notes,
+        )
+        sess.add(app)
+
+        # Synchronize project status to APPLIED
+        project = sess.get(ProjectModel, project_id)
+        if project:
+            project.status = "APPLIED"
+
+        sess.flush()
+        return app
+
+    def get_by_id(self, app_id: int, session: Session | None = None) -> ApplicationModel | None:
+        """Fetch application record by ID."""
+        sess = self._get_session(session)
+        return sess.get(ApplicationModel, app_id)
+
+    def get_by_project_id(
+        self, project_id: int, session: Session | None = None
+    ) -> ApplicationModel | None:
+        """Fetch application record for a given project ID."""
+        sess = self._get_session(session)
+        return sess.scalar(
+            select(ApplicationModel).where(ApplicationModel.project_id == project_id)
+        )
+
+    def list_applications(
+        self,
+        status: str | None = None,
+        pitch_angle: str | None = None,
+        min_revenue: float | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        session: Session | None = None,
+    ) -> list[ApplicationModel]:
+        """List applications with optional status, pitch angle, and revenue filters."""
+        sess = self._get_session(session)
+        stmt = select(ApplicationModel)
+
+        if status:
+            stmt = stmt.where(ApplicationModel.status == status)
+        if pitch_angle:
+            stmt = stmt.where(ApplicationModel.pitch_angle == pitch_angle)
+        if min_revenue is not None:
+            stmt = stmt.where(ApplicationModel.final_revenue >= min_revenue)
+
+        stmt = stmt.order_by(ApplicationModel.applied_at.desc()).offset(offset).limit(limit)
+        return list(sess.scalars(stmt).all())
+
+    def update_status(
+        self,
+        app_id: int,
+        new_status: str,
+        client_feedback: str | None = None,
+        final_revenue: float | None = None,
+        notes: str | None = None,
+        session: Session | None = None,
+    ) -> ApplicationModel | None:
+        """
+        Transition application lifecycle status and record outcome timestamps.
+        """
+        sess = self._get_session(session)
+        app = sess.get(ApplicationModel, app_id)
+        if not app:
+            return None
+
+        app.status = new_status
+        now = datetime.now(UTC)
+
+        if new_status == ApplicationStatus.CLIENT_REPLIED.value and not app.response_at:
+            app.response_at = now
+        elif new_status == ApplicationStatus.INTERVIEW.value:
+            if not app.response_at:
+                app.response_at = now
+            if not app.interview_at:
+                app.interview_at = now
+        elif new_status in (
+            ApplicationStatus.WON.value,
+            ApplicationStatus.LOST.value,
+            ApplicationStatus.CANCELLED.value,
+            ApplicationStatus.COMPLETED.value,
+        ):
+            app.closed_at = now
+
+        if client_feedback is not None:
+            app.client_feedback = client_feedback
+        if final_revenue is not None:
+            app.final_revenue = final_revenue
+        if notes is not None:
+            app.notes = notes
+
+        sess.flush()
+        return app
+
+    def delete(self, app_id: int, session: Session | None = None) -> bool:
+        """Delete an application record."""
+        sess = self._get_session(session)
+        app = sess.get(ApplicationModel, app_id)
+        if app:
+            sess.delete(app)
+            sess.flush()
+            return True
+        return False
+
+    def count_by_status(self, session: Session | None = None) -> dict[str, int]:
+        """Aggregate counts of applications across all lifecycle states."""
+        sess = self._get_session(session)
+        stmt = select(ApplicationModel.status, func.count(ApplicationModel.id)).group_by(
+            ApplicationModel.status
+        )
+        rows = sess.execute(stmt).all()
+        return dict(rows)  # type: ignore[arg-type]

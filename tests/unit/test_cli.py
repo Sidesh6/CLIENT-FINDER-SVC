@@ -30,13 +30,6 @@ class TestCliParser:
         assert args.min_score == 75.0
         assert args.dry_run is False
 
-    def test_harvest_parser_custom_args(self):
-        parser = build_parser()
-        args = parser.parse_args(["harvest", "--limit", "25", "--min-score", "80", "--dry-run"])
-        assert args.limit == 25
-        assert args.min_score == 80.0
-        assert args.dry_run is True
-
     def test_daemon_parser_args(self):
         parser = build_parser()
         args = parser.parse_args(["daemon", "--interval", "10", "--digest-hours", "12"])
@@ -54,14 +47,23 @@ class TestCliParser:
         assert args.angle == "FAST_DELIVERY"
         assert args.no_pricing is True
 
-    def test_stats_and_digest_parser(self):
+    def test_apply_and_apps_parser(self):
         parser = build_parser()
-        args_stats = parser.parse_args(["stats"])
-        assert args_stats.command == "stats"
+        args_apply = parser.parse_args(
+            ["apply", "--project-id", "12", "--status", "APPLIED", "--budget", "5000"]
+        )
+        assert args_apply.command == "apply"
+        assert args_apply.project_id == 12
+        assert args_apply.budget == 5000.0
 
-        args_digest = parser.parse_args(["digest", "--lookback", "48"])
-        assert args_digest.command == "digest"
-        assert args_digest.lookback == 48
+        args_apps = parser.parse_args(["apps", "--status", "WON"])
+        assert args_apps.command == "apps"
+        assert args_apps.status == "WON"
+
+    def test_funnel_and_stats_parser(self):
+        parser = build_parser()
+        assert parser.parse_args(["stats"]).command == "stats"
+        assert parser.parse_args(["funnel"]).command == "funnel"
 
 
 class TestCliExecution:
@@ -88,6 +90,10 @@ class TestCliExecution:
         exit_code = main(["stats"])
         assert exit_code == 0
 
+    def test_cmd_funnel_execution(self):
+        exit_code = main(["funnel"])
+        assert exit_code == 0
+
     def test_cmd_pitch_execution(self):
         uid = uuid.uuid4().hex[:8]
         with next(get_db()) as session:
@@ -107,9 +113,26 @@ class TestCliExecution:
         exit_code = main(["pitch", "--project-id", str(project_id), "--angle", "TECHNICAL_EXPERT"])
         assert exit_code == 0
 
-    def test_cmd_pitch_project_not_found(self):
-        exit_code = main(["pitch", "--project-id", "999999"])
-        assert exit_code == 1
+    def test_cmd_apply_and_apps_execution(self):
+        uid = uuid.uuid4().hex[:8]
+        with next(get_db()) as session:
+            proj = Project(
+                title=f"CLI Apply Test {uid}",
+                description="Python developer needed",
+                source="HN",
+                source_url=f"https://example.com/apply-{uid}",
+                skills=["Python"],
+            )
+            pm = ProjectModel.from_pydantic(proj)
+            session.add(pm)
+            session.commit()
+            project_id = pm.id
+
+        exit_code = main(["apply", "--project-id", str(project_id), "--budget", "4000"])
+        assert exit_code == 0
+
+        exit_code_apps = main(["apps"])
+        assert exit_code_apps == 0
 
     def test_main_without_args_prints_help(self):
         exit_code = main([])

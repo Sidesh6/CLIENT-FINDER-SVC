@@ -1,6 +1,6 @@
 """
 Command-Line Interface (CLI) for CLIENT FINDER SVC.
-Provides terminal commands for autonomous lead harvesting, daemon execution, proposal generation, and analytics.
+Provides terminal commands for lead discovery, scoring, proposal generation, application tracking, and analytics.
 """
 
 import argparse
@@ -8,14 +8,17 @@ import logging
 import sys
 import time
 
+from src.analytics.engine import AnalyticsEngine
 from src.database.connection import SessionLocal, init_db
-from src.database.models import ProjectModel
+from src.database.models import ApplicationStatus, ProjectModel
 from src.models.profile import get_default_profile
 from src.proposal.generator import ProposalGenerator
 from src.proposal.schemas import PitchAngle, ProposalTone
 from src.scheduler.coordinator import PipelineCoordinator
 from src.scheduler.service import PipelineScheduler
 from src.scoring.engine import OpportunityScorer
+from src.tracking.schemas import ApplicationCreate, ApplicationFilter
+from src.tracking.tracker import ApplicationTracker
 
 logging.basicConfig(
     level=logging.INFO,
@@ -219,11 +222,95 @@ def cmd_digest(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_apply(args: argparse.Namespace) -> int:
+    """Track a new job/project application."""
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Track Application (Project #{args.project_id})")
+    print("=" * 70)
+
+    init_db()
+    tracker = ApplicationTracker()
+    payload = ApplicationCreate(
+        project_id=args.project_id,
+        status=ApplicationStatus(args.status) if args.status else ApplicationStatus.APPLIED,
+        proposed_budget=args.budget,
+        currency=args.currency,
+        pitch_angle=PitchAngle(args.angle) if args.angle else None,
+        notes=args.notes,
+    )
+    app = tracker.track_application(payload)
+    print(
+        f"[SUCCESS] Tracked Application #{app.id} for Project #{app.project_id} (Status: {app.status})"
+    )
+    return 0
+
+
+def cmd_apps(args: argparse.Namespace) -> int:
+    """List tracked applications."""
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Tracked Applications Pipeline")
+    print("=" * 70)
+
+    init_db()
+    tracker = ApplicationTracker()
+    filters = ApplicationFilter(
+        status=ApplicationStatus(args.status) if args.status else None,
+        limit=args.limit,
+    )
+    apps = tracker.list_applications(filters)
+    print(f"[+] Found {len(apps)} application(s):\n")
+    for a in apps:
+        print(f"  - App #{a.id} | Project #{a.project_id}: '{a.project_title or 'N/A'}'")
+        print(
+            f"    Status: {a.status.value} | Budget: {a.currency} {a.proposed_budget or 0:.2f} | Applied: {a.applied_at.strftime('%Y-%m-%d %H:%M')}"
+        )
+        if a.final_revenue:
+            print(f"    Realized Revenue: {a.currency} {a.final_revenue:.2f}")
+    return 0
+
+
+def cmd_funnel(args: argparse.Namespace) -> int:
+    """Display application conversion funnel and ROI analytics in terminal."""
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Conversion Funnel & ROI Intelligence")
+    print("=" * 70)
+
+    init_db()
+    engine = AnalyticsEngine()
+    funnel = engine.compute_funnel_metrics()
+    rev = engine.compute_revenue_metrics()
+    insights = engine.generate_insights()
+
+    print("\n--- CONVERSION FUNNEL ---")
+    print(f"  [1] Applied      : {funnel.total_applications}")
+    print(f"  [2] Replied      : {funnel.replied_count} (Response Rate: {funnel.response_rate}%)")
+    print(
+        f"  [3] Interviewed  : {funnel.interview_count} (Interview Rate: {funnel.interview_rate}%)"
+    )
+    print(f"  [4] Negotiation  : {funnel.negotiation_count}")
+    print(f"  [5] Contracts Won: {funnel.won_count} (Win Rate: {funnel.win_rate}%)")
+    print(f"  [6] Proposals Lost: {funnel.lost_count}")
+
+    print("\n--- REVENUE & VELOCITY ---")
+    print(f"  Active Pipeline Value : {rev.currency} {rev.total_pipeline_value:,.2f}")
+    print(f"  Realized Revenue      : {rev.currency} {rev.realized_revenue:,.2f}")
+    print(f"  Average Deal Size     : {rev.currency} {rev.average_deal_size:,.2f}")
+    print(f"  Avg Time to Reply     : {funnel.avg_time_to_reply_hours:.1f} hour(s)")
+    print(f"  Avg Time to Close     : {funnel.avg_time_to_close_days:.1f} day(s)")
+
+    if insights.recommendations:
+        print("\n--- STRATEGIC RECOMMENDATIONS ---")
+        for rec in insights.recommendations:
+            print(f"  💡 {rec}")
+    print("-" * 70)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build root CLI argument parser and subcommands."""
     parser = argparse.ArgumentParser(
         prog="client-finder",
-        description="CLIENT FINDER SVC — Automated Lead Discovery, Scoring, and Proposal Generator CLI",
+        description="CLIENT FINDER SVC — Automated Lead Discovery, Scoring, and Application Tracking CLI",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
@@ -289,6 +376,34 @@ def build_parser() -> argparse.ArgumentParser:
         "--lookback", type=int, default=24, help="Hours to look back for top leads (default: 24)"
     )
     p_digest.set_defaults(func=cmd_digest)
+
+    # 7. Apply Command
+    p_apply = subparsers.add_parser("apply", help="Track a new project application")
+    p_apply.add_argument("--project-id", type=int, required=True, help="Database project ID")
+    p_apply.add_argument(
+        "--status",
+        choices=[s.value for s in ApplicationStatus],
+        default=ApplicationStatus.APPLIED.value,
+    )
+    p_apply.add_argument("--budget", type=float, default=None, help="Proposed budget")
+    p_apply.add_argument("--currency", type=str, default="USD", help="Currency")
+    p_apply.add_argument(
+        "--angle", choices=[a.value for a in PitchAngle], default=None, help="Pitch angle"
+    )
+    p_apply.add_argument("--notes", type=str, default=None, help="Application notes")
+    p_apply.set_defaults(func=cmd_apply)
+
+    # 8. Apps Command
+    p_apps = subparsers.add_parser("apps", help="List tracked applications")
+    p_apps.add_argument("--status", choices=[s.value for s in ApplicationStatus], default=None)
+    p_apps.add_argument("--limit", type=int, default=25)
+    p_apps.set_defaults(func=cmd_apps)
+
+    # 9. Funnel Command
+    p_funnel = subparsers.add_parser(
+        "funnel", help="Display conversion funnel and revenue analytics"
+    )
+    p_funnel.set_defaults(func=cmd_funnel)
 
     return parser
 

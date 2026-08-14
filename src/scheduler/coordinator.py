@@ -1,9 +1,11 @@
 """
-Pipeline Coordinator executing the unified 8-step lead discovery, extraction, scoring, persistence, and alert lifecycle.
+Automated Pipeline Coordinator.
+Orchestrates collection, cleaning, extraction, persistence, deduplication, scoring, and notification dispatch.
 """
 
 import logging
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -13,12 +15,11 @@ from src.collectors.base_collector import BaseCollector
 from src.collectors.hackernews_collector import HackerNewsCollector
 from src.database.connection import SessionLocal
 from src.database.models import ProjectModel
-from src.database.repository import CollectionRunRepository, ProjectRepository
+from src.database.repository import ProjectRepository
 from src.models.profile import UserProfile, get_default_profile
 from src.models.project import Project
-from src.notifications.channels.console import ConsoleNotifier
 from src.notifications.dispatcher import NotificationDispatcher
-from src.processors.cleaner import ProjectCleaner
+from src.processors.cleaner import clean_project_data
 from src.scoring.engine import OpportunityScorer
 from src.scoring.schemas import OpportunityScoreBreakdown
 
@@ -27,9 +28,7 @@ logger = logging.getLogger("PipelineCoordinator")
 
 @dataclass
 class PipelineRunResult:
-    """
-    Telemetry and execution statistics from a single pipeline cycle.
-    """
+    """Telemetry and execution metrics summary for a pipeline run."""
 
     started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = None
@@ -44,81 +43,59 @@ class PipelineRunResult:
     errors: list[str] = field(default_factory=list)
     success: bool = True
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert run result to dictionary format."""
-        return {
-            "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "duration_seconds": round(self.duration_seconds, 2),
-            "collected_count": self.collected_count,
-            "cleaned_count": self.cleaned_count,
-            "new_projects_saved": self.new_projects_saved,
-            "duplicates_skipped": self.duplicates_skipped,
-            "opportunities_scored": self.opportunities_scored,
-            "high_priority_count": self.high_priority_count,
-            "notifications_sent": self.notifications_sent,
-            "errors": self.errors,
-            "success": self.success,
-        }
-
 
 class PipelineCoordinator:
     """
-    Coordinates and orchestrates the autonomous end-to-end client finder pipeline.
+    Unified coordinator executing full harvest-to-notification cycles.
     """
 
     def __init__(
         self,
-        collectors: list[BaseCollector] | None = None,
-        cleaner: ProjectCleaner | None = None,
+        collectors: Sequence[BaseCollector] | None = None,
         extractor: ProjectExtractor | None = None,
         scorer: OpportunityScorer | None = None,
         dispatcher: NotificationDispatcher | None = None,
         default_profile: UserProfile | None = None,
     ):
-        self.default_profile = default_profile or get_default_profile()
-        self.collectors = (
-            collectors if collectors is not None else [HackerNewsCollector(max_projects=15)]
-        )
-        self.cleaner = cleaner or ProjectCleaner()
+        self.collectors = collectors if collectors is not None else [HackerNewsCollector()]
         self.extractor = extractor or ProjectExtractor()
+        self.default_profile = default_profile or get_default_profile()
         self.scorer = scorer or OpportunityScorer(default_profile=self.default_profile)
-        self.dispatcher = dispatcher or NotificationDispatcher(channels=[ConsoleNotifier()])
+        self.dispatcher = dispatcher or NotificationDispatcher()
 
     def run_cycle(
         self,
-        collectors: list[BaseCollector] | None = None,
-        profile: UserProfile | None = None,
         min_notification_score: float = 75.0,
         dry_run: bool = False,
         limit_per_collector: int = 10,
+        profile: UserProfile | None = None,
+        collectors: Sequence[BaseCollector] | None = None,
     ) -> PipelineRunResult:
         """
-        Execute an autonomous pipeline cycle across collectors.
+        Execute an end-to-end autonomous discovery, scoring, and notification cycle.
         """
+        start_time = time.perf_counter()
+        result = PipelineRunResult(started_at=datetime.now(UTC))
         active_profile = profile or self.default_profile
         active_collectors = collectors or self.collectors
 
-        result = PipelineRunResult()
-        start_time = time.perf_counter()
-
         logger.info(
-            "Starting automated pipeline cycle across %d collector(s)...",
-            len(active_collectors),
+            "Starting automated pipeline cycle across %d collector(s)...", len(active_collectors)
         )
 
         raw_items: list[dict[str, Any]] = []
 
         # Step 1: Data Collection
         for col in active_collectors:
+            col_name = getattr(col, "source_name", getattr(col, "name", str(col)))
             try:
                 if hasattr(col, "max_projects"):
                     col.max_projects = limit_per_collector
                 items = col.collect()
-                logger.info("Collector '%s' retrieved %d items.", col.name, len(items))
+                logger.info("Collector '%s' retrieved %d items.", col_name, len(items))
                 raw_items.extend(items)
             except Exception as exc:
-                err_msg = f"Collector '{col.name}' failed: {exc}"
+                err_msg = f"Collector '{col_name}' failed: {exc}"
                 logger.error(err_msg)
                 result.errors.append(err_msg)
 
@@ -130,52 +107,40 @@ class PipelineCoordinator:
             result.duration_seconds = time.perf_counter() - start_time
             return result
 
-        # Step 2: Cleaning & Sanitization
-        try:
-            cleaned_items = self.cleaner.clean_many(raw_items)
-            result.cleaned_count = len(cleaned_items)
-        except Exception as exc:
-            err_msg = f"Cleaning step failed: {exc}"
-            logger.error(err_msg)
-            result.errors.append(err_msg)
-            cleaned_items = raw_items
-
-        # Step 3: AI Requirement Extraction
-        enriched_projects: list[Project] = []
-        for item in cleaned_items:
+        # Step 2: Data Cleaning & Normalization
+        cleaned_items: list[dict[str, Any]] = []
+        for raw in raw_items:
             try:
-                extracted = self.extractor.extract(item)
-                enriched_projects.append(extracted)
+                cleaned = clean_project_data(raw)
+                if cleaned:
+                    cleaned_items.append(cleaned)
             except Exception as exc:
-                logger.warning("Extraction failed for item '%s': %s", item.get("title", ""), exc)
-                # Fallback to basic Project construct
-                try:
-                    enriched_projects.append(
-                        Project(
-                            title=str(item.get("title", "Untitled Opportunity")),
-                            description=str(item.get("description", "")),
-                            source=str(item.get("source", "Unknown")),
-                            source_url=item.get("source_url", "https://example.com"),
-                        )
-                    )
-                except Exception:
-                    pass
+                logger.warning("Cleaning item failed: %s", exc)
+
+        result.cleaned_count = len(cleaned_items)
+
+        # Step 3: Metadata Extraction & Enrichment
+        enriched_projects: list[Project] = []
+        for c_dict in cleaned_items:
+            try:
+                p_obj = self.extractor.extract(c_dict)
+                enriched_projects.append(p_obj)
+            except Exception as exc:
+                logger.warning("Failed to extract/model project: %s", exc)
 
         if dry_run:
             logger.info(
-                "Dry-run mode enabled: Skipping database persistence and notification dispatch."
+                "Dry run requested. Skipping persistence, scoring, and notification dispatch."
             )
             result.completed_at = datetime.now(UTC)
             result.duration_seconds = time.perf_counter() - start_time
             return result
 
-        # Step 4 & 5: Database Persistence & Opportunity Scoring
-        saved_project_models: list[ProjectModel] = []
+        # Step 4: Persistence & De-duplication
         scored_pairs: list[tuple[ProjectModel, OpportunityScoreBreakdown]] = []
 
         with SessionLocal() as session:
             repo = ProjectRepository(session)
-            run_repo = CollectionRunRepository(session)
 
             # Persist projects
             saved_project_models = repo.add_many(
@@ -231,19 +196,6 @@ class PipelineCoordinator:
                         logger.warning(
                             "Notification dispatch failed for project ID %d: %s", pm.id, exc
                         )
-
-            # Step 7: Audit Collection Run
-            try:
-                run_repo.create_run(
-                    source_name="PipelineCoordinator",
-                    projects_found=result.collected_count,
-                    new_projects=result.new_projects_saved,
-                    duration_seconds=time.perf_counter() - start_time,
-                    status="SUCCESS" if not result.errors else "PARTIAL",
-                )
-                session.commit()
-            except Exception as exc:
-                logger.warning("Failed to record collection run audit: %s", exc)
 
         result.completed_at = datetime.now(UTC)
         result.duration_seconds = time.perf_counter() - start_time
