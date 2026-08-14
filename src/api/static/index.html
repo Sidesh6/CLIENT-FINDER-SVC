@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Finder SVC • AI Opportunity & Proposal Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <h1 class="nav-title">CLIENT FINDER <span class="badge-accent">AI</span></h1>
+          <p class="nav-subtitle">Multi-Source Opportunity Discovery & Proposal Generator</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button id="btn-trigger-collector" class="btn btn-primary">
+          <span class="btn-icon">⚡</span>
+          <span>Harvest Live Leads</span>
+        </button>
+        <button id="btn-open-profile" class="btn btn-secondary">
+          <span class="btn-icon">👤</span>
+          <span>Profile Settings</span>
+        </button>
+        <a href="/docs" target="_blank" class="btn btn-ghost" title="API Documentation">
+          <span>API Docs ↗</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- KPI Stats Banner -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon icon-indigo">🎯</div>
+        <div class="kpi-content">
+          <div class="kpi-label">Total Leads Found</div>
+          <div id="stat-total-leads" class="kpi-value">0</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon icon-emerald">⭐</div>
+        <div class="kpi-content">
+          <div class="kpi-label">High Priority Leads (Score ≥ 75)</div>
+          <div id="stat-high-priority" class="kpi-value">0</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon icon-purple">📈</div>
+        <div class="kpi-content">
+          <div class="kpi-label">Average Match Score</div>
+          <div id="stat-avg-score" class="kpi-value">0.0</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon icon-amber">💰</div>
+        <div class="kpi-content">
+          <div class="kpi-label">Active Developer Rate</div>
+          <div id="stat-dev-rate" class="kpi-value">$95/hr</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter & Search Toolbar -->
+    <section class="toolbar-card">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search by title, tech stack (Python, FastAPI, RAG), or client..." autocomplete="off">
+        <button id="btn-clear-search" class="clear-btn" style="display: none;">✕</button>
+      </div>
+
+      <div class="filters-group">
+        <select id="filter-category" class="select-control">
+          <option value="">All Categories</option>
+          <option value="AI Development">AI Development & LLMs</option>
+          <option value="Backend Development">Backend Development</option>
+          <option value="Full-Stack Development">Full-Stack Development</option>
+          <option value="Automation & Scraping">Automation & Scraping</option>
+          <option value="Other">Other Opportunities</option>
+        </select>
+
+        <select id="filter-status" class="select-control">
+          <option value="">All Statuses</option>
+          <option value="NEW">New (Unreviewed)</option>
+          <option value="REVIEWED">Reviewed</option>
+          <option value="APPLIED">Applied</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+
+        <div class="score-slider-container">
+          <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val" class="score-val-badge">0</span></label>
+          <input type="range" id="filter-min-score" min="0" max="90" step="5" value="0" class="range-slider">
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Opportunities Feed -->
+    <main class="main-content">
+      <div class="content-header">
+        <h2 class="section-title">Discovered Opportunities <span id="results-count" class="count-pill">0</span></h2>
+        <div class="sort-controls">
+          <button id="btn-refresh" class="btn btn-sm btn-ghost">🔄 Refresh Feed</button>
+        </div>
+      </div>
+
+      <div id="opportunities-container" class="opportunities-grid">
+        <!-- Dynamic Cards Injected via app.js -->
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Scanning opportunities and calculating real-time match scores...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- AI Proposal Generator Modal -->
+  <div id="proposal-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">AI Proposal & Cover Letter Generator</h3>
+          <p id="modal-project-title" class="modal-subtitle">Project Title</p>
+        </div>
+        <button id="btn-close-modal" class="btn-close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Pitch Angle Selector -->
+        <div class="pitch-selector">
+          <div class="pitch-label">Select Strategic Pitch Angle:</div>
+          <div class="pitch-chips">
+            <button class="pitch-chip active" data-angle="TECHNICAL_EXPERT">
+              <span class="chip-icon">🧠</span>
+              <span class="chip-title">Technical Expert</span>
+            </button>
+            <button class="pitch-chip" data-angle="FAST_DELIVERY">
+              <span class="chip-icon">⚡</span>
+              <span class="chip-title">Fast Delivery (MVP)</span>
+            </button>
+            <button class="pitch-chip" data-angle="VALUE_ROI">
+              <span class="chip-icon">📈</span>
+              <span class="chip-title">Value & High-ROI</span>
+            </button>
+            <button class="pitch-chip" data-angle="PORTFOLIO_PROOF">
+              <span class="chip-icon">🏆</span>
+              <span class="chip-title">Portfolio Proof</span>
+            </button>
+            <button class="pitch-chip" data-angle="CONSULTATIVE_ADVISOR">
+              <span class="chip-icon">🤝</span>
+              <span class="chip-title">Consultative Advisor</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tone & Options -->
+        <div class="options-row">
+          <div class="option-field">
+            <label for="proposal-tone">Proposal Tone:</label>
+            <select id="proposal-tone" class="select-control">
+              <option value="CONFIDENT">Confident & Authoritative</option>
+              <option value="PROFESSIONAL">Formal & Professional</option>
+              <option value="CONVERSATIONAL">Warm & Conversational</option>
+              <option value="DIRECT">Direct & Efficient</option>
+              <option value="CONSULTATIVE">Consultative & Exploratory</option>
+            </select>
+          </div>
+          <div class="option-field checkbox-field">
+            <label class="checkbox-container">
+              <input type="checkbox" id="chk-include-pricing" checked>
+              <span class="checkbox-label">Include Commercial Pricing Quote</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Custom Directive Input -->
+        <div class="input-field">
+          <label for="custom-instructions">Custom Pitch Directives (Optional):</label>
+          <input type="text" id="custom-instructions" placeholder="e.g., Emphasize experience with Docker and pgvector..." class="text-input">
+        </div>
+
+        <!-- Action Button -->
+        <button id="btn-generate-proposal" class="btn btn-primary btn-block">
+          <span>✨ Synthesize Customized Proposal</span>
+        </button>
+
+        <!-- Output Proposal Box -->
+        <div id="proposal-output-container" class="proposal-output" style="display: none;">
+          <div class="output-header">
+            <div class="output-quality">
+              <span>Quality Score:</span>
+              <span id="proposal-quality-badge" class="quality-badge">90/100</span>
+            </div>
+            <button id="btn-copy-proposal" class="btn btn-sm btn-accent">📋 Copy Proposal</button>
+          </div>
+          <div id="proposal-subject-box" class="proposal-subject-line"></div>
+          <div id="proposal-text-box" class="proposal-markdown-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer Profile Drawer -->
+  <div id="profile-drawer" class="drawer-backdrop" style="display: none;">
+    <div class="drawer-card">
+      <div class="drawer-header">
+        <h3>Developer Profile & Matching Configuration</h3>
+        <button id="btn-close-drawer" class="btn-close">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div class="form-group">
+          <label for="profile-name">Full Name</label>
+          <input type="text" id="profile-name" class="text-input">
+        </div>
+        <div class="form-group">
+          <label for="profile-title">Professional Title</label>
+          <input type="text" id="profile-title" class="text-input">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="profile-target-rate">Target Rate ($/hr)</label>
+            <input type="number" id="profile-target-rate" class="text-input" min="20" max="500">
+          </div>
+          <div class="form-group">
+            <label for="profile-min-rate">Minimum Rate ($/hr)</label>
+            <input type="number" id="profile-min-rate" class="text-input" min="20" max="300">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="profile-bio">Professional Bio & Value Proposition</label>
+          <textarea id="profile-bio" class="text-input textarea-control" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Core Skills & Proficiencies (1-10)</label>
+          <div id="profile-skills-list" class="skills-editor"></div>
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <button id="btn-save-profile" class="btn btn-primary btn-block">Save Profile & Recalculate Scores</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
