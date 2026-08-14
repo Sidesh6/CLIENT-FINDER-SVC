@@ -88,3 +88,7 @@ class ProposalResult(BaseModel):
         le=100.0,
         description="Internal proposal quality and completeness rating (0-100)",
     )
+
+
+# Compatibility alias
+GeneratedProposal = ProposalResult

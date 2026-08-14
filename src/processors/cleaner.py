@@ -33,3 +33,8 @@ class ProjectCleaner:
         """
 
         return [self.clean(project) for project in projects]
+
+
+def clean_project_data(project: dict[str, Any]) -> dict[str, Any]:
+    """Clean a single project dictionary."""
+    return ProjectCleaner().clean(project)

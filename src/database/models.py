@@ -6,6 +6,7 @@ Defines SourceModel, ProjectModel, OpportunityModel, and CollectionRunRecord ent
 import hashlib
 import json
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any, Optional
 
 from pydantic import HttpUrl
@@ -145,6 +146,9 @@ class ProjectModel(Base):
     opportunity: Mapped[Optional["OpportunityModel"]] = relationship(
         "OpportunityModel", back_populates="project", uselist=False, cascade="all, delete-orphan"
     )
+    application: Mapped[Optional["ApplicationModel"]] = relationship(
+        "ApplicationModel", back_populates="project", uselist=False, cascade="all, delete-orphan"
+    )
 
     @property
     def source_name(self) -> str:
@@ -267,6 +271,74 @@ class OpportunityModel(Base):
 
     def __repr__(self) -> str:
         return f"<OpportunityModel id={self.id} project_id={self.project_id} overall_score={self.overall_score}>"
+
+
+class ApplicationStatus(StrEnum):
+    """Lifecycle stages for job & project applications."""
+
+    DISCOVERED = "DISCOVERED"
+    QUALIFIED = "QUALIFIED"
+    SHORTLISTED = "SHORTLISTED"
+    PROPOSAL_GENERATED = "PROPOSAL_GENERATED"
+    APPLIED = "APPLIED"
+    CLIENT_REPLIED = "CLIENT_REPLIED"
+    INTERVIEW = "INTERVIEW"
+    NEGOTIATION = "NEGOTIATION"
+    WON = "WON"
+    LOST = "LOST"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+
+
+class ApplicationModel(Base):
+    """
+    Represents a job/project application submission, lifecycle progression, and outcome.
+    """
+
+    __tablename__ = "applications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(50), default=ApplicationStatus.APPLIED.value, index=True, nullable=False
+    )
+
+    applied_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC), nullable=False
+    )
+    response_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    interview_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    proposed_budget: Mapped[float | None] = mapped_column(Float, nullable=True)
+    final_revenue: Mapped[float | None] = mapped_column(Float, nullable=True)
+    currency: Mapped[str] = mapped_column(String(10), default="USD", nullable=False)
+
+    proposal_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pitch_angle: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    client_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    # Relationships
+    project: Mapped["ProjectModel"] = relationship("ProjectModel", back_populates="application")
+
+    def __repr__(self) -> str:
+        return (
+            f"<ApplicationModel id={self.id} project_id={self.project_id} status='{self.status}'>"
+        )
 
 
 class CollectionRunRecord(Base):

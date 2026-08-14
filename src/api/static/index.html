@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Finder SVC • AI Opportunity & Proposal Engine</title>
+  <title>Client Finder SVC • AI Opportunity, Proposal & Outcome Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -17,9 +17,23 @@
         <div class="logo-icon">⚡</div>
         <div>
           <h1 class="nav-title">CLIENT FINDER <span class="badge-accent">AI</span></h1>
-          <p class="nav-subtitle">Multi-Source Opportunity Discovery & Proposal Generator</p>
+          <p class="nav-subtitle">Opportunity Discovery, AI Proposals & Outcome Intelligence</p>
         </div>
       </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="tab-leads">
+          <span>🎯 Opportunities Feed</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-pipeline">
+          <span>📋 Applications Pipeline</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-analytics">
+          <span>📊 Conversion Analytics</span>
+        </button>
+      </nav>
+
       <div class="nav-actions">
         <button id="btn-trigger-collector" class="btn btn-primary">
           <span class="btn-icon">⚡</span>
@@ -27,10 +41,10 @@
         </button>
         <button id="btn-open-profile" class="btn btn-secondary">
           <span class="btn-icon">👤</span>
-          <span>Profile Settings</span>
+          <span>Profile</span>
         </button>
         <a href="/docs" target="_blank" class="btn btn-ghost" title="API Documentation">
-          <span>API Docs ↗</span>
+          <span>Docs ↗</span>
         </a>
       </div>
     </header>
@@ -40,83 +54,144 @@
       <div class="kpi-card">
         <div class="kpi-icon icon-indigo">🎯</div>
         <div class="kpi-content">
-          <div class="kpi-label">Total Leads Found</div>
+          <div class="kpi-label">Discovered Leads</div>
           <div id="stat-total-leads" class="kpi-value">0</div>
         </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon icon-emerald">⭐</div>
         <div class="kpi-content">
-          <div class="kpi-label">High Priority Leads (Score ≥ 75)</div>
+          <div class="kpi-label">High Priority Leads (≥ 75)</div>
           <div id="stat-high-priority" class="kpi-value">0</div>
         </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon icon-purple">📈</div>
         <div class="kpi-content">
-          <div class="kpi-label">Average Match Score</div>
-          <div id="stat-avg-score" class="kpi-value">0.0</div>
+          <div class="kpi-label">Applications Won / Win Rate</div>
+          <div id="stat-win-rate" class="kpi-value">0 (0.0%)</div>
         </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon icon-amber">💰</div>
         <div class="kpi-content">
-          <div class="kpi-label">Active Developer Rate</div>
-          <div id="stat-dev-rate" class="kpi-value">$95/hr</div>
+          <div class="kpi-label">Realized Revenue</div>
+          <div id="stat-realized-rev" class="kpi-value">$0.00</div>
         </div>
       </div>
     </section>
 
-    <!-- Filter & Search Toolbar -->
-    <section class="toolbar-card">
-      <div class="search-input-wrapper">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Search by title, tech stack (Python, FastAPI, RAG), or client..." autocomplete="off">
-        <button id="btn-clear-search" class="clear-btn" style="display: none;">✕</button>
-      </div>
-
-      <div class="filters-group">
-        <select id="filter-category" class="select-control">
-          <option value="">All Categories</option>
-          <option value="AI Development">AI Development & LLMs</option>
-          <option value="Backend Development">Backend Development</option>
-          <option value="Full-Stack Development">Full-Stack Development</option>
-          <option value="Automation & Scraping">Automation & Scraping</option>
-          <option value="Other">Other Opportunities</option>
-        </select>
-
-        <select id="filter-status" class="select-control">
-          <option value="">All Statuses</option>
-          <option value="NEW">New (Unreviewed)</option>
-          <option value="REVIEWED">Reviewed</option>
-          <option value="APPLIED">Applied</option>
-          <option value="ARCHIVED">Archived</option>
-        </select>
-
-        <div class="score-slider-container">
-          <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val" class="score-val-badge">0</span></label>
-          <input type="range" id="filter-min-score" min="0" max="90" step="5" value="0" class="range-slider">
+    <!-- TAB 1: LEADS FEED VIEW -->
+    <div id="tab-leads" class="tab-pane active">
+      <!-- Filter & Search Toolbar -->
+      <section class="toolbar-card">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search by tech stack (Python, FastAPI, RAG), client or keywords..." autocomplete="off">
+          <button id="btn-clear-search" class="clear-btn" style="display: none;">✕</button>
         </div>
-      </div>
-    </section>
 
-    <!-- Main Opportunities Feed -->
-    <main class="main-content">
+        <div class="filters-group">
+          <select id="filter-category" class="select-control">
+            <option value="">All Categories</option>
+            <option value="AI Development">AI Development & LLMs</option>
+            <option value="Backend Development">Backend Development</option>
+            <option value="Full-Stack Development">Full-Stack Development</option>
+            <option value="Automation & Scraping">Automation & Scraping</option>
+            <option value="Other">Other Opportunities</option>
+          </select>
+
+          <select id="filter-status" class="select-control">
+            <option value="">All Statuses</option>
+            <option value="NEW">New (Unreviewed)</option>
+            <option value="REVIEWED">Reviewed</option>
+            <option value="APPLIED">Applied</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+
+          <div class="score-slider-container">
+            <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val" class="score-val-badge">0</span></label>
+            <input type="range" id="filter-min-score" min="0" max="90" step="5" value="0" class="range-slider">
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Opportunities Feed -->
+      <main class="main-content">
+        <div class="content-header">
+          <h2 class="section-title">Discovered Opportunities <span id="results-count" class="count-pill">0</span></h2>
+          <div class="sort-controls">
+            <button id="btn-refresh" class="btn btn-sm btn-ghost">🔄 Refresh Feed</button>
+          </div>
+        </div>
+
+        <div id="opportunities-container" class="opportunities-grid">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Scanning opportunities and calculating real-time match scores...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- TAB 2: APPLICATIONS PIPELINE VIEW -->
+    <div id="tab-pipeline" class="tab-pane" style="display: none;">
       <div class="content-header">
-        <h2 class="section-title">Discovered Opportunities <span id="results-count" class="count-pill">0</span></h2>
-        <div class="sort-controls">
-          <button id="btn-refresh" class="btn btn-sm btn-ghost">🔄 Refresh Feed</button>
-        </div>
+        <h2 class="section-title">Application Lifecycle Pipeline <span id="apps-count" class="count-pill">0</span></h2>
+        <button id="btn-refresh-apps" class="btn btn-sm btn-ghost">🔄 Refresh Pipeline</button>
       </div>
 
-      <div id="opportunities-container" class="opportunities-grid">
-        <!-- Dynamic Cards Injected via app.js -->
+      <div id="applications-container" class="pipeline-grid">
+        <!-- Injected via app.js -->
         <div class="loading-state">
           <div class="spinner"></div>
-          <p>Scanning opportunities and calculating real-time match scores...</p>
+          <p>Loading application tracking stages...</p>
         </div>
       </div>
-    </main>
+    </div>
+
+    <!-- TAB 3: CONVERSION ANALYTICS VIEW -->
+    <div id="tab-analytics" class="tab-pane" style="display: none;">
+      <div class="content-header">
+        <h2 class="section-title">Outcome Intelligence & Conversion Funnel</h2>
+        <button id="btn-refresh-analytics" class="btn btn-sm btn-ghost">🔄 Refresh Intelligence</button>
+      </div>
+
+      <div class="analytics-layout">
+        <!-- Conversion Funnel Card -->
+        <div class="analytics-card">
+          <h3 class="card-heading">🎯 Application Conversion Funnel</h3>
+          <div id="funnel-container" class="funnel-display">
+            <!-- Rendered via app.js -->
+          </div>
+        </div>
+
+        <!-- Strategic Pitch Angles Performance -->
+        <div class="analytics-card">
+          <h3 class="card-heading">🧠 Pitch Angle Effectiveness</h3>
+          <div id="pitch-angles-container" class="table-responsive">
+            <!-- Rendered via app.js -->
+          </div>
+        </div>
+
+        <!-- High-Converting Skills -->
+        <div class="analytics-card">
+          <h3 class="card-heading">⭐ Top Converting Skills & Niches</h3>
+          <div id="skills-analytics-container" class="skills-rankings">
+            <!-- Rendered via app.js -->
+          </div>
+        </div>
+
+        <!-- AI Learning Recommendations -->
+        <div class="analytics-card">
+          <h3 class="card-heading">💡 AI Optimization Insights</h3>
+          <div id="insights-container" class="insights-box">
+            <!-- Rendered via app.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- AI Proposal Generator Modal -->
@@ -141,11 +216,11 @@
             </button>
             <button class="pitch-chip" data-angle="FAST_DELIVERY">
               <span class="chip-icon">⚡</span>
-              <span class="chip-title">Fast Delivery (MVP)</span>
+              <span class="chip-title">Fast Delivery</span>
             </button>
             <button class="pitch-chip" data-angle="VALUE_ROI">
               <span class="chip-icon">📈</span>
-              <span class="chip-title">Value & High-ROI</span>
+              <span class="chip-title">Value & ROI</span>
             </button>
             <button class="pitch-chip" data-angle="PORTFOLIO_PROOF">
               <span class="chip-icon">🏆</span>
@@ -173,7 +248,7 @@
           <div class="option-field checkbox-field">
             <label class="checkbox-container">
               <input type="checkbox" id="chk-include-pricing" checked>
-              <span class="checkbox-label">Include Commercial Pricing Quote</span>
+              <span class="checkbox-label">Include Commercial Pricing</span>
             </label>
           </div>
         </div>
@@ -181,7 +256,7 @@
         <!-- Custom Directive Input -->
         <div class="input-field">
           <label for="custom-instructions">Custom Pitch Directives (Optional):</label>
-          <input type="text" id="custom-instructions" placeholder="e.g., Emphasize experience with Docker and pgvector..." class="text-input">
+          <input type="text" id="custom-instructions" placeholder="e.g., Emphasize FastAPI and vector databases..." class="text-input">
         </div>
 
         <!-- Action Button -->
@@ -196,7 +271,10 @@
               <span>Quality Score:</span>
               <span id="proposal-quality-badge" class="quality-badge">90/100</span>
             </div>
-            <button id="btn-copy-proposal" class="btn btn-sm btn-accent">📋 Copy Proposal</button>
+            <div class="output-actions">
+              <button id="btn-copy-proposal" class="btn btn-sm btn-accent">📋 Copy</button>
+              <button id="btn-track-application" class="btn btn-sm btn-primary">🚀 Track in Pipeline</button>
+            </div>
           </div>
           <div id="proposal-subject-box" class="proposal-subject-line"></div>
           <div id="proposal-text-box" class="proposal-markdown-content"></div>

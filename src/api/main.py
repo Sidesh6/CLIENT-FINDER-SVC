@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import (
+    analytics,
+    applications,
     collectors,
     health,
     notifications,
@@ -22,6 +24,7 @@ from src.api.routes import (
     profile,
     projects,
     proposals,
+    scheduler,
     search,
 )
 from src.database.connection import init_db
@@ -68,6 +71,9 @@ app.include_router(proposals.router)
 app.include_router(profile.router)
 app.include_router(collectors.router)
 app.include_router(notifications.router)
+app.include_router(scheduler.router)
+app.include_router(applications.router)
+app.include_router(analytics.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():
