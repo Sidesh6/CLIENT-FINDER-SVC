@@ -25,6 +25,7 @@ from src.api.routes import (
     export,
     health,
     integrations,
+    market,
     notifications,
     opportunities,
     profile,
@@ -85,6 +86,7 @@ app.include_router(events.router)
 app.include_router(export.router)
 app.include_router(integrations.router)
 app.include_router(closing.router)
+app.include_router(market.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():

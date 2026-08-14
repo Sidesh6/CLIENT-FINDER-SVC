@@ -149,6 +149,12 @@ subpackages in `src/`:
 - Developed `InterviewPrepAdvisor` generating architectural questions, model answers, and reverse client questions.
 - Built interactive "💬 Negotiation & Closing Studio" modal into the Web Dashboard.
 
+[PHASE 15: AI Market Intelligence, Skill ROI Heatmaps & Rate Benchmark Forecasting Engine]
+- Implemented `MarketIntelligenceEngine` aggregating total market pipeline valuation and technology compensation rankings.
+- Developed `RateOptimizer` simulating price elasticity and Expected Value maximization curves ($EV = \text{Price} \times P_{\text{win}}$).
+- Generated tailored upskilling roadmaps matching developer core skills with high-yield technology premiums.
+- Built "📈 Market Intelligence & Rate Optimizer" interactive studio into the Web Dashboard.
+
 ===============================================================================
 4. DATA PIPELINE & END-TO-END EXECUTION FLOW
 ===============================================================================

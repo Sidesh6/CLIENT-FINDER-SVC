@@ -36,6 +36,9 @@
           <span class="btn-icon">⚡</span>
           <span>Harvest Leads</span>
         </button>
+        <button id="btn-open-market" class="btn btn-ghost">
+          <span>📈 Market Intel</span>
+        </button>
         <button id="btn-open-negotiation" class="btn btn-ghost">
           <span>💬 Closing Studio</span>
         </button>
@@ -437,6 +440,81 @@
           <div id="interview-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
             <div id="interview-content-container"></div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Intelligence, Skill ROI & Rate Optimizer Modal -->
+  <div id="market-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 820px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">📈 Market Intelligence & Rate Optimizer</h3>
+          <p class="modal-subtitle">Real-time technology compensation benchmarks, upskilling roadmap, and expected value pricing</p>
+        </div>
+        <button id="btn-close-market" class="btn-close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Market Macro Overview Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Active Market Pipeline</div>
+            <div id="market-stat-pipeline-val" style="font-size: 20px; font-weight: 700; color: var(--accent-emerald);">$450,000</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Average Project Budget</div>
+            <div id="market-stat-avg-budget" style="font-size: 20px; font-weight: 700; color: var(--accent-indigo);">$5,500</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Top Premium Skill</div>
+            <div id="market-stat-top-skill" style="font-size: 20px; font-weight: 700; color: var(--accent-purple);">Rust ($150/hr)</div>
+          </div>
+        </div>
+
+        <!-- Subtabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+          <button id="subtab-btn-skills-roi" class="btn btn-sm btn-primary">🏆 Skill Demand & Rate Benchmarks</button>
+          <button id="subtab-btn-upskill" class="btn btn-sm btn-ghost">🚀 Upskilling Roadmap</button>
+          <button id="subtab-btn-rate-opt" class="btn btn-sm btn-ghost">🧮 EV Rate Optimizer</button>
+        </div>
+
+        <!-- Section 1: Skill ROI Table -->
+        <div id="section-skills-roi">
+          <div id="skills-roi-table-container" style="max-height: 320px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Section 2: Upskilling Roadmap -->
+        <div id="section-upskill" style="display: none;">
+          <div id="upskill-cards-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Section 3: EV Rate Optimizer -->
+        <div id="section-rate-opt" style="display: none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="opt-project-title">Opportunity Title</label>
+              <input type="text" id="opt-project-title" class="text-input" placeholder="e.g. Senior Backend Architect">
+            </div>
+            <div class="form-group">
+              <label for="opt-match-score">Match Score (0-100)</label>
+              <input type="number" id="opt-match-score" class="text-input" value="85" min="1" max="100">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="opt-hours">Estimated Effort (Hours)</label>
+              <input type="number" id="opt-hours" class="text-input" value="40" min="1">
+            </div>
+            <div class="form-group">
+              <label for="opt-client-budget">Client Stated Budget ($) (Optional)</label>
+              <input type="number" id="opt-client-budget" class="text-input" placeholder="e.g. 5000">
+            </div>
+          </div>
+          <button id="btn-calculate-rate-opt" class="btn btn-primary btn-block">✨ Calculate Optimal Expected Value Quote</button>
+
+          <div id="rate-opt-output-container" class="proposal-output" style="display: none; margin-top: 16px;"></div>
         </div>
       </div>
     </div>

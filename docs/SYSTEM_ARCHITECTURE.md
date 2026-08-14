@@ -308,6 +308,10 @@ When generating proposals, the system executes dynamic Retrieval-Augmented Gener
 | **Closing** | `/api/closing/followup` | `POST` | Generate timed follow-up messages across 4 cadence stages |
 | **Closing** | `/api/closing/interview-prep` | `POST` | Generate technical interview questions, model answers, and reverse questions |
 | **Closing** | `/api/closing/from-application/{id}/followup` | `POST` | Generate follow-up message directly from a tracked application ID |
+| **Market** | `/api/market/overview` | `GET` | Macroeconomic pipeline valuation, top-paying skills, and source volume |
+| **Market** | `/api/market/skills/roi` | `GET` | Ranked compensation benchmarks, demand counts, and growth trends |
+| **Market** | `/api/market/recommendations/upskill` | `GET` | Personalized high-yield upskilling roadmap matching developer profile |
+| **Market** | `/api/market/optimize-rate` | `POST` | Simulate Expected Value pricing curve ($EV = \text{Price} \times P_{\text{win}}$) |
 
 ---
 

@@ -95,6 +95,28 @@ const DOM = {
   interviewOutputBox: document.getElementById("interview-output-box"),
   interviewContentContainer: document.getElementById("interview-content-container"),
 
+  // Market Intelligence & Rate Optimizer Modal
+  btnOpenMarket: document.getElementById("btn-open-market"),
+  btnCloseMarket: document.getElementById("btn-close-market"),
+  marketModal: document.getElementById("market-modal"),
+  marketStatPipelineVal: document.getElementById("market-stat-pipeline-val"),
+  marketStatAvgBudget: document.getElementById("market-stat-avg-budget"),
+  marketStatTopSkill: document.getElementById("market-stat-top-skill"),
+  subtabBtnSkillsRoi: document.getElementById("subtab-btn-skills-roi"),
+  subtabBtnUpskill: document.getElementById("subtab-btn-upskill"),
+  subtabBtnRateOpt: document.getElementById("subtab-btn-rate-opt"),
+  sectionSkillsRoi: document.getElementById("section-skills-roi"),
+  sectionUpskill: document.getElementById("section-upskill"),
+  sectionRateOpt: document.getElementById("section-rate-opt"),
+  skillsRoiTableContainer: document.getElementById("skills-roi-table-container"),
+  upskillCardsContainer: document.getElementById("upskill-cards-container"),
+  optProjectTitle: document.getElementById("opt-project-title"),
+  optMatchScore: document.getElementById("opt-match-score"),
+  optHours: document.getElementById("opt-hours"),
+  optClientBudget: document.getElementById("opt-client-budget"),
+  btnCalculateRateOpt: document.getElementById("btn-calculate-rate-opt"),
+  rateOptOutputContainer: document.getElementById("rate-opt-output-container"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -238,6 +260,14 @@ function initEventListeners() {
   if (DOM.btnGenerateInterview) DOM.btnGenerateInterview.addEventListener("click", handleGenerateInterview);
   if (DOM.btnCopyNegotiation) DOM.btnCopyNegotiation.addEventListener("click", copyNegotiationResponse);
   if (DOM.btnCopyFollowup) DOM.btnCopyFollowup.addEventListener("click", copyFollowupResponse);
+
+  // Market Intelligence & Rate Optimizer
+  if (DOM.btnOpenMarket) DOM.btnOpenMarket.addEventListener("click", openMarketModal);
+  if (DOM.btnCloseMarket) DOM.btnCloseMarket.addEventListener("click", closeMarketModal);
+  if (DOM.subtabBtnSkillsRoi) DOM.subtabBtnSkillsRoi.addEventListener("click", () => switchMarketSubtab("skills-roi"));
+  if (DOM.subtabBtnUpskill) DOM.subtabBtnUpskill.addEventListener("click", () => switchMarketSubtab("upskill"));
+  if (DOM.subtabBtnRateOpt) DOM.subtabBtnRateOpt.addEventListener("click", () => switchMarketSubtab("rate-opt"));
+  if (DOM.btnCalculateRateOpt) DOM.btnCalculateRateOpt.addEventListener("click", handleCalculateRateOpt);
 }
 
 // 1. Data Fetching
@@ -941,5 +971,190 @@ function copyFollowupResponse() {
   if (DOM.followupBodyText) {
     navigator.clipboard.writeText(DOM.followupBodyText.textContent);
     showToast("Follow-up message copied to clipboard!", "success");
+  }
+}
+
+// ----------------------------------------------------
+// Market Intelligence & Rate Optimizer Logic
+// ----------------------------------------------------
+function openMarketModal() {
+  if (DOM.marketModal) {
+    DOM.marketModal.style.display = "flex";
+    loadMarketIntelligence();
+  }
+}
+
+function closeMarketModal() {
+  if (DOM.marketModal) {
+    DOM.marketModal.style.display = "none";
+  }
+}
+
+function switchMarketSubtab(tabName) {
+  const tabs = [
+    { name: "skills-roi", btn: DOM.subtabBtnSkillsRoi, sec: DOM.sectionSkillsRoi },
+    { name: "upskill", btn: DOM.subtabBtnUpskill, sec: DOM.sectionUpskill },
+    { name: "rate-opt", btn: DOM.subtabBtnRateOpt, sec: DOM.sectionRateOpt },
+  ];
+
+  tabs.forEach((t) => {
+    if (t.name === tabName) {
+      t.btn.classList.add("btn-primary");
+      t.btn.classList.remove("btn-ghost");
+      t.sec.style.display = "block";
+    } else {
+      t.btn.classList.remove("btn-primary");
+      t.btn.classList.add("btn-ghost");
+      t.sec.style.display = "none";
+    }
+  });
+}
+
+async function loadMarketIntelligence() {
+  try {
+    // 1. Overview
+    const resOverview = await fetch("/api/market/overview");
+    const overview = await resOverview.json();
+    if (DOM.marketStatPipelineVal) {
+      DOM.marketStatPipelineVal.textContent = `$${(overview.total_market_pipeline_value || 0).toLocaleString()}`;
+    }
+    if (DOM.marketStatAvgBudget) {
+      DOM.marketStatAvgBudget.textContent = `$${(overview.average_project_value || 0).toLocaleString()}`;
+    }
+    if (DOM.marketStatTopSkill && overview.top_paying_skills && overview.top_paying_skills.length > 0) {
+      const top = overview.top_paying_skills[0];
+      DOM.marketStatTopSkill.textContent = `${top.skill} ($${top.hourly_rate_benchmark}/hr)`;
+    }
+
+    // 2. Skill ROI Table
+    const resRoi = await fetch("/api/market/skills/roi");
+    const skills = await resRoi.json();
+    renderSkillsRoiTable(skills);
+
+    // 3. Upskill Recommendations
+    const resUpskill = await fetch("/api/market/recommendations/upskill");
+    const upskills = await resUpskill.json();
+    renderUpskillCards(upskills);
+  } catch (err) {
+    console.error("Failed to load market intelligence:", err);
+  }
+}
+
+function renderSkillsRoiTable(skills) {
+  if (!DOM.skillsRoiTableContainer) return;
+  if (!skills || skills.length === 0) {
+    DOM.skillsRoiTableContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">No skill metrics collected yet.</div>`;
+    return;
+  }
+
+  let html = `
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary);">
+          <th style="padding: 8px;">Technology</th>
+          <th style="padding: 8px;">Market Demand</th>
+          <th style="padding: 8px;">Avg Project Value</th>
+          <th style="padding: 8px;">Rate Benchmark</th>
+          <th style="padding: 8px;">Growth Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  skills.forEach((s) => {
+    html += `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+        <td style="padding: 8px; font-weight: 600; color: var(--text-primary);">${escapeHtml(s.skill)}</td>
+        <td style="padding: 8px; color: var(--accent-indigo);">${s.demand_count} jobs (${s.demand_share_pct}%)</td>
+        <td style="padding: 8px; color: var(--accent-emerald); font-weight: 600;">$${s.average_budget.toLocaleString()}</td>
+        <td style="padding: 8px; color: var(--text-primary); font-weight: 600;">$${s.hourly_rate_benchmark}/hr</td>
+        <td style="padding: 8px; color: var(--accent-purple);">+${s.growth_trend_pct}%</td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  DOM.skillsRoiTableContainer.innerHTML = html;
+}
+
+function renderUpskillCards(upskills) {
+  if (!DOM.upskillCardsContainer) return;
+  if (!upskills || upskills.length === 0) {
+    DOM.upskillCardsContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Profile skills fully optimized!</div>`;
+    return;
+  }
+
+  let html = "";
+  upskills.forEach((u) => {
+    html += `
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-weight: 700; font-size: 14px; color: var(--accent-indigo);">🚀 ${escapeHtml(u.target_skill)}</span>
+          <span class="badge" style="background: rgba(16,185,129,0.15); color: var(--accent-emerald); font-weight: 600;">+${u.projected_rate_increase_pct}% Rate Premium</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.4;">${escapeHtml(u.rationale)}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">
+          <strong>Synergy with your stack:</strong> ${escapeHtml(u.synergy_with_existing_stack.join(", "))} | 
+          <strong>Difficulty:</strong> ${escapeHtml(u.difficulty_level)}
+        </div>
+      </div>
+    `;
+  });
+
+  DOM.upskillCardsContainer.innerHTML = html;
+}
+
+async function handleCalculateRateOpt() {
+  const payload = {
+    project_title: DOM.optProjectTitle ? DOM.optProjectTitle.value || "Custom AI Development" : "Custom AI Development",
+    match_score: DOM.optMatchScore ? parseFloat(DOM.optMatchScore.value) || 80 : 80,
+    estimated_hours: DOM.optHours ? parseFloat(DOM.optHours.value) || 40 : 40,
+    client_budget: DOM.optClientBudget && DOM.optClientBudget.value ? parseFloat(DOM.optClientBudget.value) : null,
+    target_hourly_rate: STATE.profile && STATE.profile.target_hourly_rate ? STATE.profile.target_hourly_rate : 95,
+  };
+
+  DOM.btnCalculateRateOpt.disabled = true;
+  DOM.btnCalculateRateOpt.textContent = "Simulating Expected Value Curves...";
+
+  try {
+    const res = await fetch("/api/market/optimize-rate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (DOM.rateOptOutputContainer) {
+      let html = `<div style="font-weight: 700; font-size: 14px; color: var(--accent-emerald); margin-bottom: 12px;">📊 Pricing Optimization Strategies:</div>`;
+      html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">`;
+
+      data.strategies.forEach((st) => {
+        const isOptimal = st.hourly_rate === data.optimal_recommended_rate;
+        html += `
+          <div style="background: ${isOptimal ? "rgba(99,102,241,0.12)" : "rgba(255,255,255,0.03)"}; border: 1px solid ${isOptimal ? "var(--accent-indigo)" : "var(--border-subtle)"}; border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-size: 11px; font-weight: 700; color: ${isOptimal ? "var(--accent-indigo)" : "var(--text-muted)"}; text-transform: uppercase;">
+              ${escapeHtml(st.strategy_name)} ${isOptimal ? "⭐ (OPTIMAL EV)" : ""}
+            </div>
+            <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 4px 0;">
+              $${st.hourly_rate}/hr <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">($${st.total_project_estimate.toLocaleString()})</span>
+            </div>
+            <div style="font-size: 12px; color: var(--accent-emerald); margin-bottom: 6px;">
+              Win Prob: <strong>${st.win_probability_pct}%</strong> | Expected Yield: <strong>$${st.expected_yield_value.toLocaleString()}</strong>
+            </div>
+            <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${escapeHtml(st.recommendation_summary)}</div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      DOM.rateOptOutputContainer.innerHTML = html;
+      DOM.rateOptOutputContainer.style.display = "block";
+    }
+    showToast("Pricing curve simulation complete!", "success");
+  } catch (err) {
+    showToast("Failed to optimize pricing rate", "info");
+  } finally {
+    DOM.btnCalculateRateOpt.disabled = false;
+    DOM.btnCalculateRateOpt.textContent = "✨ Calculate Optimal Expected Value Quote";
   }
 }
