@@ -106,9 +106,7 @@ def build_proposal_prompt(
     target_rate = (
         f"${profile.target_hourly_rate:.0f}/hr" if profile.target_hourly_rate else "$90/hr"
     )
-    min_rate = (
-        f"${profile.minimum_hourly_rate:.0f}/hr" if profile.minimum_hourly_rate else "$50/hr"
-    )
+    min_rate = f"${profile.minimum_hourly_rate:.0f}/hr" if profile.minimum_hourly_rate else "$50/hr"
 
     angle_guide = PITCH_ANGLE_INSTRUCTIONS.get(pitch_angle, "")
 

@@ -220,7 +220,7 @@ Hi there,
 {pricing_md}
 {cta}
 
-Best regards,  
-**{profile_name}**  
+Best regards,
+**{profile_name}**
 {profile_title}
 """

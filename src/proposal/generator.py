@@ -4,7 +4,7 @@ Context-aware AI proposal generator coordinating LLM generation, heuristics, and
 
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 from src.ai.client import BaseLLMClient, get_llm_client
 from src.models.profile import UserProfile, get_default_profile
@@ -109,7 +109,6 @@ class ProposalGenerator:
                 raw_response = self.llm_client.generate(
                     prompt=prompt,
                     system_prompt=PROPOSAL_SYSTEM_PROMPT,
-                    temperature=0.4,
                 )
 
                 parsed_json = self._parse_llm_json(raw_response)
@@ -220,6 +219,7 @@ class ProposalGenerator:
         cleaned = cleaned.strip()
 
         try:
-            return json.loads(cleaned)
+            parsed = json.loads(cleaned)
+            return cast(dict[str, Any], parsed) if isinstance(parsed, dict) else None
         except Exception:
             return None
