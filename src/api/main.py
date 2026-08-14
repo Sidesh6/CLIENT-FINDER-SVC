@@ -22,6 +22,7 @@ from src.api.routes import (
     profile,
     projects,
     proposals,
+    scheduler,
     search,
 )
 from src.database.connection import init_db
@@ -68,6 +69,7 @@ app.include_router(proposals.router)
 app.include_router(profile.router)
 app.include_router(collectors.router)
 app.include_router(notifications.router)
+app.include_router(scheduler.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():

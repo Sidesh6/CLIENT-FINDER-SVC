@@ -584,6 +584,29 @@ class CollectionRunRepository:
         )
         return list(sess.scalars(stmt).all())
 
+    def create_run(
+        self,
+        source_name: str,
+        projects_found: int = 0,
+        new_projects: int = 0,
+        duration_seconds: float = 0.0,
+        status: str = "SUCCESS",
+        session: Session | None = None,
+    ) -> CollectionRunRecord:
+        """Create a completed run record directly."""
+        sess = self._get_session(session)
+        run = CollectionRunRecord(
+            source=source_name,
+            status=status,
+            items_collected=projects_found,
+            items_saved=new_projects,
+            duplicates_skipped=max(0, projects_found - new_projects),
+            completed_at=datetime.now(UTC),
+        )
+        sess.add(run)
+        sess.flush()
+        return run
+
     def get_recent_runs(
         self, limit: int = 20, session: Session | None = None
     ) -> list[CollectionRunRecord]:

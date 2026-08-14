@@ -23,6 +23,11 @@ class BaseCollector(ABC):
         """
         pass
 
+    @property
+    def name(self) -> str:
+        """Alias for source_name."""
+        return self.source_name
+
     def get_source_name(self) -> str:
         """
         Return the name of the source being collected.
