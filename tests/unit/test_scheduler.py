@@ -96,6 +96,40 @@ class TestPipelineCoordinator:
         assert len(result.errors) >= 1
         assert "Network timeout" in result.errors[0]
 
+    def test_coordinator_defaults_to_registry_active_collectors(self):
+        from src.collectors.registry import CollectorRegistry
+
+        registry = CollectorRegistry()
+        mock_col1 = MockCollector([])
+        mock_col1.source_name = "SourceOne"
+        mock_col2 = MockCollector([])
+        mock_col2.source_name = "SourceTwo"
+
+        registry.register(mock_col1, enabled=True)
+        registry.register(mock_col2, enabled=False)
+
+        coordinator = PipelineCoordinator(registry=registry)
+        result = coordinator.run_cycle()
+
+        assert "SourceOne" in result.sources_used
+        assert "SourceTwo" not in result.sources_used
+
+    def test_coordinator_records_registry_telemetry(self):
+        from src.collectors.registry import CollectorRegistry
+
+        registry = CollectorRegistry()
+        mock_col = MockCollector([{"title": "Test Proj", "description": "FastAPI project"}])
+        mock_col.source_name = "TelemetrySource"
+        registry.register(mock_col, enabled=True)
+
+        coordinator = PipelineCoordinator(registry=registry)
+        coordinator.run_cycle(dry_run=True)
+
+        state = registry.get_state("TelemetrySource")
+        assert state is not None
+        assert state.success_count == 1
+        assert state.total_items_collected == 1
+
 
 class TestPipelineScheduler:
     """Tests for background scheduler daemon thread and digest."""

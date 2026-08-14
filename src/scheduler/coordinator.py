@@ -12,7 +12,7 @@ from typing import Any, cast
 
 from src.ai.extractor import ProjectExtractor
 from src.collectors.base_collector import BaseCollector
-from src.collectors.hackernews_collector import HackerNewsCollector
+from src.collectors.registry import DEFAULT_REGISTRY, CollectorRegistry
 from src.database.connection import SessionLocal
 from src.database.models import ProjectModel
 from src.database.repository import ProjectRepository
@@ -40,24 +40,27 @@ class PipelineRunResult:
     opportunities_scored: int = 0
     high_priority_count: int = 0
     notifications_sent: int = 0
+    sources_used: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     success: bool = True
 
 
 class PipelineCoordinator:
     """
-    Unified coordinator executing full harvest-to-notification cycles.
+    Unified coordinator executing full harvest-to-notification cycles across active collectors.
     """
 
     def __init__(
         self,
         collectors: Sequence[BaseCollector] | None = None,
+        registry: CollectorRegistry | None = None,
         extractor: ProjectExtractor | None = None,
         scorer: OpportunityScorer | None = None,
         dispatcher: NotificationDispatcher | None = None,
         default_profile: UserProfile | None = None,
     ):
-        self.collectors = collectors if collectors is not None else [HackerNewsCollector()]
+        self.registry = registry or DEFAULT_REGISTRY
+        self.collectors = list(collectors) if collectors is not None else None
         self.extractor = extractor or ProjectExtractor()
         self.default_profile = default_profile or get_default_profile()
         self.scorer = scorer or OpportunityScorer(default_profile=self.default_profile)
@@ -77,7 +80,13 @@ class PipelineCoordinator:
         start_time = time.perf_counter()
         result = PipelineRunResult(started_at=datetime.now(UTC))
         active_profile = profile or self.default_profile
-        active_collectors = collectors or self.collectors
+
+        if collectors is not None:
+            active_collectors = list(collectors)
+        elif self.collectors is not None:
+            active_collectors = self.collectors
+        else:
+            active_collectors = self.registry.get_active_collectors()
 
         logger.info(
             "Starting automated pipeline cycle across %d collector(s)...", len(active_collectors)
@@ -85,18 +94,22 @@ class PipelineCoordinator:
 
         raw_items: list[dict[str, Any]] = []
 
-        # Step 1: Data Collection
+        # Step 1: Data Collection & Health Telemetry
         for col in active_collectors:
             col_name = getattr(col, "source_name", getattr(col, "name", str(col)))
+            if col_name not in result.sources_used:
+                result.sources_used.append(col_name)
             try:
                 if hasattr(col, "max_projects"):
                     col.max_projects = limit_per_collector
                 items = col.collect()
                 logger.info("Collector '%s' retrieved %d items.", col_name, len(items))
+                self.registry.record_success(col_name, len(items))
                 raw_items.extend(items)
             except Exception as exc:
                 err_msg = f"Collector '{col_name}' failed: {exc}"
                 logger.error(err_msg)
+                self.registry.record_failure(col_name, str(exc))
                 result.errors.append(err_msg)
 
         result.collected_count = len(raw_items)
@@ -202,8 +215,9 @@ class PipelineCoordinator:
         result.success = len(result.errors) == 0
 
         logger.info(
-            "Pipeline cycle completed in %.2fs. Found: %d, Saved: %d, High-Priority: %d, Alerts: %d",
+            "Pipeline cycle completed in %.2fs across %s. Found: %d, Saved: %d, High-Priority: %d, Alerts: %d",
             result.duration_seconds,
+            result.sources_used,
             result.collected_count,
             result.new_projects_saved,
             result.high_priority_count,
