@@ -2,7 +2,7 @@
 Pydantic API models for REST endpoints and dashboard data exchange.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -17,7 +17,7 @@ class HealthCheckResponse(BaseModel):
     database_connected: bool = True
     total_projects: int = 0
     total_opportunities: int = 0
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ProjectResponse(BaseModel):
@@ -33,7 +33,7 @@ class ProjectResponse(BaseModel):
     score: float | None = None
     status: str = "NEW"
     published_at: datetime | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     score_breakdown: OpportunityScoreBreakdown | None = None
     extracted_requirements: dict[str, Any] | None = None
 

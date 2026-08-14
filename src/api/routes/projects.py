@@ -28,7 +28,7 @@ def model_to_project_response(pm: ProjectModel) -> ProjectResponse:
         opp = pm.opportunity
         breakdown = OpportunityScoreBreakdown(
             overall_score=opp.overall_score,
-            skill_score=opp.skill_match_score or 0.0,
+            skill_match_score=opp.skill_match_score or 0.0,
             budget_score=opp.budget_score or 0.0,
             client_score=opp.client_score or 0.0,
             competition_score=opp.competition_score or 0.0,

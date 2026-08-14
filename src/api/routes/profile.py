@@ -4,6 +4,7 @@ Endpoints for managing developer profile, target compensation, and skill profici
 
 from fastapi import APIRouter
 
+from src.ai.schemas import ProjectCategory
 from src.api.schemas import UserProfileUpdateRequest
 from src.models.profile import SkillProficiency, UserProfile, get_default_profile
 
@@ -41,12 +42,25 @@ def update_profile(payload: UserProfileUpdateRequest) -> UserProfile:
             SkillProficiency(
                 name=s.get("name", ""),
                 proficiency=int(s.get("proficiency", 8)),
-                category=s.get("category"),
-                years_experience=float(s.get("years_experience", 2.0)),
+                years_of_experience=(
+                    float(s["years_experience"])
+                    if "years_experience" in s and s["years_experience"] is not None
+                    else None
+                ),
+                is_primary=bool(s.get("is_primary", True)),
             )
             for s in payload.skills
             if s.get("name")
         ]
+
+    categories = current.preferred_categories
+    if payload.preferred_categories is not None:
+        categories = []
+        for cat_str in payload.preferred_categories:
+            try:
+                categories.append(ProjectCategory(cat_str))
+            except Exception:
+                pass
 
     _ACTIVE_PROFILE = UserProfile(
         name=payload.name if payload.name is not None else current.name,
@@ -62,11 +76,7 @@ def update_profile(payload: UserProfileUpdateRequest) -> UserProfile:
             if payload.minimum_hourly_rate is not None
             else current.minimum_hourly_rate
         ),
-        preferred_categories=(
-            payload.preferred_categories
-            if payload.preferred_categories is not None
-            else current.preferred_categories
-        ),
+        preferred_categories=categories,
         skills=new_skills,
     )
 

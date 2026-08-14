@@ -2,6 +2,7 @@
 Unit tests for FastAPI REST API endpoints, routing, error handling, and dashboard service.
 """
 
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -24,13 +25,14 @@ def setup_test_db():
 
 @pytest.fixture
 def seed_test_project():
-    """Insert a sample test project into the SQLite database."""
+    """Insert a unique sample test project into the SQLite database."""
+    unique_id = uuid.uuid4().hex[:8]
     with next(get_db()) as session:
         proj = Project(
-            title="FastAPI & LangChain Microservice",
+            title=f"FastAPI & LangChain Microservice {unique_id}",
             description="Build scalable RAG microservice with pgvector",
             source="Hacker News",
-            source_url="https://example.com/api-test-job",
+            source_url=f"https://example.com/api-test-job-{unique_id}",
             skills=["FastAPI", "Python", "LangChain"],
             budget=4500.0,
             currency="USD",
@@ -207,14 +209,15 @@ class TestCollectorsEndpoints:
 
     @patch("src.collectors.hackernews_collector.HackerNewsCollector.collect")
     def test_trigger_collector(self, mock_collect):
+        uid = uuid.uuid4().hex[:8]
         mock_collect.return_value = [
-            Project(
-                title="Frontend React & TypeScript Specialist Needed",
-                description="Build UI dashboard",
-                source="Hacker News",
-                source_url="https://example.com/mock-hn-1",
-                skills=["React", "TypeScript"],
-            )
+            {
+                "title": "Frontend React & TypeScript Specialist Needed",
+                "description": "Build UI dashboard for data analytics platform",
+                "source": "Hacker News",
+                "source_url": f"https://news.ycombinator.com/item?id={uid}",
+                "skills": ["React", "TypeScript"],
+            }
         ]
         response = client.post("/api/collectors/trigger?limit=1")
         assert response.status_code == 200

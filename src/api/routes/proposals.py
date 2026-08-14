@@ -2,7 +2,7 @@
 Endpoints for generating context-aware proposals and automated pitch letters.
 """
 
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException
 
@@ -30,7 +30,7 @@ def _resolve_project(
             pm = session.get(ProjectModel, project_id)
             if not pm:
                 raise HTTPException(status_code=404, detail=f"Project ID {project_id} not found")
-            return pm.to_pydantic()
+            return cast(Project, pm.to_pydantic())
     elif project_data:
         return project_data
     else:

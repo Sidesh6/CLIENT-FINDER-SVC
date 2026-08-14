@@ -33,9 +33,9 @@ def send_test_notification() -> dict[str, Any]:
         "source_url": "https://example.com/test",
     }
     scorer = OpportunityScorer()
-    breakdown = scorer.score_opportunity(mock_project)
+    breakdown = scorer.score(mock_project)
 
-    results = dispatcher.broadcast_opportunity(mock_project, breakdown)
+    results = dispatcher.dispatch(mock_project, breakdown)
 
     return {
         "status": "sent",
@@ -56,11 +56,11 @@ def broadcast_opportunity_alert(project_id: int) -> dict[str, Any]:
 
         p_obj = pm.to_pydantic()
         scorer = OpportunityScorer()
-        breakdown = scorer.score_opportunity(p_obj)
+        breakdown = scorer.score(p_obj)
 
         console = ConsoleNotifier()
         dispatcher = NotificationDispatcher(channels=[console])
-        results = dispatcher.broadcast_opportunity(p_obj, breakdown)
+        results = dispatcher.dispatch(p_obj, breakdown)
 
         return {
             "status": "broadcasted",

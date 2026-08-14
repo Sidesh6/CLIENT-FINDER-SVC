@@ -117,7 +117,9 @@ def score_all_opportunities() -> dict[str, Any]:
         projects = session.scalars(select(ProjectModel)).all()
         for pm in projects:
             p_obj = pm.to_pydantic()
-            scorer.score_and_persist(p_obj, profile=profile, session=session)
+            scorer.score_and_persist(
+                project_id=pm.id, project=p_obj, session=session, profile=profile
+            )
             scored_count += 1
 
     return {

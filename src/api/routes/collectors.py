@@ -73,12 +73,14 @@ def trigger_collector(
 
     with SessionLocal() as session:
         repo = ProjectRepository(session)
-        added_models = repo.add_many(enriched)
+        added_models = repo.add_many(list(enriched))
         session.commit()
 
         for pm in added_models:
             p_obj = pm.to_pydantic()
-            scorer.score_and_persist(p_obj, profile=profile, session=session)
+            scorer.score_and_persist(
+                project_id=pm.id, project=p_obj, session=session, profile=profile
+            )
             scored_count += 1
 
     return CollectorTriggerResponse(
