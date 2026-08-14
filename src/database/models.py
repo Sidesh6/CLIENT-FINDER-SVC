@@ -161,6 +161,7 @@ class ProjectModel(Base):
 
     def to_pydantic(self) -> Project:
         """Convert ORM model to Pydantic Project model."""
+        meta = self.raw_data if isinstance(self.raw_data, dict) else {}
         return Project(
             title=self.title,
             description=self.description,
@@ -171,6 +172,10 @@ class ProjectModel(Base):
             currency=self.currency,
             project_type=self.project_type,
             skills=self.skills or [],
+            category=meta.get("category"),
+            complexity=meta.get("complexity"),
+            deliverables=meta.get("deliverables") or [],
+            confidence_score=meta.get("confidence_score"),
             project_start_date=self.posted_at,
             project_end_date=self.deadline,
             score=self.score,
@@ -191,6 +196,17 @@ class ProjectModel(Base):
         """
         u_hash = compute_url_hash(str(project.source_url))
         c_hash = compute_content_hash(project.title, project.description)
+
+        meta = dict(raw_data) if raw_data else {}
+        if project.category:
+            meta["category"] = project.category
+        if project.complexity:
+            meta["complexity"] = project.complexity
+        if project.deliverables:
+            meta["deliverables"] = project.deliverables
+        if project.confidence_score is not None:
+            meta["confidence_score"] = project.confidence_score
+
         return cls(
             source_id=source_id,
             source=project.source,
@@ -209,7 +225,7 @@ class ProjectModel(Base):
             score=project.score,
             posted_at=project.project_start_date,
             deadline=project.project_end_date,
-            raw_data=raw_data,
+            raw_data=meta or None,
         )
 
 
