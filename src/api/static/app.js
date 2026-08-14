@@ -4,9 +4,11 @@
 
 const STATE = {
   projects: [],
+  applications: [],
   profile: null,
   activePitchAngle: "TECHNICAL_EXPERT",
   currentModalProject: null,
+  lastGeneratedProposal: null,
   searchDebounceTimer: null,
 };
 
@@ -15,9 +17,14 @@ const DOM = {
   // Stats
   statTotalLeads: document.getElementById("stat-total-leads"),
   statHighPriority: document.getElementById("stat-high-priority"),
-  statAvgScore: document.getElementById("stat-avg-score"),
-  statDevRate: document.getElementById("stat-dev-rate"),
+  statWinRate: document.getElementById("stat-win-rate"),
+  statRealizedRev: document.getElementById("stat-realized-rev"),
   resultsCount: document.getElementById("results-count"),
+  appsCount: document.getElementById("apps-count"),
+
+  // Navigation Tabs
+  navTabs: document.querySelectorAll(".nav-tab"),
+  tabPanes: document.querySelectorAll(".tab-pane"),
 
   // Filters
   searchInput: document.getElementById("search-input"),
@@ -28,9 +35,16 @@ const DOM = {
   filterMinScore: document.getElementById("filter-min-score"),
   sliderVal: document.getElementById("slider-val"),
   btnRefresh: document.getElementById("btn-refresh"),
+  btnRefreshApps: document.getElementById("btn-refresh-apps"),
+  btnRefreshAnalytics: document.getElementById("btn-refresh-analytics"),
 
   // Containers
   opportunitiesContainer: document.getElementById("opportunities-container"),
+  applicationsContainer: document.getElementById("applications-container"),
+  funnelContainer: document.getElementById("funnel-container"),
+  pitchAnglesContainer: document.getElementById("pitch-angles-container"),
+  skillsAnalyticsContainer: document.getElementById("skills-analytics-container"),
+  insightsContainer: document.getElementById("insights-container"),
 
   // Sources Modal & Harvest
   selectHarvestSource: document.getElementById("select-harvest-source"),
@@ -66,6 +80,7 @@ const DOM = {
   proposalSubjectBox: document.getElementById("proposal-subject-box"),
   proposalTextBox: document.getElementById("proposal-text-box"),
   btnCopyProposal: document.getElementById("btn-copy-proposal"),
+  btnTrackApplication: document.getElementById("btn-track-application"),
   btnCloseModal: document.getElementById("btn-close-modal"),
 
   // Toast
@@ -81,6 +96,28 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initEventListeners() {
+  // Tab Switching
+  DOM.navTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      DOM.navTabs.forEach((t) => t.classList.remove("active"));
+      DOM.tabPanes.forEach((p) => {
+        p.classList.remove("active");
+        p.style.display = "none";
+      });
+
+      tab.classList.add("active");
+      const targetId = tab.getAttribute("data-tab");
+      const targetPane = document.getElementById(targetId);
+      if (targetPane) {
+        targetPane.classList.add("active");
+        targetPane.style.display = "block";
+      }
+
+      if (targetId === "tab-pipeline") fetchApplications();
+      if (targetId === "tab-analytics") fetchAnalytics();
+    });
+  });
+
   // Filters & Search
   DOM.searchInput.addEventListener("input", (e) => {
     DOM.btnClearSearch.style.display = e.target.value ? "block" : "none";
@@ -106,7 +143,6 @@ function initEventListeners() {
   DOM.btnRefresh.addEventListener("click", () => {
     fetchOpportunities();
     loadStats();
-    showToast("Feed refreshed", "info");
   });
 
   // Collector Harvest & Sources Modal
@@ -119,7 +155,8 @@ function initEventListeners() {
   DOM.btnCloseDrawer.addEventListener("click", closeProfileDrawer);
   DOM.btnSaveProfile.addEventListener("click", saveProfileChanges);
 
-  // Pitch Angle Chips
+  // Proposal Modal
+  DOM.btnCloseModal.addEventListener("click", closeModal);
   DOM.pitchChips.forEach((chip) => {
     chip.addEventListener("click", () => {
       DOM.pitchChips.forEach((c) => c.classList.remove("active"));
@@ -240,6 +277,20 @@ function renderOpportunities(projects) {
           <span class="source-badge">🔗 ${escapeHtml(p.source)}</span>
           <div class="score-badge ${badgeClass}">${score.toFixed(1)} Match</div>
         </div>
+      </article>
+    `;
+    })
+    .join("");
+}
+
+// 2. Applications Pipeline View
+async function fetchApplications() {
+  DOM.applicationsContainer.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading application pipeline...</p>
+    </div>
+  `;
 
         <h3 class="opp-title">
           <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.title)}</a>
@@ -251,7 +302,7 @@ function renderOpportunities(projects) {
           ${p.client_name ? `<span class="meta-item">👤 ${escapeHtml(p.client_name)}</span>` : ""}
         </div>
 
-        <p class="opp-desc">${escapeHtml(p.description)}</p>
+        <h4 class="app-title">${escapeHtml(a.project_title || "Project Opportunity #" + a.project_id)}</h4>
 
         <div class="skills-wrap">${skillsHtml}</div>
 
@@ -403,6 +454,7 @@ async function generateProposal() {
       body: JSON.stringify(payload),
     });
     const result = await res.json();
+    STATE.lastGeneratedProposal = result;
     displayProposalResult(result);
   } catch (err) {
     showToast("Error generating proposal", "info");
@@ -424,6 +476,36 @@ function copyProposalToClipboard() {
   navigator.clipboard.writeText(fullText).then(() => {
     showToast("Proposal copied to clipboard! 📋", "success");
   });
+}
+
+async function trackCurrentProposal() {
+  if (!STATE.currentModalProject || !STATE.lastGeneratedProposal) return;
+
+  try {
+    const payload = {
+      project_id: STATE.currentModalProject.id,
+      status: "APPLIED",
+      proposed_budget: STATE.lastGeneratedProposal.suggested_rate || 0,
+      currency: "USD",
+      proposal_text: STATE.lastGeneratedProposal.full_proposal_text,
+      pitch_angle: STATE.lastGeneratedProposal.pitch_angle,
+      notes: `Proposal generated with quality score ${STATE.lastGeneratedProposal.quality_score}`,
+    };
+
+    const res = await fetch("/api/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      showToast("Application tracked into live pipeline! 🚀", "success");
+      closeModal();
+      loadStats();
+    }
+  } catch (err) {
+    showToast("Error tracking application", "info");
+  }
 }
 
 function closeModal() {
@@ -489,7 +571,6 @@ async function saveProfileChanges() {
       body: JSON.stringify(payload),
     });
     STATE.profile = await res.json();
-    DOM.statDevRate.textContent = `$${STATE.profile.target_hourly_rate}/hr`;
     showToast("Profile updated & scores recalculated!", "success");
     closeProfileDrawer();
     fetchOpportunities();
