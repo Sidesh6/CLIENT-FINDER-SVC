@@ -62,6 +62,39 @@ const DOM = {
   inputCustomFeedUrl: document.getElementById("input-custom-feed-url"),
   btnAddCustomFeed: document.getElementById("btn-add-custom-feed"),
 
+  // Closing & Negotiation Studio Modal
+  btnOpenNegotiation: document.getElementById("btn-open-negotiation"),
+  btnCloseNegotiation: document.getElementById("btn-close-negotiation"),
+  negotiationModal: document.getElementById("negotiation-modal"),
+  subtabBtnObjection: document.getElementById("subtab-btn-objection"),
+  subtabBtnFollowup: document.getElementById("subtab-btn-followup"),
+  subtabBtnInterview: document.getElementById("subtab-btn-interview"),
+  sectionObjection: document.getElementById("section-objection-studio"),
+  sectionFollowup: document.getElementById("section-followup-studio"),
+  sectionInterview: document.getElementById("section-interview-studio"),
+  negObjectionType: document.getElementById("neg-objection-type"),
+  negStrategy: document.getElementById("neg-strategy"),
+  negProjectTitle: document.getElementById("neg-project-title"),
+  negTargetRate: document.getElementById("neg-target-rate"),
+  negClientBudget: document.getElementById("neg-client-budget"),
+  btnGenerateNegotiation: document.getElementById("btn-generate-negotiation"),
+  negOutputBox: document.getElementById("neg-output-box"),
+  negResponseText: document.getElementById("neg-response-text"),
+  negCounterOfferText: document.getElementById("neg-counter-offer-text"),
+  btnCopyNegotiation: document.getElementById("btn-copy-negotiation"),
+  followupStage: document.getElementById("followup-stage"),
+  followupClientName: document.getElementById("followup-client-name"),
+  btnGenerateFollowup: document.getElementById("btn-generate-followup"),
+  followupOutputBox: document.getElementById("followup-output-box"),
+  followupSubjectDisplay: document.getElementById("followup-subject-display"),
+  followupBodyText: document.getElementById("followup-body-text"),
+  followupTimingText: document.getElementById("followup-timing-text"),
+  btnCopyFollowup: document.getElementById("btn-copy-followup"),
+  interviewProjectTitle: document.getElementById("interview-project-title"),
+  btnGenerateInterview: document.getElementById("btn-generate-interview"),
+  interviewOutputBox: document.getElementById("interview-output-box"),
+  interviewContentContainer: document.getElementById("interview-content-container"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -193,6 +226,18 @@ function initEventListeners() {
   DOM.btnGenerateProposal.addEventListener("click", generateProposal);
   DOM.btnCopyProposal.addEventListener("click", copyProposalToClipboard);
   DOM.btnCloseModal.addEventListener("click", closeModal);
+
+  // Closing & Negotiation Studio
+  if (DOM.btnOpenNegotiation) DOM.btnOpenNegotiation.addEventListener("click", openNegotiationModal);
+  if (DOM.btnCloseNegotiation) DOM.btnCloseNegotiation.addEventListener("click", closeNegotiationModal);
+  if (DOM.subtabBtnObjection) DOM.subtabBtnObjection.addEventListener("click", () => switchNegotiationSubtab("objection"));
+  if (DOM.subtabBtnFollowup) DOM.subtabBtnFollowup.addEventListener("click", () => switchNegotiationSubtab("followup"));
+  if (DOM.subtabBtnInterview) DOM.subtabBtnInterview.addEventListener("click", () => switchNegotiationSubtab("interview"));
+  if (DOM.btnGenerateNegotiation) DOM.btnGenerateNegotiation.addEventListener("click", handleGenerateNegotiation);
+  if (DOM.btnGenerateFollowup) DOM.btnGenerateFollowup.addEventListener("click", handleGenerateFollowup);
+  if (DOM.btnGenerateInterview) DOM.btnGenerateInterview.addEventListener("click", handleGenerateInterview);
+  if (DOM.btnCopyNegotiation) DOM.btnCopyNegotiation.addEventListener("click", copyNegotiationResponse);
+  if (DOM.btnCopyFollowup) DOM.btnCopyFollowup.addEventListener("click", copyFollowupResponse);
 }
 
 // 1. Data Fetching
@@ -729,5 +774,172 @@ function handleLiveEvent(event) {
     fetchAnalytics();
   } else if (type === "COLLECTOR_STATUS_CHANGED") {
     loadSourcesHealth();
+  }
+}
+
+// ----------------------------------------------------
+// Closing & Negotiation Studio Logic
+// ----------------------------------------------------
+function openNegotiationModal() {
+  if (DOM.negotiationModal) {
+    DOM.negotiationModal.style.display = "flex";
+    if (STATE.profile && DOM.negTargetRate) {
+      DOM.negTargetRate.value = STATE.profile.target_hourly_rate || 95;
+    }
+  }
+}
+
+function closeNegotiationModal() {
+  if (DOM.negotiationModal) {
+    DOM.negotiationModal.style.display = "none";
+  }
+}
+
+function switchNegotiationSubtab(tabName) {
+  const tabs = [
+    { name: "objection", btn: DOM.subtabBtnObjection, sec: DOM.sectionObjection },
+    { name: "followup", btn: DOM.subtabBtnFollowup, sec: DOM.sectionFollowup },
+    { name: "interview", btn: DOM.subtabBtnInterview, sec: DOM.sectionInterview },
+  ];
+
+  tabs.forEach((t) => {
+    if (t.name === tabName) {
+      t.btn.classList.add("btn-primary");
+      t.btn.classList.remove("btn-ghost");
+      t.sec.style.display = "block";
+    } else {
+      t.btn.classList.remove("btn-primary");
+      t.btn.classList.add("btn-ghost");
+      t.sec.style.display = "none";
+    }
+  });
+}
+
+async function handleGenerateNegotiation() {
+  const payload = {
+    project_title: DOM.negProjectTitle ? DOM.negProjectTitle.value || "Senior Engineering Lead" : "Senior Engineering Lead",
+    project_description: "Project scope and deliverables",
+    objection_type: DOM.negObjectionType ? DOM.negObjectionType.value : "RATE_TOO_HIGH",
+    strategy: DOM.negStrategy ? DOM.negStrategy.value : "VALUE_ANCHORING",
+    target_hourly_rate: DOM.negTargetRate ? parseFloat(DOM.negTargetRate.value) || 95 : 95,
+    client_budget: DOM.negClientBudget && DOM.negClientBudget.value ? parseFloat(DOM.negClientBudget.value) : null,
+  };
+
+  DOM.btnGenerateNegotiation.disabled = true;
+  DOM.btnGenerateNegotiation.textContent = "Analyzing Objection Strategy...";
+
+  try {
+    const res = await fetch("/api/closing/negotiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (DOM.negResponseText) DOM.negResponseText.textContent = data.recommended_response;
+    if (DOM.negCounterOfferText) DOM.negCounterOfferText.textContent = `💡 Alternative Offer: ${data.alternative_counter_offer}`;
+    if (DOM.negOutputBox) DOM.negOutputBox.style.display = "block";
+    showToast("Strategic response script synthesized!", "success");
+  } catch (err) {
+    showToast("Failed to generate negotiation script", "info");
+  } finally {
+    DOM.btnGenerateNegotiation.disabled = false;
+    DOM.btnGenerateNegotiation.textContent = "✨ Generate Strategic Response Script";
+  }
+}
+
+async function handleGenerateFollowup() {
+  const payload = {
+    project_title: DOM.negProjectTitle ? DOM.negProjectTitle.value || "Software Development Project" : "Software Development Project",
+    project_description: "Project architecture and milestone delivery",
+    client_name: DOM.followupClientName ? DOM.followupClientName.value || null : null,
+    stage: DOM.followupStage ? DOM.followupStage.value : "DAY_3_CHECKIN",
+  };
+
+  DOM.btnGenerateFollowup.disabled = true;
+  DOM.btnGenerateFollowup.textContent = "Drafting Follow-up...";
+
+  try {
+    const res = await fetch("/api/closing/followup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (DOM.followupSubjectDisplay) DOM.followupSubjectDisplay.textContent = `Subject: ${data.subject_line}`;
+    if (DOM.followupBodyText) DOM.followupBodyText.textContent = data.body_text;
+    if (DOM.followupTimingText) DOM.followupTimingText.textContent = `📅 Best Timing: ${data.recommended_send_timing}`;
+    if (DOM.followupOutputBox) DOM.followupOutputBox.style.display = "block";
+    showToast("Follow-up draft ready!", "success");
+  } catch (err) {
+    showToast("Failed to generate follow-up", "info");
+  } finally {
+    DOM.btnGenerateFollowup.disabled = false;
+    DOM.btnGenerateFollowup.textContent = "✨ Draft Follow-Up Message";
+  }
+}
+
+async function handleGenerateInterview() {
+  const title = DOM.interviewProjectTitle ? DOM.interviewProjectTitle.value.trim() || "Full-Stack AI Architecture Lead" : "Full-Stack AI Architecture Lead";
+
+  DOM.btnGenerateInterview.disabled = true;
+  DOM.btnGenerateInterview.textContent = "Preparing Architectural Cheatsheet...";
+
+  try {
+    const res = await fetch("/api/closing/interview-prep", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_title: title,
+        project_description: "Core distributed microservice architecture and data pipelines",
+        skills: ["Python", "FastAPI", "PostgreSQL", "RAG"],
+      }),
+    });
+
+    const data = await res.json();
+    if (DOM.interviewContentContainer) {
+      let html = `<div style="margin-bottom: 12px; font-weight: 600; color: var(--accent-indigo);">📌 ${escapeHtml(data.architecture_overview)}</div>`;
+      html += `<div style="font-weight: 600; margin-bottom: 8px; color: var(--accent-emerald);">🎯 Anticipated Technical Questions & Model Answers:</div>`;
+
+      data.likely_questions.forEach((q, idx) => {
+        html += `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; margin-bottom: 8px;">
+            <div style="font-weight: 600; font-size: 13px; color: var(--text-primary); margin-bottom: 4px;">Q${idx+1}: ${escapeHtml(q.question)}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">${escapeHtml(q.model_answer)}</div>
+          </div>
+        `;
+      });
+
+      html += `<div style="font-weight: 600; margin: 12px 0 6px 0; color: var(--accent-purple);">❓ Strategic Reverse Questions to Ask Client:</div>`;
+      html += `<ul style="padding-left: 20px; font-size: 12px; color: var(--text-secondary);">`;
+      data.reverse_questions_to_ask_client.forEach((rq) => {
+        html += `<li>${escapeHtml(rq)}</li>`;
+      });
+      html += `</ul>`;
+
+      DOM.interviewContentContainer.innerHTML = html;
+    }
+    if (DOM.interviewOutputBox) DOM.interviewOutputBox.style.display = "block";
+    showToast("Interview prep guide generated!", "success");
+  } catch (err) {
+    showToast("Failed to generate interview prep", "info");
+  } finally {
+    DOM.btnGenerateInterview.disabled = false;
+    DOM.btnGenerateInterview.textContent = "✨ Generate Interview Cheatsheet";
+  }
+}
+
+function copyNegotiationResponse() {
+  if (DOM.negResponseText) {
+    navigator.clipboard.writeText(DOM.negResponseText.textContent);
+    showToast("Negotiation script copied to clipboard!", "success");
+  }
+}
+
+function copyFollowupResponse() {
+  if (DOM.followupBodyText) {
+    navigator.clipboard.writeText(DOM.followupBodyText.textContent);
+    showToast("Follow-up message copied to clipboard!", "success");
   }
 }

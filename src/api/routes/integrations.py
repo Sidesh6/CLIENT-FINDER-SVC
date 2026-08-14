@@ -6,7 +6,7 @@ Allows configuring endpoints and testing HMAC-SHA256 authenticated webhook dispa
 from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 from src.models.project import Project
 from src.notifications.webhooks import (
@@ -68,7 +68,7 @@ def test_webhook_dispatch(req: WebhookTestRequest) -> list[dict[str, Any]]:
         title="Senior Python & FastAPI AI Architect",
         description="Build high-throughput RAG microservices and autonomous agents.",
         source="ClientFinderTest",
-        source_url="https://example.com/test-opportunity",
+        source_url=HttpUrl("https://example.com/test-opportunity"),
         skills=["Python", "FastAPI", "LangChain", "RAG"],
         budget=8500.0,
     )

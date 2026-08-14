@@ -36,6 +36,9 @@
           <span class="btn-icon">⚡</span>
           <span>Harvest Leads</span>
         </button>
+        <button id="btn-open-negotiation" class="btn btn-ghost">
+          <span>💬 Closing Studio</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -323,6 +326,116 @@
             <button id="btn-add-custom-feed" class="btn btn-sm btn-primary" style="align-self: flex-start;">
               Verify & Register Feed
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Negotiation, Follow-Up & Interview Prep Studio Modal -->
+  <div id="negotiation-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 780px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">💬 Negotiation & Closing Studio</h3>
+          <p class="modal-subtitle">Generate high-conversion objection counter-offers, follow-up messages, and interview prep</p>
+        </div>
+        <button id="btn-close-negotiation" class="btn-close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Subtabs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+          <button id="subtab-btn-objection" class="btn btn-sm btn-primary">🛡️ Objection Counter-Offers</button>
+          <button id="subtab-btn-followup" class="btn btn-sm btn-ghost">⏰ Follow-Up Sequences</button>
+          <button id="subtab-btn-interview" class="btn btn-sm btn-ghost">🎯 Technical Interview Prep</button>
+        </div>
+
+        <!-- Section 1: Objection Handler -->
+        <div id="section-objection-studio">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="neg-objection-type">Client Objection Type</label>
+              <select id="neg-objection-type" class="select-control">
+                <option value="RATE_TOO_HIGH">Rate Too High / Budget Constraints</option>
+                <option value="FIXED_PRICE_REQUEST">Requesting Fixed Price Milestone</option>
+                <option value="TIGHT_DEADLINE">Urgent / Accelerated Timeline</option>
+                <option value="SCOPE_UNCERTAINTY">Unclear / Evolving Project Scope</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="neg-strategy">Counter-Offer Strategy</label>
+              <select id="neg-strategy" class="select-control">
+                <option value="VALUE_ANCHORING">Value Anchoring (ROI & Seniority Focus)</option>
+                <option value="SCOPE_MODULATION">Scope Modulation (Trim Non-Core Features)</option>
+                <option value="DISCOUNT_FOR_TERM">Term Discount (Retainer / 2-Month Min)</option>
+                <option value="MILESTONE_SPLIT">Milestone Split (Phased Escrow)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="neg-project-title">Project Title / Context</label>
+            <input type="text" id="neg-project-title" class="text-input" placeholder="e.g., Senior FastAPI & RAG Engineer">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="neg-target-rate">Your Target Rate ($/hr)</label>
+              <input type="number" id="neg-target-rate" class="text-input" value="95">
+            </div>
+            <div class="form-group">
+              <label for="neg-client-budget">Client Stated Budget ($) (Optional)</label>
+              <input type="number" id="neg-client-budget" class="text-input" placeholder="e.g. 5000">
+            </div>
+          </div>
+          <button id="btn-generate-negotiation" class="btn btn-primary btn-block">✨ Generate Strategic Response Script</button>
+
+          <div id="neg-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
+            <div class="output-header">
+              <span style="font-weight: 600; color: var(--accent-indigo);">Recommended Client Script:</span>
+              <button id="btn-copy-negotiation" class="btn btn-sm btn-accent">📋 Copy Response</button>
+            </div>
+            <div id="neg-response-text" class="proposal-markdown-content"></div>
+            <div id="neg-counter-offer-text" style="margin-top: 10px; font-size: 13px; color: var(--accent-emerald);"></div>
+          </div>
+        </div>
+
+        <!-- Section 2: Follow-Up Sequences -->
+        <div id="section-followup-studio" style="display: none;">
+          <div class="form-group">
+            <label for="followup-stage">Follow-Up Cadence Stage</label>
+            <select id="followup-stage" class="select-control">
+              <option value="DAY_3_CHECKIN">Day 3 — Soft Touchpoint & Confirmation</option>
+              <option value="DAY_7_VALUE_ADD">Day 7 — Value-Add Architectural Insight</option>
+              <option value="DAY_14_BREAKUP">Day 14 — Polite Breakup Email</option>
+              <option value="REVIVE_COLD_LEAD">Day 30+ — Revive Cold Lead with Case Study</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="followup-client-name">Client Name (Optional)</label>
+            <input type="text" id="followup-client-name" class="text-input" placeholder="e.g., Alex">
+          </div>
+          <button id="btn-generate-followup" class="btn btn-primary btn-block">✨ Draft Follow-Up Message</button>
+
+          <div id="followup-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
+            <div class="output-header">
+              <span id="followup-subject-display" style="font-weight: 600; color: var(--accent-indigo);"></span>
+              <button id="btn-copy-followup" class="btn btn-sm btn-accent">📋 Copy Message</button>
+            </div>
+            <div id="followup-body-text" class="proposal-markdown-content"></div>
+            <div id="followup-timing-text" style="margin-top: 10px; font-size: 12px; color: var(--text-muted);"></div>
+          </div>
+        </div>
+
+        <!-- Section 3: Technical Interview Prep -->
+        <div id="section-interview-studio" style="display: none;">
+          <div class="form-group">
+            <label for="interview-project-title">Target Opportunity Title</label>
+            <input type="text" id="interview-project-title" class="text-input" placeholder="e.g., AI Microservices Lead">
+          </div>
+          <button id="btn-generate-interview" class="btn btn-primary btn-block">✨ Generate Interview Cheatsheet</button>
+
+          <div id="interview-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
+            <div id="interview-content-container"></div>
           </div>
         </div>
       </div>

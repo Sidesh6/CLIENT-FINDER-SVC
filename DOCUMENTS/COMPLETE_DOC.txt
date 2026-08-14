@@ -143,6 +143,12 @@ subpackages in `src/`:
 - Implemented outbound webhook integration manager (`OutboundWebhookManager`) with HMAC-SHA256 payload signing.
 - Enhanced Glassmorphic Web Dashboard with live status badge, instant toast stream, and custom feed manager.
 
+[PHASE 14: AI Client Negotiation, Follow-Up & Technical Interview Prep Studio]
+- Created `NegotiationAdvisor` with 5 strategies (`VALUE_ANCHORING`, `SCOPE_MODULATION`, `MILESTONE_SPLIT`, `DISCOUNT_FOR_TERM`, `DEPOSIT_RETAINER`).
+- Implemented `FollowUpManager` synthesizing timed messages for Day 3, Day 7, Day 14, and Cold Lead revival.
+- Developed `InterviewPrepAdvisor` generating architectural questions, model answers, and reverse client questions.
+- Built interactive "💬 Negotiation & Closing Studio" modal into the Web Dashboard.
+
 ===============================================================================
 4. DATA PIPELINE & END-TO-END EXECUTION FLOW
 ===============================================================================

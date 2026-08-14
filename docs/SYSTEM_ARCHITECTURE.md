@@ -304,6 +304,10 @@ When generating proposals, the system executes dynamic Retrieval-Augmented Gener
 | **Export** | `/api/export/proposals/{id}/markdown` | `GET` | Download standalone proposal formatted in GitHub Markdown |
 | **Integrations** | `/api/integrations/webhooks` | `GET` / `POST` | Manage outbound HMAC-SHA256 authenticated webhook targets |
 | **Integrations** | `/api/integrations/webhooks/test` | `POST` | Dispatch test payload to verify target webhook reception |
+| **Closing** | `/api/closing/negotiate` | `POST` | Generate objection counter-offers and response scripts |
+| **Closing** | `/api/closing/followup` | `POST` | Generate timed follow-up messages across 4 cadence stages |
+| **Closing** | `/api/closing/interview-prep` | `POST` | Generate technical interview questions, model answers, and reverse questions |
+| **Closing** | `/api/closing/from-application/{id}/followup` | `POST` | Generate follow-up message directly from a tracked application ID |
 
 ---
 
