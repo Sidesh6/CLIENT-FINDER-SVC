@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,11 @@
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
 </head>
+
 <body>
   <div class="app-shell">
     <!-- Top Navigation Header -->
@@ -38,6 +42,9 @@
         </button>
         <button id="btn-open-market" class="btn btn-ghost">
           <span>📈 Market Intel</span>
+        </button>
+        <button id="btn-open-contracts" class="btn btn-ghost">
+          <span>📋 SOW & Audit</span>
         </button>
         <button id="btn-open-negotiation" class="btn btn-ghost">
           <span>💬 Closing Studio</span>
@@ -90,7 +97,8 @@
       <section class="toolbar-card">
         <div class="search-input-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Search by tech stack (Python, FastAPI, RAG), client or keywords..." autocomplete="off">
+          <input type="text" id="search-input"
+            placeholder="Search by tech stack (Python, FastAPI, RAG), client or keywords..." autocomplete="off">
           <button id="btn-clear-search" class="clear-btn" style="display: none;">✕</button>
         </div>
 
@@ -113,7 +121,8 @@
           </select>
 
           <div class="score-slider-container">
-            <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val" class="score-val-badge">0</span></label>
+            <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val"
+                class="score-val-badge">0</span></label>
             <input type="range" id="filter-min-score" min="0" max="90" step="5" value="0" class="range-slider">
           </div>
         </div>
@@ -145,7 +154,8 @@
         </select>
 
         <div class="score-slider-container">
-          <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val" class="score-val-badge">0</span></label>
+          <label for="filter-min-score" class="slider-label">Min Score: <span id="slider-val"
+              class="score-val-badge">0</span></label>
           <input type="range" id="filter-min-score" min="0" max="90" step="5" value="0" class="range-slider">
         </div>
 
@@ -155,419 +165,536 @@
             <p>Scanning opportunities and calculating real-time match scores...</p>
           </div>
         </div>
-      </main>
-    </div>
-
-    <!-- TAB 2: APPLICATIONS PIPELINE VIEW -->
-    <div id="tab-pipeline" class="tab-pane" style="display: none;">
-      <div class="content-header">
-        <h2 class="section-title">Application Lifecycle Pipeline <span id="apps-count" class="count-pill">0</span></h2>
-        <button id="btn-refresh-apps" class="btn btn-sm btn-ghost">🔄 Refresh Pipeline</button>
+        </main>
       </div>
 
-      <div id="applications-container" class="pipeline-grid">
-        <!-- Injected via app.js -->
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Loading application tracking stages...</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: CONVERSION ANALYTICS VIEW -->
-    <div id="tab-analytics" class="tab-pane" style="display: none;">
-      <div class="content-header">
-        <h2 class="section-title">Outcome Intelligence & Conversion Funnel</h2>
-        <button id="btn-refresh-analytics" class="btn btn-sm btn-ghost">🔄 Refresh Intelligence</button>
-      </div>
-
-      <div class="analytics-layout">
-        <!-- Conversion Funnel Card -->
-        <div class="analytics-card">
-          <h3 class="card-heading">🎯 Application Conversion Funnel</h3>
-          <div id="funnel-container" class="funnel-display">
-            <!-- Rendered via app.js -->
-          </div>
+      <!-- TAB 2: APPLICATIONS PIPELINE VIEW -->
+      <div id="tab-pipeline" class="tab-pane" style="display: none;">
+        <div class="content-header">
+          <h2 class="section-title">Application Lifecycle Pipeline <span id="apps-count" class="count-pill">0</span>
+          </h2>
+          <button id="btn-refresh-apps" class="btn btn-sm btn-ghost">🔄 Refresh Pipeline</button>
         </div>
 
-        <!-- Strategic Pitch Angles Performance -->
-        <div class="analytics-card">
-          <h3 class="card-heading">🧠 Pitch Angle Effectiveness</h3>
-          <div id="pitch-angles-container" class="table-responsive">
-            <!-- Rendered via app.js -->
-          </div>
-        </div>
-
-        <!-- High-Converting Skills -->
-        <div class="analytics-card">
-          <h3 class="card-heading">⭐ Top Converting Skills & Niches</h3>
-          <div id="skills-analytics-container" class="skills-rankings">
-            <!-- Rendered via app.js -->
-          </div>
-        </div>
-
-        <!-- AI Learning Recommendations -->
-        <div class="analytics-card">
-          <h3 class="card-heading">💡 AI Optimization Insights</h3>
-          <div id="insights-container" class="insights-box">
-            <!-- Rendered via app.js -->
+        <div id="applications-container" class="pipeline-grid">
+          <!-- Injected via app.js -->
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading application tracking stages...</p>
           </div>
         </div>
       </div>
-    </div>
 
-  </div>
-
-  <!-- AI Proposal Generator Modal -->
-  <div id="proposal-modal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">AI Proposal & Cover Letter Generator</h3>
-          <p id="modal-project-title" class="modal-subtitle">Project Title</p>
-        </div>
-        <button id="btn-close-modal" class="btn-close">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <!-- Pitch Angle Selector -->
-        <div class="pitch-selector">
-          <div class="pitch-label">Select Strategic Pitch Angle:</div>
-          <div class="pitch-chips">
-            <button class="pitch-chip active" data-angle="TECHNICAL_EXPERT">
-              <span class="chip-icon">🧠</span>
-              <span class="chip-title">Technical Expert</span>
-            </button>
-            <button class="pitch-chip" data-angle="FAST_DELIVERY">
-              <span class="chip-icon">⚡</span>
-              <span class="chip-title">Fast Delivery</span>
-            </button>
-            <button class="pitch-chip" data-angle="VALUE_ROI">
-              <span class="chip-icon">📈</span>
-              <span class="chip-title">Value & ROI</span>
-            </button>
-            <button class="pitch-chip" data-angle="PORTFOLIO_PROOF">
-              <span class="chip-icon">🏆</span>
-              <span class="chip-title">Portfolio Proof</span>
-            </button>
-            <button class="pitch-chip" data-angle="CONSULTATIVE_ADVISOR">
-              <span class="chip-icon">🤝</span>
-              <span class="chip-title">Consultative Advisor</span>
-            </button>
-          </div>
+      <!-- TAB 3: CONVERSION ANALYTICS VIEW -->
+      <div id="tab-analytics" class="tab-pane" style="display: none;">
+        <div class="content-header">
+          <h2 class="section-title">Outcome Intelligence & Conversion Funnel</h2>
+          <button id="btn-refresh-analytics" class="btn btn-sm btn-ghost">🔄 Refresh Intelligence</button>
         </div>
 
-        <!-- Tone & Options -->
-        <div class="options-row">
-          <div class="option-field">
-            <label for="proposal-tone">Proposal Tone:</label>
-            <select id="proposal-tone" class="select-control">
-              <option value="CONFIDENT">Confident & Authoritative</option>
-              <option value="PROFESSIONAL">Formal & Professional</option>
-              <option value="CONVERSATIONAL">Warm & Conversational</option>
-              <option value="DIRECT">Direct & Efficient</option>
-              <option value="CONSULTATIVE">Consultative & Exploratory</option>
-            </select>
-          </div>
-          <div class="option-field checkbox-field">
-            <label class="checkbox-container">
-              <input type="checkbox" id="chk-include-pricing" checked>
-              <span class="checkbox-label">Include Commercial Pricing</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Custom Directive Input -->
-        <div class="input-field">
-          <label for="custom-instructions">Custom Pitch Directives (Optional):</label>
-          <input type="text" id="custom-instructions" placeholder="e.g., Emphasize experience with Docker, FastAPI, or RAG..." class="text-input">
-        </div>
-
-        <!-- Action Button -->
-        <button id="btn-generate-proposal" class="btn btn-primary btn-block">
-          <span>✨ Synthesize Customized Proposal</span>
-        </button>
-
-        <!-- Output Proposal Box -->
-        <div id="proposal-output-container" class="proposal-output" style="display: none;">
-          <div class="output-header">
-            <div class="output-quality">
-              <span>Quality Score:</span>
-              <span id="proposal-quality-badge" class="quality-badge">90/100</span>
-            </div>
-            <div class="output-actions">
-              <button id="btn-copy-proposal" class="btn btn-sm btn-accent">📋 Copy</button>
-              <button id="btn-track-application" class="btn btn-sm btn-primary">🚀 Track in Pipeline</button>
+        <div class="analytics-layout">
+          <!-- Conversion Funnel Card -->
+          <div class="analytics-card">
+            <h3 class="card-heading">🎯 Application Conversion Funnel</h3>
+            <div id="funnel-container" class="funnel-display">
+              <!-- Rendered via app.js -->
             </div>
           </div>
-          <div id="proposal-subject-box" class="proposal-subject-line"></div>
-          <div id="proposal-text-box" class="proposal-markdown-content"></div>
+
+          <!-- Strategic Pitch Angles Performance -->
+          <div class="analytics-card">
+            <h3 class="card-heading">🧠 Pitch Angle Effectiveness</h3>
+            <div id="pitch-angles-container" class="table-responsive">
+              <!-- Rendered via app.js -->
+            </div>
+          </div>
+
+          <!-- High-Converting Skills -->
+          <div class="analytics-card">
+            <h3 class="card-heading">⭐ Top Converting Skills & Niches</h3>
+            <div id="skills-analytics-container" class="skills-rankings">
+              <!-- Rendered via app.js -->
+            </div>
+          </div>
+
+          <!-- AI Learning Recommendations -->
+          <div class="analytics-card">
+            <h3 class="card-heading">💡 AI Optimization Insights</h3>
+            <div id="insights-container" class="insights-box">
+              <!-- Rendered via app.js -->
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
-  </div>
 
-  <!-- Sources Health & Management Modal -->
-  <div id="sources-modal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card" style="max-width: 650px;">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">📡 Multi-Source Feeds & Collector Health</h3>
-          <p class="modal-subtitle">Monitor scrape success rates, circuit breakers, and toggle external sources</p>
+    <!-- AI Proposal Generator Modal -->
+    <div id="proposal-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">AI Proposal & Cover Letter Generator</h3>
+            <p id="modal-project-title" class="modal-subtitle">Project Title</p>
+          </div>
+          <button id="btn-close-modal" class="btn-close">✕</button>
         </div>
-        <button id="btn-close-sources" class="btn-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="sources-list-container" class="sources-list-grid"></div>
 
-        <!-- Custom Feed Registration Form -->
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
-          <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--accent-indigo);">➕ Register Custom RSS / Atom Feed</h4>
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <input type="text" id="input-custom-feed-name" placeholder="Feed Name (e.g., 'StackOverflow Jobs RSS')" class="text-input">
-            <input type="url" id="input-custom-feed-url" placeholder="Feed URL (https://example.com/feed.xml)" class="text-input">
-            <button id="btn-add-custom-feed" class="btn btn-sm btn-primary" style="align-self: flex-start;">
-              Verify & Register Feed
-            </button>
+        <div class="modal-body">
+          <!-- Pitch Angle Selector -->
+          <div class="pitch-selector">
+            <div class="pitch-label">Select Strategic Pitch Angle:</div>
+            <div class="pitch-chips">
+              <button class="pitch-chip active" data-angle="TECHNICAL_EXPERT">
+                <span class="chip-icon">🧠</span>
+                <span class="chip-title">Technical Expert</span>
+              </button>
+              <button class="pitch-chip" data-angle="FAST_DELIVERY">
+                <span class="chip-icon">⚡</span>
+                <span class="chip-title">Fast Delivery</span>
+              </button>
+              <button class="pitch-chip" data-angle="VALUE_ROI">
+                <span class="chip-icon">📈</span>
+                <span class="chip-title">Value & ROI</span>
+              </button>
+              <button class="pitch-chip" data-angle="PORTFOLIO_PROOF">
+                <span class="chip-icon">🏆</span>
+                <span class="chip-title">Portfolio Proof</span>
+              </button>
+              <button class="pitch-chip" data-angle="CONSULTATIVE_ADVISOR">
+                <span class="chip-icon">🤝</span>
+                <span class="chip-title">Consultative Advisor</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tone & Options -->
+          <div class="options-row">
+            <div class="option-field">
+              <label for="proposal-tone">Proposal Tone:</label>
+              <select id="proposal-tone" class="select-control">
+                <option value="CONFIDENT">Confident & Authoritative</option>
+                <option value="PROFESSIONAL">Formal & Professional</option>
+                <option value="CONVERSATIONAL">Warm & Conversational</option>
+                <option value="DIRECT">Direct & Efficient</option>
+                <option value="CONSULTATIVE">Consultative & Exploratory</option>
+              </select>
+            </div>
+            <div class="option-field checkbox-field">
+              <label class="checkbox-container">
+                <input type="checkbox" id="chk-include-pricing" checked>
+                <span class="checkbox-label">Include Commercial Pricing</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Custom Directive Input -->
+          <div class="input-field">
+            <label for="custom-instructions">Custom Pitch Directives (Optional):</label>
+            <input type="text" id="custom-instructions"
+              placeholder="e.g., Emphasize experience with Docker, FastAPI, or RAG..." class="text-input">
+          </div>
+
+          <!-- Action Button -->
+          <button id="btn-generate-proposal" class="btn btn-primary btn-block">
+            <span>✨ Synthesize Customized Proposal</span>
+          </button>
+
+          <!-- Output Proposal Box -->
+          <div id="proposal-output-container" class="proposal-output" style="display: none;">
+            <div class="output-header">
+              <div class="output-quality">
+                <span>Quality Score:</span>
+                <span id="proposal-quality-badge" class="quality-badge">90/100</span>
+              </div>
+              <div class="output-actions">
+                <button id="btn-copy-proposal" class="btn btn-sm btn-accent">📋 Copy</button>
+                <button id="btn-track-application" class="btn btn-sm btn-primary">🚀 Track in Pipeline</button>
+              </div>
+            </div>
+            <div id="proposal-subject-box" class="proposal-subject-line"></div>
+            <div id="proposal-text-box" class="proposal-markdown-content"></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Negotiation, Follow-Up & Interview Prep Studio Modal -->
-  <div id="negotiation-modal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card" style="max-width: 780px;">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">💬 Negotiation & Closing Studio</h3>
-          <p class="modal-subtitle">Generate high-conversion objection counter-offers, follow-up messages, and interview prep</p>
+    <!-- Sources Health & Management Modal -->
+    <div id="sources-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 650px;">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">📡 Multi-Source Feeds & Collector Health</h3>
+            <p class="modal-subtitle">Monitor scrape success rates, circuit breakers, and toggle external sources</p>
+          </div>
+          <button id="btn-close-sources" class="btn-close">✕</button>
         </div>
-        <button id="btn-close-negotiation" class="btn-close">✕</button>
+        <div class="modal-body">
+          <div id="sources-list-container" class="sources-list-grid"></div>
+
+          <!-- Custom Feed Registration Form -->
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--accent-indigo);">➕ Register
+              Custom RSS / Atom Feed</h4>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <input type="text" id="input-custom-feed-name" placeholder="Feed Name (e.g., 'StackOverflow Jobs RSS')"
+                class="text-input">
+              <input type="url" id="input-custom-feed-url" placeholder="Feed URL (https://example.com/feed.xml)"
+                class="text-input">
+              <button id="btn-add-custom-feed" class="btn btn-sm btn-primary" style="align-self: flex-start;">
+                Verify & Register Feed
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
 
-      <div class="modal-body">
-        <!-- Subtabs -->
-        <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
-          <button id="subtab-btn-objection" class="btn btn-sm btn-primary">🛡️ Objection Counter-Offers</button>
-          <button id="subtab-btn-followup" class="btn btn-sm btn-ghost">⏰ Follow-Up Sequences</button>
-          <button id="subtab-btn-interview" class="btn btn-sm btn-ghost">🎯 Technical Interview Prep</button>
+    <!-- Negotiation, Follow-Up & Interview Prep Studio Modal -->
+    <div id="negotiation-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 780px;">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">💬 Negotiation & Closing Studio</h3>
+            <p class="modal-subtitle">Generate high-conversion objection counter-offers, follow-up messages, and
+              interview prep</p>
+          </div>
+          <button id="btn-close-negotiation" class="btn-close">✕</button>
         </div>
 
-        <!-- Section 1: Objection Handler -->
-        <div id="section-objection-studio">
-          <div class="form-row">
+        <div class="modal-body">
+          <!-- Subtabs -->
+          <div
+            style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+            <button id="subtab-btn-objection" class="btn btn-sm btn-primary">🛡️ Objection Counter-Offers</button>
+            <button id="subtab-btn-followup" class="btn btn-sm btn-ghost">⏰ Follow-Up Sequences</button>
+            <button id="subtab-btn-interview" class="btn btn-sm btn-ghost">🎯 Technical Interview Prep</button>
+          </div>
+
+          <!-- Section 1: Objection Handler -->
+          <div id="section-objection-studio">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="neg-objection-type">Client Objection Type</label>
+                <select id="neg-objection-type" class="select-control">
+                  <option value="RATE_TOO_HIGH">Rate Too High / Budget Constraints</option>
+                  <option value="FIXED_PRICE_REQUEST">Requesting Fixed Price Milestone</option>
+                  <option value="TIGHT_DEADLINE">Urgent / Accelerated Timeline</option>
+                  <option value="SCOPE_UNCERTAINTY">Unclear / Evolving Project Scope</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="neg-strategy">Counter-Offer Strategy</label>
+                <select id="neg-strategy" class="select-control">
+                  <option value="VALUE_ANCHORING">Value Anchoring (ROI & Seniority Focus)</option>
+                  <option value="SCOPE_MODULATION">Scope Modulation (Trim Non-Core Features)</option>
+                  <option value="DISCOUNT_FOR_TERM">Term Discount (Retainer / 2-Month Min)</option>
+                  <option value="MILESTONE_SPLIT">Milestone Split (Phased Escrow)</option>
+                </select>
+              </div>
+            </div>
             <div class="form-group">
-              <label for="neg-objection-type">Client Objection Type</label>
-              <select id="neg-objection-type" class="select-control">
-                <option value="RATE_TOO_HIGH">Rate Too High / Budget Constraints</option>
-                <option value="FIXED_PRICE_REQUEST">Requesting Fixed Price Milestone</option>
-                <option value="TIGHT_DEADLINE">Urgent / Accelerated Timeline</option>
-                <option value="SCOPE_UNCERTAINTY">Unclear / Evolving Project Scope</option>
+              <label for="neg-project-title">Project Title / Context</label>
+              <input type="text" id="neg-project-title" class="text-input"
+                placeholder="e.g., Senior FastAPI & RAG Engineer">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="neg-target-rate">Your Target Rate ($/hr)</label>
+                <input type="number" id="neg-target-rate" class="text-input" value="95">
+              </div>
+              <div class="form-group">
+                <label for="neg-client-budget">Client Stated Budget ($) (Optional)</label>
+                <input type="number" id="neg-client-budget" class="text-input" placeholder="e.g. 5000">
+              </div>
+            </div>
+            <button id="btn-generate-negotiation" class="btn btn-primary btn-block">✨ Generate Strategic Response
+              Script</button>
+
+            <div id="neg-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
+              <div class="output-header">
+                <span style="font-weight: 600; color: var(--accent-indigo);">Recommended Client Script:</span>
+                <button id="btn-copy-negotiation" class="btn btn-sm btn-accent">📋 Copy Response</button>
+              </div>
+              <div id="neg-response-text" class="proposal-markdown-content"></div>
+              <div id="neg-counter-offer-text" style="margin-top: 10px; font-size: 13px; color: var(--accent-emerald);">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Follow-Up Sequences -->
+          <div id="section-followup-studio" style="display: none;">
+            <div class="form-group">
+              <label for="followup-stage">Follow-Up Cadence Stage</label>
+              <select id="followup-stage" class="select-control">
+                <option value="DAY_3_CHECKIN">Day 3 — Soft Touchpoint & Confirmation</option>
+                <option value="DAY_7_VALUE_ADD">Day 7 — Value-Add Architectural Insight</option>
+                <option value="DAY_14_BREAKUP">Day 14 — Polite Breakup Email</option>
+                <option value="REVIVE_COLD_LEAD">Day 30+ — Revive Cold Lead with Case Study</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="neg-strategy">Counter-Offer Strategy</label>
-              <select id="neg-strategy" class="select-control">
-                <option value="VALUE_ANCHORING">Value Anchoring (ROI & Seniority Focus)</option>
-                <option value="SCOPE_MODULATION">Scope Modulation (Trim Non-Core Features)</option>
-                <option value="DISCOUNT_FOR_TERM">Term Discount (Retainer / 2-Month Min)</option>
-                <option value="MILESTONE_SPLIT">Milestone Split (Phased Escrow)</option>
-              </select>
+              <label for="followup-client-name">Client Name (Optional)</label>
+              <input type="text" id="followup-client-name" class="text-input" placeholder="e.g., Alex">
+            </div>
+            <button id="btn-generate-followup" class="btn btn-primary btn-block">✨ Draft Follow-Up Message</button>
+
+            <div id="followup-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
+              <div class="output-header">
+                <span id="followup-subject-display" style="font-weight: 600; color: var(--accent-indigo);"></span>
+                <button id="btn-copy-followup" class="btn btn-sm btn-accent">📋 Copy Message</button>
+              </div>
+              <div id="followup-body-text" class="proposal-markdown-content"></div>
+              <div id="followup-timing-text" style="margin-top: 10px; font-size: 12px; color: var(--text-muted);"></div>
             </div>
           </div>
-          <div class="form-group">
-            <label for="neg-project-title">Project Title / Context</label>
-            <input type="text" id="neg-project-title" class="text-input" placeholder="e.g., Senior FastAPI & RAG Engineer">
-          </div>
-          <div class="form-row">
+
+          <!-- Section 3: Technical Interview Prep -->
+          <div id="section-interview-studio" style="display: none;">
             <div class="form-group">
-              <label for="neg-target-rate">Your Target Rate ($/hr)</label>
-              <input type="number" id="neg-target-rate" class="text-input" value="95">
+              <label for="interview-project-title">Target Opportunity Title</label>
+              <input type="text" id="interview-project-title" class="text-input"
+                placeholder="e.g., AI Microservices Lead">
             </div>
-            <div class="form-group">
-              <label for="neg-client-budget">Client Stated Budget ($) (Optional)</label>
-              <input type="number" id="neg-client-budget" class="text-input" placeholder="e.g. 5000">
+            <button id="btn-generate-interview" class="btn btn-primary btn-block">✨ Generate Interview
+              Cheatsheet</button>
+
+            <div id="interview-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
+              <div id="interview-content-container"></div>
             </div>
-          </div>
-          <button id="btn-generate-negotiation" class="btn btn-primary btn-block">✨ Generate Strategic Response Script</button>
-
-          <div id="neg-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
-            <div class="output-header">
-              <span style="font-weight: 600; color: var(--accent-indigo);">Recommended Client Script:</span>
-              <button id="btn-copy-negotiation" class="btn btn-sm btn-accent">📋 Copy Response</button>
-            </div>
-            <div id="neg-response-text" class="proposal-markdown-content"></div>
-            <div id="neg-counter-offer-text" style="margin-top: 10px; font-size: 13px; color: var(--accent-emerald);"></div>
-          </div>
-        </div>
-
-        <!-- Section 2: Follow-Up Sequences -->
-        <div id="section-followup-studio" style="display: none;">
-          <div class="form-group">
-            <label for="followup-stage">Follow-Up Cadence Stage</label>
-            <select id="followup-stage" class="select-control">
-              <option value="DAY_3_CHECKIN">Day 3 — Soft Touchpoint & Confirmation</option>
-              <option value="DAY_7_VALUE_ADD">Day 7 — Value-Add Architectural Insight</option>
-              <option value="DAY_14_BREAKUP">Day 14 — Polite Breakup Email</option>
-              <option value="REVIVE_COLD_LEAD">Day 30+ — Revive Cold Lead with Case Study</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="followup-client-name">Client Name (Optional)</label>
-            <input type="text" id="followup-client-name" class="text-input" placeholder="e.g., Alex">
-          </div>
-          <button id="btn-generate-followup" class="btn btn-primary btn-block">✨ Draft Follow-Up Message</button>
-
-          <div id="followup-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
-            <div class="output-header">
-              <span id="followup-subject-display" style="font-weight: 600; color: var(--accent-indigo);"></span>
-              <button id="btn-copy-followup" class="btn btn-sm btn-accent">📋 Copy Message</button>
-            </div>
-            <div id="followup-body-text" class="proposal-markdown-content"></div>
-            <div id="followup-timing-text" style="margin-top: 10px; font-size: 12px; color: var(--text-muted);"></div>
-          </div>
-        </div>
-
-        <!-- Section 3: Technical Interview Prep -->
-        <div id="section-interview-studio" style="display: none;">
-          <div class="form-group">
-            <label for="interview-project-title">Target Opportunity Title</label>
-            <input type="text" id="interview-project-title" class="text-input" placeholder="e.g., AI Microservices Lead">
-          </div>
-          <button id="btn-generate-interview" class="btn btn-primary btn-block">✨ Generate Interview Cheatsheet</button>
-
-          <div id="interview-output-box" class="proposal-output" style="display: none; margin-top: 16px;">
-            <div id="interview-content-container"></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Market Intelligence, Skill ROI & Rate Optimizer Modal -->
-  <div id="market-modal" class="modal-backdrop" style="display: none;">
-    <div class="modal-card" style="max-width: 820px;">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">📈 Market Intelligence & Rate Optimizer</h3>
-          <p class="modal-subtitle">Real-time technology compensation benchmarks, upskilling roadmap, and expected value pricing</p>
-        </div>
-        <button id="btn-close-market" class="btn-close">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <!-- Market Macro Overview Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Active Market Pipeline</div>
-            <div id="market-stat-pipeline-val" style="font-size: 20px; font-weight: 700; color: var(--accent-emerald);">$450,000</div>
+    <!-- Market Intelligence, Skill ROI & Rate Optimizer Modal -->
+    <div id="market-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 820px;">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">📈 Market Intelligence & Rate Optimizer</h3>
+            <p class="modal-subtitle">Real-time technology compensation benchmarks, upskilling roadmap, and expected
+              value pricing</p>
           </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Average Project Budget</div>
-            <div id="market-stat-avg-budget" style="font-size: 20px; font-weight: 700; color: var(--accent-indigo);">$5,500</div>
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Top Premium Skill</div>
-            <div id="market-stat-top-skill" style="font-size: 20px; font-weight: 700; color: var(--accent-purple);">Rust ($150/hr)</div>
-          </div>
+          <button id="btn-close-market" class="btn-close">✕</button>
         </div>
 
-        <!-- Subtabs -->
-        <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
-          <button id="subtab-btn-skills-roi" class="btn btn-sm btn-primary">🏆 Skill Demand & Rate Benchmarks</button>
-          <button id="subtab-btn-upskill" class="btn btn-sm btn-ghost">🚀 Upskilling Roadmap</button>
-          <button id="subtab-btn-rate-opt" class="btn btn-sm btn-ghost">🧮 EV Rate Optimizer</button>
-        </div>
-
-        <!-- Section 1: Skill ROI Table -->
-        <div id="section-skills-roi">
-          <div id="skills-roi-table-container" style="max-height: 320px; overflow-y: auto;"></div>
-        </div>
-
-        <!-- Section 2: Upskilling Roadmap -->
-        <div id="section-upskill" style="display: none;">
-          <div id="upskill-cards-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;"></div>
-        </div>
-
-        <!-- Section 3: EV Rate Optimizer -->
-        <div id="section-rate-opt" style="display: none;">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="opt-project-title">Opportunity Title</label>
-              <input type="text" id="opt-project-title" class="text-input" placeholder="e.g. Senior Backend Architect">
+        <div class="modal-body">
+          <!-- Market Macro Overview Cards -->
+          <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div
+              style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Active Market Pipeline
+              </div>
+              <div id="market-stat-pipeline-val"
+                style="font-size: 20px; font-weight: 700; color: var(--accent-emerald);">$450,000</div>
             </div>
-            <div class="form-group">
-              <label for="opt-match-score">Match Score (0-100)</label>
-              <input type="number" id="opt-match-score" class="text-input" value="85" min="1" max="100">
+            <div
+              style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Average Project Budget
+              </div>
+              <div id="market-stat-avg-budget" style="font-size: 20px; font-weight: 700; color: var(--accent-indigo);">
+                $5,500</div>
+            </div>
+            <div
+              style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Top Premium Skill</div>
+              <div id="market-stat-top-skill" style="font-size: 20px; font-weight: 700; color: var(--accent-purple);">
+                Rust ($150/hr)</div>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="opt-hours">Estimated Effort (Hours)</label>
-              <input type="number" id="opt-hours" class="text-input" value="40" min="1">
-            </div>
-            <div class="form-group">
-              <label for="opt-client-budget">Client Stated Budget ($) (Optional)</label>
-              <input type="number" id="opt-client-budget" class="text-input" placeholder="e.g. 5000">
-            </div>
-          </div>
-          <button id="btn-calculate-rate-opt" class="btn btn-primary btn-block">✨ Calculate Optimal Expected Value Quote</button>
 
-          <div id="rate-opt-output-container" class="proposal-output" style="display: none; margin-top: 16px;"></div>
+          <!-- Subtabs -->
+          <div
+            style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+            <button id="subtab-btn-skills-roi" class="btn btn-sm btn-primary">🏆 Skill Demand & Rate Benchmarks</button>
+            <button id="subtab-btn-upskill" class="btn btn-sm btn-ghost">🚀 Upskilling Roadmap</button>
+            <button id="subtab-btn-rate-opt" class="btn btn-sm btn-ghost">🧮 EV Rate Optimizer</button>
+          </div>
+
+          <!-- Section 1: Skill ROI Table -->
+          <div id="section-skills-roi">
+            <div id="skills-roi-table-container" style="max-height: 320px; overflow-y: auto;"></div>
+          </div>
+
+          <!-- Section 2: Upskilling Roadmap -->
+          <div id="section-upskill" style="display: none;">
+            <div id="upskill-cards-container"
+              style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;"></div>
+          </div>
+
+          <!-- Section 3: EV Rate Optimizer -->
+          <div id="section-rate-opt" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="opt-project-title">Opportunity Title</label>
+                <input type="text" id="opt-project-title" class="text-input"
+                  placeholder="e.g. Senior Backend Architect">
+              </div>
+              <div class="form-group">
+                <label for="opt-match-score">Match Score (0-100)</label>
+                <input type="number" id="opt-match-score" class="text-input" value="85" min="1" max="100">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="opt-hours">Estimated Effort (Hours)</label>
+                <input type="number" id="opt-hours" class="text-input" value="40" min="1">
+              </div>
+              <div class="form-group">
+                <label for="opt-client-budget">Client Stated Budget ($) (Optional)</label>
+                <input type="number" id="opt-client-budget" class="text-input" placeholder="e.g. 5000">
+              </div>
+            </div>
+            <button id="btn-calculate-rate-opt" class="btn btn-primary btn-block">✨ Calculate Optimal Expected Value
+              Quote</button>
+
+            <div id="rate-opt-output-container" class="proposal-output" style="display: none; margin-top: 16px;"></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Developer Profile Drawer -->
-  <div id="profile-drawer" class="drawer-backdrop" style="display: none;">
-    <div class="drawer-card">
-      <div class="drawer-header">
-        <h3>Developer Profile & Portfolio Configuration</h3>
-        <button id="btn-close-drawer" class="btn-close">✕</button>
-      </div>
-      <div class="drawer-body">
-        <div class="form-group">
-          <label for="profile-name">Full Name</label>
-          <input type="text" id="profile-name" class="text-input">
-        </div>
-        <div class="form-group">
-          <label for="profile-title">Professional Title</label>
-          <input type="text" id="profile-title" class="text-input">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="profile-target-rate">Target Rate ($/hr)</label>
-            <input type="number" id="profile-target-rate" class="text-input" min="20" max="500">
+    <!-- Proposal Quality Auditor, SOW & Scope Guard Modal -->
+    <div id="contracts-modal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 820px;">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">📋 Scope of Work (SOW) & Proposal Quality Auditor</h3>
+            <p class="modal-subtitle">Audit proposal conversion readiness, generate milestone contracts, and safeguard
+              scope</p>
           </div>
-          <div class="form-group">
-            <label for="profile-min-rate">Minimum Rate ($/hr)</label>
-            <input type="number" id="profile-min-rate" class="text-input" min="20" max="300">
+          <button id="btn-close-contracts" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Subtabs -->
+          <div
+            style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+            <button id="subtab-btn-audit" class="btn btn-sm btn-primary">🔍 Proposal Quality Auditor</button>
+            <button id="subtab-btn-sow" class="btn btn-sm btn-ghost">📜 SOW Milestone Builder</button>
+            <button id="subtab-btn-clauses" class="btn btn-sm btn-ghost">🛡️ Protective Legal Clauses</button>
+          </div>
+
+          <!-- Section 1: Proposal Quality Auditor -->
+          <div id="section-audit">
+            <div class="form-group">
+              <label for="audit-project-title">Target Project Title</label>
+              <input type="text" id="audit-project-title" class="text-input"
+                placeholder="e.g. Senior FastAPI & LLM RAG Engineer">
+            </div>
+            <div class="form-group">
+              <label for="audit-target-skills">Target Technologies (comma separated)</label>
+              <input type="text" id="audit-target-skills" class="text-input"
+                placeholder="e.g. Python, FastAPI, PostgreSQL, RAG">
+            </div>
+            <div class="form-group">
+              <label for="audit-proposal-text">Draft Proposal / Pitch Letter</label>
+              <textarea id="audit-proposal-text" class="text-input textarea-control" rows="5"
+                placeholder="Paste your proposal draft here to audit conversion readiness..."></textarea>
+            </div>
+            <button id="btn-run-proposal-audit" class="btn btn-primary btn-block">✨ Run Deep Conversion Quality
+              Audit</button>
+
+            <div id="audit-output-container" class="proposal-output" style="display: none; margin-top: 16px;"></div>
+          </div>
+
+          <!-- Section 2: SOW Milestone Builder -->
+          <div id="section-sow" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="sow-project-title">Project Name</label>
+                <input type="text" id="sow-project-title" class="text-input"
+                  placeholder="e.g. Custom AI Lead Intelligence Pipeline">
+              </div>
+              <div class="form-group">
+                <label for="sow-client-name">Client / Company Name</label>
+                <input type="text" id="sow-client-name" class="text-input" placeholder="e.g. Acme Tech Ventures">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="sow-budget">Total Contract Budget ($)</label>
+                <input type="number" id="sow-budget" class="text-input" value="6500">
+              </div>
+              <div class="form-group">
+                <label for="sow-skills">Core Stack Technologies</label>
+                <input type="text" id="sow-skills" class="text-input" value="Python, FastAPI, PostgreSQL, Docker">
+              </div>
+            </div>
+            <button id="btn-generate-sow-contract" class="btn btn-primary btn-block">✨ Generate Milestone SOW
+              Contract</button>
+
+            <div id="sow-output-container" class="proposal-output" style="display: none; margin-top: 16px;">
+              <div class="output-header">
+                <span id="sow-contract-title" style="font-weight: 700; color: var(--accent-indigo);">Statement of
+                  Work</span>
+                <button id="btn-copy-sow-markdown" class="btn btn-sm btn-accent">📋 Copy SOW Contract</button>
+              </div>
+              <div id="sow-markdown-view" class="proposal-markdown-content"
+                style="max-height: 280px; overflow-y: auto;"></div>
+            </div>
+          </div>
+
+          <!-- Section 3: Protective Legal Clauses -->
+          <div id="section-clauses" style="display: none;">
+            <div id="clauses-cards-container"
+              style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;"></div>
           </div>
         </div>
-        <div class="form-group">
-          <label for="profile-bio">Professional Bio & Value Proposition</label>
-          <textarea id="profile-bio" class="text-input textarea-control" rows="3"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Core Skills & Proficiencies (1-10)</label>
-          <div id="profile-skills-list" class="skills-editor"></div>
-        </div>
-        <div class="form-group" style="margin-top: 16px;">
-          <label>🏆 Portfolio Case Studies & Reference Work</label>
-          <div id="profile-portfolio-list" class="portfolio-list-editor"></div>
-        </div>
-      </div>
-      <div class="drawer-footer">
-        <button id="btn-save-profile" class="btn btn-primary btn-block">Save Profile & Recalculate Scores</button>
       </div>
     </div>
-  </div>
 
-  <!-- Toast Notification Container -->
-  <div id="toast-container" class="toast-container"></div>
+    <!-- Developer Profile Drawer -->
+    <div id="profile-drawer" class="drawer-backdrop" style="display: none;">
+      <div class="drawer-card">
+        <div class="drawer-header">
+          <h3>Developer Profile & Portfolio Configuration</h3>
+          <button id="btn-close-drawer" class="btn-close">✕</button>
+        </div>
+        <div class="drawer-body">
+          <div class="form-group">
+            <label for="profile-name">Full Name</label>
+            <input type="text" id="profile-name" class="text-input">
+          </div>
+          <div class="form-group">
+            <label for="profile-title">Professional Title</label>
+            <input type="text" id="profile-title" class="text-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="profile-target-rate">Target Rate ($/hr)</label>
+              <input type="number" id="profile-target-rate" class="text-input" min="20" max="500">
+            </div>
+            <div class="form-group">
+              <label for="profile-min-rate">Minimum Rate ($/hr)</label>
+              <input type="number" id="profile-min-rate" class="text-input" min="20" max="300">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="profile-bio">Professional Bio & Value Proposition</label>
+            <textarea id="profile-bio" class="text-input textarea-control" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Core Skills & Proficiencies (1-10)</label>
+            <div id="profile-skills-list" class="skills-editor"></div>
+          </div>
+          <div class="form-group" style="margin-top: 16px;">
+            <label>🏆 Portfolio Case Studies & Reference Work</label>
+            <div id="profile-portfolio-list" class="portfolio-list-editor"></div>
+          </div>
+        </div>
+        <div class="drawer-footer">
+          <button id="btn-save-profile" class="btn btn-primary btn-block">Save Profile & Recalculate Scores</button>
+        </div>
+      </div>
+    </div>
 
-  <script src="/static/app.js"></script>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="/static/app.js"></script>
 </body>
+
 </html>
