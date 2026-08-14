@@ -3,11 +3,11 @@ Multi-factor Opportunity Scoring Engine.
 Calculates composite ratings, recommendations, and synchronizes scores with the database.
 """
 
-from typing import Any, Union
+from typing import Any
 
 from sqlalchemy.orm import Session
 
-from src.database.models import OpportunityModel, ProjectModel
+from src.database.models import OpportunityModel
 from src.database.repository import OpportunityRepository, ProjectRepository
 from src.matching.matcher import SkillMatcher
 from src.models.profile import UserProfile, get_default_profile
@@ -48,7 +48,7 @@ class OpportunityScorer:
 
     def score(
         self,
-        project: Union[Project, dict[str, Any]],
+        project: Project | dict[str, Any],
         profile: UserProfile | None = None,
     ) -> OpportunityScoreBreakdown:
         """
@@ -182,7 +182,7 @@ class OpportunityScorer:
 
     def score_batch(
         self,
-        projects: list[Union[Project, dict[str, Any]]],
+        projects: list[Project | dict[str, Any]],
         profile: UserProfile | None = None,
     ) -> list[tuple[Any, OpportunityScoreBreakdown]]:
         """
@@ -192,7 +192,7 @@ class OpportunityScorer:
 
     def rank_opportunities(
         self,
-        projects: list[Union[Project, dict[str, Any]]],
+        projects: list[Project | dict[str, Any]],
         profile: UserProfile | None = None,
         min_score: float = 0.0,
     ) -> list[tuple[Any, OpportunityScoreBreakdown]]:
