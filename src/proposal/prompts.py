@@ -118,6 +118,24 @@ def build_proposal_prompt(
 
     custom_block = f"\nCustom Directives:\n{custom_instructions}\n" if custom_instructions else ""
 
+    # Relevant Portfolio Case Studies
+    relevant_portfolio = profile.find_relevant_portfolio(skills, max_results=2)
+    portfolio_block = ""
+    if relevant_portfolio:
+        portfolio_lines = []
+        for p in relevant_portfolio:
+            outcomes_str = (
+                " | ".join(p.outcomes) if p.outcomes else "Shipped production architecture"
+            )
+            portfolio_lines.append(
+                f"  * {p.title} (Stack: {', '.join(p.technologies)}): {p.description} -> Impact: {outcomes_str}"
+            )
+        portfolio_block = (
+            "\nRelevant Portfolio Case Studies (Cite these specifically):\n"
+            + "\n".join(portfolio_lines)
+            + "\n"
+        )
+
     return f"""Target Project Opportunity:
 - Title: {title}
 - Source: {source}
@@ -136,7 +154,7 @@ Developer Profile Context:
 - Core Skills: {user_skills}
 - Target Rate: {target_rate}
 - Minimum Hourly Rate: {min_rate}
-
+{portfolio_block}
 Strategic Directives:
 - Selected Pitch Angle: {pitch_angle.value}
 - Desired Tone: {tone.value}

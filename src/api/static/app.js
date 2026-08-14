@@ -1,5 +1,5 @@
 /**
- * CLIENT FINDER SVC - Interactive Dashboard & Outcome Tracking Application
+ * CLIENT FINDER SVC - Multi-Source Opportunity Discovery & Proposal Application
  */
 
 const STATE = {
@@ -29,6 +29,7 @@ const DOM = {
   // Filters
   searchInput: document.getElementById("search-input"),
   btnClearSearch: document.getElementById("btn-clear-search"),
+  filterSource: document.getElementById("filter-source"),
   filterCategory: document.getElementById("filter-category"),
   filterStatus: document.getElementById("filter-status"),
   filterMinScore: document.getElementById("filter-min-score"),
@@ -45,11 +46,28 @@ const DOM = {
   skillsAnalyticsContainer: document.getElementById("skills-analytics-container"),
   insightsContainer: document.getElementById("insights-container"),
 
-  // Buttons
+  // Sources Modal & Harvest
+  selectHarvestSource: document.getElementById("select-harvest-source"),
   btnTriggerCollector: document.getElementById("btn-trigger-collector"),
-  btnOpenProfile: document.getElementById("btn-open-profile"),
+  btnOpenSources: document.getElementById("btn-open-sources"),
+  btnCloseSources: document.getElementById("btn-close-sources"),
+  sourcesModal: document.getElementById("sources-modal"),
+  sourcesListContainer: document.getElementById("sources-list-container"),
 
-  // Modal
+  // Profile Drawer
+  btnOpenProfile: document.getElementById("btn-open-profile"),
+  profileDrawer: document.getElementById("profile-drawer"),
+  btnCloseDrawer: document.getElementById("btn-close-drawer"),
+  profileName: document.getElementById("profile-name"),
+  profileTitle: document.getElementById("profile-title"),
+  profileTargetRate: document.getElementById("profile-target-rate"),
+  profileMinRate: document.getElementById("profile-min-rate"),
+  profileBio: document.getElementById("profile-bio"),
+  profileSkillsList: document.getElementById("profile-skills-list"),
+  profilePortfolioList: document.getElementById("profile-portfolio-list"),
+  btnSaveProfile: document.getElementById("btn-save-profile"),
+
+  // Proposal Modal
   proposalModal: document.getElementById("proposal-modal"),
   modalProjectTitle: document.getElementById("modal-project-title"),
   pitchChips: document.querySelectorAll(".pitch-chip"),
@@ -64,17 +82,6 @@ const DOM = {
   btnCopyProposal: document.getElementById("btn-copy-proposal"),
   btnTrackApplication: document.getElementById("btn-track-application"),
   btnCloseModal: document.getElementById("btn-close-modal"),
-
-  // Drawer
-  profileDrawer: document.getElementById("profile-drawer"),
-  btnCloseDrawer: document.getElementById("btn-close-drawer"),
-  profileName: document.getElementById("profile-name"),
-  profileTitle: document.getElementById("profile-title"),
-  profileTargetRate: document.getElementById("profile-target-rate"),
-  profileMinRate: document.getElementById("profile-min-rate"),
-  profileBio: document.getElementById("profile-bio"),
-  profileSkillsList: document.getElementById("profile-skills-list"),
-  btnSaveProfile: document.getElementById("btn-save-profile"),
 
   // Toast
   toastContainer: document.getElementById("toast-container"),
@@ -124,6 +131,7 @@ function initEventListeners() {
     fetchOpportunities();
   });
 
+  if (DOM.filterSource) DOM.filterSource.addEventListener("change", fetchOpportunities);
   DOM.filterCategory.addEventListener("change", fetchOpportunities);
   DOM.filterStatus.addEventListener("change", fetchOpportunities);
 
@@ -137,16 +145,10 @@ function initEventListeners() {
     loadStats();
   });
 
-  if (DOM.btnRefreshApps) {
-    DOM.btnRefreshApps.addEventListener("click", fetchApplications);
-  }
-
-  if (DOM.btnRefreshAnalytics) {
-    DOM.btnRefreshAnalytics.addEventListener("click", fetchAnalytics);
-  }
-
-  // Live Scraper
-  DOM.btnTriggerCollector.addEventListener("click", triggerCollector);
+  // Collector Harvest & Sources Modal
+  DOM.btnTriggerCollector.addEventListener("click", triggerLiveHarvest);
+  if (DOM.btnOpenSources) DOM.btnOpenSources.addEventListener("click", openSourcesModal);
+  if (DOM.btnCloseSources) DOM.btnCloseSources.addEventListener("click", closeSourcesModal);
 
   // Profile Drawer
   DOM.btnOpenProfile.addEventListener("click", openProfileDrawer);
@@ -163,11 +165,10 @@ function initEventListeners() {
     });
   });
 
+  // Proposal Generation
   DOM.btnGenerateProposal.addEventListener("click", generateProposal);
   DOM.btnCopyProposal.addEventListener("click", copyProposalToClipboard);
-  if (DOM.btnTrackApplication) {
-    DOM.btnTrackApplication.addEventListener("click", trackCurrentProposal);
-  }
+  DOM.btnCloseModal.addEventListener("click", closeModal);
 }
 
 // 1. Data Fetching
@@ -177,15 +178,10 @@ async function loadStats() {
     const data = await res.json();
     DOM.statTotalLeads.textContent = data.total_opportunities || 0;
     DOM.statHighPriority.textContent = data.tier_distribution?.EXCELLENT || 0;
-
-    // Load revenue & win rates from analytics
-    const revRes = await fetch("/api/analytics/revenue");
-    const revData = await revRes.json();
-    DOM.statRealizedRev.textContent = `$${(revData.realized_revenue || 0).toLocaleString()}`;
-
-    const funRes = await fetch("/api/analytics/funnel");
-    const funData = await funRes.json();
-    DOM.statWinRate.textContent = `${funData.won_count || 0} (${funData.win_rate || 0}%)`;
+    DOM.statAvgScore.textContent = (data.average_score || 0).toFixed(1);
+    if (STATE.profile) {
+      DOM.statDevRate.textContent = `$${STATE.profile.target_hourly_rate || 95}/hr`;
+    }
   } catch (err) {
     console.error("Failed to load stats:", err);
   }
@@ -195,6 +191,9 @@ async function loadProfile() {
   try {
     const res = await fetch("/api/profile");
     STATE.profile = await res.json();
+    if (STATE.profile && STATE.profile.target_hourly_rate) {
+      DOM.statDevRate.textContent = `$${STATE.profile.target_hourly_rate}/hr`;
+    }
   } catch (err) {
     console.error("Failed to load profile:", err);
   }
@@ -202,6 +201,7 @@ async function loadProfile() {
 
 async function fetchOpportunities() {
   const query = DOM.searchInput.value.trim();
+  const source = DOM.filterSource ? DOM.filterSource.value : "";
   const category = DOM.filterCategory.value;
   const status = DOM.filterStatus.value;
   const minScore = DOM.filterMinScore.value;
@@ -224,8 +224,14 @@ async function fetchOpportunities() {
 
     const res = await fetch(url);
     const data = await res.json();
-    STATE.projects = data.items || data || [];
+    let projects = data.items || data || [];
 
+    // Client-side source filter if applicable
+    if (source) {
+      projects = projects.filter((p) => (p.source || "").toLowerCase() === source.toLowerCase());
+    }
+
+    STATE.projects = projects;
     renderOpportunities(STATE.projects);
   } catch (err) {
     DOM.opportunitiesContainer.innerHTML = `
@@ -244,7 +250,7 @@ function renderOpportunities(projects) {
       <div class="empty-state">
         <div style="font-size: 3rem; margin-bottom: 12px;">🔍</div>
         <h3>No matching opportunities found</h3>
-        <p>Try adjusting your search criteria, minimum score slider, or trigger a live feed harvest.</p>
+        <p>Try adjusting your search criteria, source filter, or trigger a live feed harvest.</p>
         <button class="btn btn-secondary" style="margin-top: 16px;" onclick="resetFilters()">Reset Filters</button>
       </div>
     `;
@@ -266,27 +272,41 @@ function renderOpportunities(projects) {
         .join("");
 
       return `
-      <article class="opportunity-card">
-        <div class="card-header">
+      <article class="opp-card">
+        <div class="opp-card-top">
           <span class="source-badge">🔗 ${escapeHtml(p.source)}</span>
           <div class="score-badge ${badgeClass}">${score.toFixed(1)} Match</div>
         </div>
+      </article>
+    `;
+    })
+    .join("");
+}
 
-        <h3 class="card-title">
+// 2. Applications Pipeline View
+async function fetchApplications() {
+  DOM.applicationsContainer.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading application pipeline...</p>
+    </div>
+  `;
+
+        <h3 class="opp-title">
           <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.title)}</a>
         </h3>
 
-        <div class="card-meta">
+        <div class="opp-meta">
           <span class="meta-item">💰 ${budgetDisplay}</span>
           <span class="meta-item">📅 ${postedTime}</span>
           ${p.client_name ? `<span class="meta-item">👤 ${escapeHtml(p.client_name)}</span>` : ""}
         </div>
 
-        <p class="card-desc">${escapeHtml(p.description)}</p>
+        <h4 class="app-title">${escapeHtml(a.project_title || "Project Opportunity #" + a.project_id)}</h4>
 
         <div class="skills-wrap">${skillsHtml}</div>
 
-        <div class="card-footer">
+        <div class="opp-card-footer">
           <div class="status-indicator">
             <span class="status-dot status-${p.status}"></span>
             <span class="status-text">${p.status}</span>
@@ -306,240 +326,103 @@ function renderOpportunities(projects) {
     .join("");
 }
 
-// 2. Applications Pipeline View
-async function fetchApplications() {
-  DOM.applicationsContainer.innerHTML = `
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading application pipeline...</p>
-    </div>
-  `;
-
-  try {
-    const res = await fetch("/api/applications?limit=100");
-    STATE.applications = await res.json();
-    renderApplications(STATE.applications);
-  } catch (err) {
-    DOM.applicationsContainer.innerHTML = `
-      <div class="empty-state">
-        <p>⚠️ Failed to load applications.</p>
-      </div>
-    `;
-  }
-}
-
-function renderApplications(apps) {
-  if (DOM.appsCount) DOM.appsCount.textContent = apps.length;
-
-  if (apps.length === 0) {
-    DOM.applicationsContainer.innerHTML = `
-      <div class="empty-state">
-        <div style="font-size: 3rem; margin-bottom: 12px;">📋</div>
-        <h3>No applications tracked yet</h3>
-        <p>Generate a proposal and click "Track in Pipeline" or track submissions from terminal.</p>
-      </div>
-    `;
-    return;
-  }
-
-  DOM.applicationsContainer.innerHTML = apps
-    .map((a) => {
-      const budgetDisplay = a.proposed_budget ? `${a.currency} ${a.proposed_budget.toLocaleString()}` : "Budget Unstated";
-      const appliedDate = new Date(a.applied_at).toLocaleDateString();
-
-      return `
-      <div class="app-card">
-        <div class="app-card-header">
-          <span class="app-status-badge status-${a.status}">${a.status.replace("_", " ")}</span>
-          <span style="font-size: 12px; color: var(--text-muted);">ID #${a.id}</span>
-        </div>
-
-        <h4 class="app-title">${escapeHtml(a.project_title || "Project Opportunity #" + a.project_id)}</h4>
-
-        <div class="app-meta-row">
-          <span>Proposed: <strong>${budgetDisplay}</strong></span>
-          <span>Applied: ${appliedDate}</span>
-        </div>
-
-        ${a.final_revenue ? `<div style="font-size: 13px; color: var(--accent-emerald);">🎉 Realized Revenue: <strong>${a.currency} ${a.final_revenue.toLocaleString()}</strong></div>` : ""}
-
-        <div class="app-actions">
-          <button class="btn btn-sm btn-secondary" onclick="updateAppStatus(${a.id}, 'CLIENT_REPLIED')">💬 Replied</button>
-          <button class="btn btn-sm btn-secondary" onclick="updateAppStatus(${a.id}, 'INTERVIEW')">🎙️ Interview</button>
-          <button class="btn btn-sm btn-primary" onclick="markAppWon(${a.id}, ${a.proposed_budget || 0})">🏆 Won</button>
-          <button class="btn btn-sm btn-ghost" onclick="updateAppStatus(${a.id}, 'LOST')">❌ Lost</button>
-        </div>
-      </div>
-    `;
-    })
-    .join("");
-}
-
-async function updateAppStatus(appId, newStatus, revenue = null) {
-  try {
-    const payload = { status: newStatus, final_revenue: revenue };
-    const res = await fetch(`/api/applications/${appId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      showToast(`Application #${appId} moved to ${newStatus}!`, "success");
-      fetchApplications();
-      loadStats();
-    }
-  } catch (err) {
-    showToast("Error updating application status", "info");
-  }
-}
-
-window.updateAppStatus = updateAppStatus;
-
-window.markAppWon = function (appId, defaultBudget) {
-  const rev = prompt("Enter realized revenue contract value ($):", defaultBudget);
-  if (rev !== null) {
-    const parsed = parseFloat(rev) || defaultBudget;
-    updateAppStatus(appId, "WON", parsed);
-  }
-};
-
-// 3. Conversion Analytics View
-async function fetchAnalytics() {
-  try {
-    const [funnelRes, pitchRes, skillsRes, insightsRes] = await Promise.all([
-      fetch("/api/analytics/funnel"),
-      fetch("/api/analytics/pitch-angles"),
-      fetch("/api/analytics/skills?min_applications=1"),
-      fetch("/api/analytics/insights"),
-    ]);
-
-    const funnel = await funnelRes.json();
-    const pitches = await pitchRes.json();
-    const skills = await skillsRes.json();
-    const insights = await insightsRes.json();
-
-    renderFunnel(funnel);
-    renderPitchAngles(pitches);
-    renderSkillsAnalytics(skills);
-    renderInsights(insights);
-  } catch (err) {
-    console.error("Failed to load analytics:", err);
-  }
-}
-
-function renderFunnel(funnel) {
-  const total = funnel.total_applications || 1;
-  const stages = [
-    { label: "Submitted", count: funnel.total_applications, pct: 100 },
-    { label: "Client Replied", count: funnel.replied_count, pct: funnel.response_rate || 0 },
-    { label: "Interviewed", count: funnel.interview_count, pct: funnel.interview_rate || 0 },
-    { label: "Negotiation", count: funnel.negotiation_count, pct: Math.round((funnel.negotiation_count / total) * 100) },
-    { label: "Contracts Won", count: funnel.won_count, pct: funnel.win_rate || 0 },
-  ];
-
-  DOM.funnelContainer.innerHTML = stages
-    .map(
-      (s) => `
-    <div class="funnel-stage">
-      <div class="funnel-label">${s.label}</div>
-      <div class="funnel-bar-bg">
-        <div class="funnel-bar-fill" style="width: ${Math.max(s.pct, 4)}%;"></div>
-      </div>
-      <div class="funnel-count">${s.count} (${s.pct}%)</div>
-    </div>
-  `
-    )
-    .join("");
-}
-
-function renderPitchAngles(pitches) {
-  DOM.pitchAnglesContainer.innerHTML = `
-    <table class="analytics-table">
-      <thead>
-        <tr>
-          <th>Pitch Angle</th>
-          <th>Sent</th>
-          <th>Replied</th>
-          <th>Won</th>
-          <th>Win Rate</th>
-          <th>Revenue</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${pitches
-          .map(
-            (p) => `
-          <tr>
-            <td><strong>${p.pitch_angle.replace("_", " ")}</strong></td>
-            <td>${p.total_sent}</td>
-            <td>${p.replied}</td>
-            <td>${p.won}</td>
-            <td><span class="score-val-badge">${p.win_rate}%</span></td>
-            <td>$${p.total_revenue.toLocaleString()}</td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-function renderSkillsAnalytics(skills) {
-  if (skills.length === 0) {
-    DOM.skillsAnalyticsContainer.innerHTML = `<p style="color: var(--text-muted);">No skill outcome data yet.</p>`;
-    return;
-  }
-
-  DOM.skillsAnalyticsContainer.innerHTML = skills
-    .slice(0, 6)
-    .map(
-      (s) => `
-    <div class="skill-rank-row">
-      <span><strong>${escapeHtml(s.skill)}</strong> (${s.applications_count} apps)</span>
-      <span>Win Rate: <strong>${s.win_rate}%</strong> | Rev: <strong style="color: var(--accent-emerald);">$${s.total_revenue.toLocaleString()}</strong></span>
-    </div>
-  `
-    )
-    .join("");
-}
-
-function renderInsights(insights) {
-  if (!insights.recommendations || insights.recommendations.length === 0) {
-    DOM.insightsContainer.innerHTML = `<div class="insight-item">💡 Tracking more application outcomes unlocks automated win probability calibration.</div>`;
-    return;
-  }
-
-  DOM.insightsContainer.innerHTML = insights.recommendations
-    .map((r) => `<div class="insight-item">💡 ${escapeHtml(r)}</div>`)
-    .join("");
-}
-
-// 4. Scraper Actions
-async function triggerCollector() {
+// 2. Multi-Source Collector Actions
+async function triggerLiveHarvest() {
+  const chosenSource = DOM.selectHarvestSource ? DOM.selectHarvestSource.value : "all";
   DOM.btnTriggerCollector.disabled = true;
   DOM.btnTriggerCollector.innerHTML = `<span>⏳ Harvesting...</span>`;
-  showToast("Scanning live feeds across Hacker News...", "info");
+  showToast(`Harvesting live opportunities from ${chosenSource}...`, "info");
 
   try {
-    const res = await fetch("/api/collectors/collect", {
+    const res = await fetch(`/api/collectors/collect?collector_name=${encodeURIComponent(chosenSource)}&limit=10`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ collector_name: "Hacker News", limit: 5 }),
     });
     const data = await res.json();
-    showToast(`Harvest complete: Discovered ${data.collected_count} leads!`, "success");
+    showToast(data.message || `Discovered ${data.collected_count} opportunities!`, "success");
     fetchOpportunities();
     loadStats();
   } catch (err) {
-    showToast("Error triggering feed scraper", "info");
+    showToast("Error triggering feed harvester", "info");
   } finally {
     DOM.btnTriggerCollector.disabled = false;
-    DOM.btnTriggerCollector.innerHTML = `<span class="btn-icon">⚡</span><span>Harvest Live Leads</span>`;
+    DOM.btnTriggerCollector.innerHTML = `<span class="btn-icon">⚡</span><span>Harvest Leads</span>`;
   }
 }
 
-// 5. Proposal Modal Actions
+async function openSourcesModal() {
+  if (!DOM.sourcesModal) return;
+  DOM.sourcesModal.style.display = "flex";
+  loadSourcesHealth();
+}
+
+function closeSourcesModal() {
+  if (DOM.sourcesModal) DOM.sourcesModal.style.display = "none";
+}
+
+async function loadSourcesHealth() {
+  if (!DOM.sourcesListContainer) return;
+  DOM.sourcesListContainer.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading source health...</p></div>`;
+
+  try {
+    const res = await fetch("/api/collectors/health");
+    const sources = await res.json();
+
+    DOM.sourcesListContainer.innerHTML = sources
+      .map(
+        (s) => `
+      <div class="source-item-card">
+        <div>
+          <div class="source-name-header">
+            <span>${escapeHtml(s.source_name)}</span>
+            ${s.circuit_broken ? `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-rose);">⚠️ Circuit Tripped</span>` : s.enabled ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald);">Active</span>` : `<span class="badge" style="background: rgba(148, 163, 184, 0.2); color: var(--text-secondary);">Disabled</span>`}
+          </div>
+          <div class="source-meta-row">
+            <span>Success Rate: <strong>${s.success_rate}%</strong></span>
+            <span>Items Harvested: <strong>${s.total_items_collected}</strong></span>
+            ${s.last_scrape_at ? `<span>Last Scrape: ${new Date(s.last_scrape_at).toLocaleTimeString()}</span>` : ""}
+          </div>
+          ${s.last_error ? `<div style="font-size: 11px; color: var(--accent-rose); margin-top: 4px;">Last Error: ${escapeHtml(s.last_error)}</div>` : ""}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          ${s.circuit_broken ? `<button class="btn btn-sm btn-accent" onclick="resetCircuit('${escapeHtml(s.source_name)}')">Reset Circuit</button>` : ""}
+          <button class="btn btn-sm ${s.enabled ? "btn-secondary" : "btn-primary"}" onclick="toggleSource('${escapeHtml(s.source_name)}')">
+            ${s.enabled ? "Disable" : "Enable"}
+          </button>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  } catch (err) {
+    DOM.sourcesListContainer.innerHTML = `<p style="color: var(--accent-rose);">Failed to load sources health.</p>`;
+  }
+}
+
+window.toggleSource = async function (sourceName) {
+  try {
+    const res = await fetch(`/api/collectors/${encodeURIComponent(sourceName)}/toggle`, { method: "POST" });
+    if (res.ok) {
+      showToast(`Toggled ${sourceName}`, "success");
+      loadSourcesHealth();
+    }
+  } catch (err) {
+    showToast("Failed to toggle source", "info");
+  }
+};
+
+window.resetCircuit = async function (sourceName) {
+  try {
+    const res = await fetch(`/api/collectors/${encodeURIComponent(sourceName)}/reset-circuit`, { method: "POST" });
+    if (res.ok) {
+      showToast(`Reset circuit breaker for ${sourceName}`, "success");
+      loadSourcesHealth();
+    }
+  } catch (err) {
+    showToast("Failed to reset circuit breaker", "info");
+  }
+};
+
+// 3. Proposal Modal Actions
 window.openProposalModal = function (projectId) {
   const project = STATE.projects.find((p) => p.id === projectId);
   if (!project) return;
@@ -554,7 +437,7 @@ async function generateProposal() {
   if (!STATE.currentModalProject) return;
 
   DOM.btnGenerateProposal.disabled = true;
-  DOM.btnGenerateProposal.innerHTML = `<span>⚡ Generating Proposal...</span>`;
+  DOM.btnGenerateProposal.innerHTML = `<span>⚡ Generating Proposal with Portfolio RAG...</span>`;
 
   const payload = {
     project_id: STATE.currentModalProject.id,
@@ -629,7 +512,7 @@ function closeModal() {
   DOM.proposalModal.style.display = "none";
 }
 
-// 6. Profile Drawer Actions
+// 4. Profile Drawer Actions
 function openProfileDrawer() {
   if (!STATE.profile) return;
   DOM.profileName.value = STATE.profile.name;
@@ -648,6 +531,22 @@ function openProfileDrawer() {
     `
     )
     .join("");
+
+  if (DOM.profilePortfolioList) {
+    DOM.profilePortfolioList.innerHTML = (STATE.profile.portfolio || [])
+      .map(
+        (p) => `
+      <div class="portfolio-card">
+        <div class="portfolio-card-title">${escapeHtml(p.title)}</div>
+        <div class="portfolio-card-desc">${escapeHtml(p.description)}</div>
+        <div class="portfolio-tags">
+          ${(p.technologies || []).map((t) => `<span class="skill-tag">${escapeHtml(t)}</span>`).join("")}
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
 
   DOM.profileDrawer.style.display = "flex";
 }
@@ -702,6 +601,7 @@ function escapeHtml(str) {
 
 window.resetFilters = function () {
   DOM.searchInput.value = "";
+  if (DOM.filterSource) DOM.filterSource.value = "";
   DOM.filterCategory.value = "";
   DOM.filterStatus.value = "";
   DOM.filterMinScore.value = "0";
