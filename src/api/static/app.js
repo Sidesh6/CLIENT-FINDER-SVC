@@ -1,5 +1,5 @@
 /**
- * CLIENT FINDER SVC - Interactive Dashboard Application
+ * CLIENT FINDER SVC - Multi-Source Opportunity Discovery & Proposal Application
  */
 
 const STATE = {
@@ -22,6 +22,7 @@ const DOM = {
   // Filters
   searchInput: document.getElementById("search-input"),
   btnClearSearch: document.getElementById("btn-clear-search"),
+  filterSource: document.getElementById("filter-source"),
   filterCategory: document.getElementById("filter-category"),
   filterStatus: document.getElementById("filter-status"),
   filterMinScore: document.getElementById("filter-min-score"),
@@ -31,11 +32,28 @@ const DOM = {
   // Containers
   opportunitiesContainer: document.getElementById("opportunities-container"),
 
-  // Buttons
+  // Sources Modal & Harvest
+  selectHarvestSource: document.getElementById("select-harvest-source"),
   btnTriggerCollector: document.getElementById("btn-trigger-collector"),
-  btnOpenProfile: document.getElementById("btn-open-profile"),
+  btnOpenSources: document.getElementById("btn-open-sources"),
+  btnCloseSources: document.getElementById("btn-close-sources"),
+  sourcesModal: document.getElementById("sources-modal"),
+  sourcesListContainer: document.getElementById("sources-list-container"),
 
-  // Modal
+  // Profile Drawer
+  btnOpenProfile: document.getElementById("btn-open-profile"),
+  profileDrawer: document.getElementById("profile-drawer"),
+  btnCloseDrawer: document.getElementById("btn-close-drawer"),
+  profileName: document.getElementById("profile-name"),
+  profileTitle: document.getElementById("profile-title"),
+  profileTargetRate: document.getElementById("profile-target-rate"),
+  profileMinRate: document.getElementById("profile-min-rate"),
+  profileBio: document.getElementById("profile-bio"),
+  profileSkillsList: document.getElementById("profile-skills-list"),
+  profilePortfolioList: document.getElementById("profile-portfolio-list"),
+  btnSaveProfile: document.getElementById("btn-save-profile"),
+
+  // Proposal Modal
   proposalModal: document.getElementById("proposal-modal"),
   modalProjectTitle: document.getElementById("modal-project-title"),
   pitchChips: document.querySelectorAll(".pitch-chip"),
@@ -49,17 +67,6 @@ const DOM = {
   proposalTextBox: document.getElementById("proposal-text-box"),
   btnCopyProposal: document.getElementById("btn-copy-proposal"),
   btnCloseModal: document.getElementById("btn-close-modal"),
-
-  // Drawer
-  profileDrawer: document.getElementById("profile-drawer"),
-  btnCloseDrawer: document.getElementById("btn-close-drawer"),
-  profileName: document.getElementById("profile-name"),
-  profileTitle: document.getElementById("profile-title"),
-  profileTargetRate: document.getElementById("profile-target-rate"),
-  profileMinRate: document.getElementById("profile-min-rate"),
-  profileBio: document.getElementById("profile-bio"),
-  profileSkillsList: document.getElementById("profile-skills-list"),
-  btnSaveProfile: document.getElementById("btn-save-profile"),
 
   // Toast
   toastContainer: document.getElementById("toast-container"),
@@ -87,6 +94,7 @@ function initEventListeners() {
     fetchOpportunities();
   });
 
+  if (DOM.filterSource) DOM.filterSource.addEventListener("change", fetchOpportunities);
   DOM.filterCategory.addEventListener("change", fetchOpportunities);
   DOM.filterStatus.addEventListener("change", fetchOpportunities);
 
@@ -101,38 +109,42 @@ function initEventListeners() {
     showToast("Feed refreshed", "info");
   });
 
-  // Collector Trigger
+  // Collector Harvest & Sources Modal
   DOM.btnTriggerCollector.addEventListener("click", triggerLiveHarvest);
+  if (DOM.btnOpenSources) DOM.btnOpenSources.addEventListener("click", openSourcesModal);
+  if (DOM.btnCloseSources) DOM.btnCloseSources.addEventListener("click", closeSourcesModal);
+
+  // Profile Drawer
+  DOM.btnOpenProfile.addEventListener("click", openProfileDrawer);
+  DOM.btnCloseDrawer.addEventListener("click", closeProfileDrawer);
+  DOM.btnSaveProfile.addEventListener("click", saveProfileChanges);
 
   // Pitch Angle Chips
   DOM.pitchChips.forEach((chip) => {
     chip.addEventListener("click", () => {
       DOM.pitchChips.forEach((c) => c.classList.remove("active"));
       chip.classList.add("active");
-      STATE.activePitchAngle = chip.dataset.angle;
+      STATE.activePitchAngle = chip.getAttribute("data-angle");
     });
   });
 
   // Proposal Generation
-  DOM.btnGenerateProposal.addEventListener("click", executeProposalGeneration);
+  DOM.btnGenerateProposal.addEventListener("click", generateProposal);
   DOM.btnCopyProposal.addEventListener("click", copyProposalToClipboard);
   DOM.btnCloseModal.addEventListener("click", closeModal);
-
-  // Profile Drawer
-  DOM.btnOpenProfile.addEventListener("click", openProfileDrawer);
-  DOM.btnCloseDrawer.addEventListener("click", closeProfileDrawer);
-  DOM.btnSaveProfile.addEventListener("click", saveProfileChanges);
 }
 
-// API Functions
+// 1. Data Fetching
 async function loadStats() {
   try {
     const res = await fetch("/api/opportunities/stats");
-    if (!res.ok) return;
     const data = await res.json();
-    DOM.statTotalLeads.textContent = data.total_projects;
-    DOM.statHighPriority.textContent = data.high_priority_count;
-    DOM.statAvgScore.textContent = data.average_score;
+    DOM.statTotalLeads.textContent = data.total_opportunities || 0;
+    DOM.statHighPriority.textContent = data.tier_distribution?.EXCELLENT || 0;
+    DOM.statAvgScore.textContent = (data.average_score || 0).toFixed(1);
+    if (STATE.profile) {
+      DOM.statDevRate.textContent = `$${STATE.profile.target_hourly_rate || 95}/hr`;
+    }
   } catch (err) {
     console.error("Failed to load stats:", err);
   }
@@ -141,9 +153,10 @@ async function loadStats() {
 async function loadProfile() {
   try {
     const res = await fetch("/api/profile");
-    if (!res.ok) return;
     STATE.profile = await res.json();
-    DOM.statDevRate.textContent = `$${STATE.profile.target_hourly_rate}/hr`;
+    if (STATE.profile && STATE.profile.target_hourly_rate) {
+      DOM.statDevRate.textContent = `$${STATE.profile.target_hourly_rate}/hr`;
+    }
   } catch (err) {
     console.error("Failed to load profile:", err);
   }
@@ -151,197 +164,229 @@ async function loadProfile() {
 
 async function fetchOpportunities() {
   const query = DOM.searchInput.value.trim();
+  const source = DOM.filterSource ? DOM.filterSource.value : "";
   const category = DOM.filterCategory.value;
   const status = DOM.filterStatus.value;
   const minScore = DOM.filterMinScore.value;
 
-  let url = `/api/projects?limit=50`;
-  if (category) url += `&category=${encodeURIComponent(category)}`;
-  if (status) url += `&status=${encodeURIComponent(status)}`;
-  if (minScore > 0) url += `&min_score=${minScore}`;
-
-  if (query) {
-    url = `/api/search?q=${encodeURIComponent(query)}&limit=50`;
-    if (category) url += `&category=${encodeURIComponent(category)}`;
-    if (minScore > 0) url += `&min_score=${minScore}`;
-  }
+  DOM.opportunitiesContainer.innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Scanning opportunities and calculating real-time match scores...</p>
+    </div>
+  `;
 
   try {
-    DOM.opportunitiesContainer.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Scanning opportunities and calculating real-time match scores...</p>
-      </div>
-    `;
+    let url = `/api/projects?limit=50&min_score=${minScore}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+
+    if (query) {
+      url = `/api/search?q=${encodeURIComponent(query)}&limit=50`;
+    }
 
     const res = await fetch(url);
     const data = await res.json();
-    STATE.projects = data.items || [];
-    DOM.resultsCount.textContent = STATE.projects.length;
+    let projects = data.items || data || [];
+
+    // Client-side source filter if applicable
+    if (source) {
+      projects = projects.filter((p) => (p.source || "").toLowerCase() === source.toLowerCase());
+    }
+
+    STATE.projects = projects;
     renderOpportunities(STATE.projects);
   } catch (err) {
-    console.error("Failed to fetch opportunities:", err);
     DOM.opportunitiesContainer.innerHTML = `
       <div class="empty-state">
-        <p>⚠️ Unable to reach service API. Please check your server connection.</p>
+        <p>⚠️ Failed to load opportunities. Ensure server is running.</p>
       </div>
     `;
   }
 }
 
 function renderOpportunities(projects) {
-  if (!projects.length) {
+  DOM.resultsCount.textContent = projects.length;
+
+  if (projects.length === 0) {
     DOM.opportunitiesContainer.innerHTML = `
       <div class="empty-state">
-        <p>🔍 No opportunities match your active filters.</p>
-        <button class="btn btn-sm btn-primary" onclick="resetFilters()" style="margin-top: 12px;">Reset Filters</button>
+        <div style="font-size: 3rem; margin-bottom: 12px;">🔍</div>
+        <h3>No matching opportunities found</h3>
+        <p>Try adjusting your search criteria, source filter, or trigger a live feed harvest.</p>
+        <button class="btn btn-secondary" style="margin-top: 16px;" onclick="resetFilters()">Reset Filters</button>
       </div>
     `;
     return;
   }
 
-  DOM.opportunitiesContainer.innerHTML = projects.map(renderCardHtml).join("");
-}
+  DOM.opportunitiesContainer.innerHTML = projects
+    .map((p) => {
+      const score = p.score || 0;
+      let badgeClass = "score-low";
+      if (score >= 80) badgeClass = "score-high";
+      else if (score >= 60) badgeClass = "score-med";
 
-function renderCardHtml(p) {
-  const score = p.score != null ? p.score.toFixed(1) : "N/A";
-  let scoreClass = "score-low";
-  if (p.score >= 75) scoreClass = "score-high";
-  else if (p.score >= 50) scoreClass = "score-med";
+      const budgetDisplay = p.budget ? `${p.currency} ${p.budget.toLocaleString()}` : "Budget Unstated";
+      const postedTime = p.posted_at ? new Date(p.posted_at).toLocaleDateString() : "Recent";
+      const skillsHtml = (p.skills || [])
+        .slice(0, 5)
+        .map((s) => `<span class="skill-tag">${escapeHtml(s)}</span>`)
+        .join("");
 
-  const skillsHtml = (p.skills || [])
-    .slice(0, 6)
-    .map((s) => `<span class="skill-pill">${escapeHtml(s)}</span>`)
-    .join("");
-
-  const budgetDisplay = p.budget
-    ? `$${p.budget.toLocaleString()} ${escapeHtml(p.currency || "USD")}`
-    : "Unstated Budget";
-
-  const breakdown = p.score_breakdown || {};
-  const skillScore = breakdown.skill_score != null ? breakdown.skill_score.toFixed(0) : "-";
-  const budgetScore = breakdown.budget_score != null ? breakdown.budget_score.toFixed(0) : "-";
-  const winProb = breakdown.win_probability != null ? breakdown.win_probability.toFixed(0) : "-";
-
-  return `
-    <div class="opp-card" data-id="${p.id}">
-      <div>
+      return `
+      <article class="opp-card">
         <div class="opp-card-top">
-          <h3 class="opp-title">
-            <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener noreferrer">
-              ${escapeHtml(p.title)} ↗
-            </a>
-          </h3>
-          <div class="score-badge ${scoreClass}">
-            <span>★</span> ${score}
-          </div>
+          <span class="source-badge">🔗 ${escapeHtml(p.source)}</span>
+          <div class="score-badge ${badgeClass}">${score.toFixed(1)} Match</div>
         </div>
 
+        <h3 class="opp-title">
+          <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.title)}</a>
+        </h3>
+
         <div class="opp-meta">
-          <span class="meta-tag">🏢 ${escapeHtml(p.source)}</span>
-          <span class="meta-tag">🏷️ ${escapeHtml(p.category || "General")}</span>
-          <span class="meta-tag">💰 ${budgetDisplay}</span>
+          <span class="meta-item">💰 ${budgetDisplay}</span>
+          <span class="meta-item">📅 ${postedTime}</span>
+          ${p.client_name ? `<span class="meta-item">👤 ${escapeHtml(p.client_name)}</span>` : ""}
         </div>
 
         <p class="opp-desc">${escapeHtml(p.description)}</p>
 
-        <div class="opp-skills">${skillsHtml}</div>
+        <div class="skills-wrap">${skillsHtml}</div>
 
-        <div class="opp-breakdown-bar">
-          <div class="breakdown-item">
-            <span class="breakdown-label">Skill Fit</span>
-            <span class="breakdown-val">${skillScore}%</span>
+        <div class="opp-card-footer">
+          <div class="status-indicator">
+            <span class="status-dot status-${p.status}"></span>
+            <span class="status-text">${p.status}</span>
           </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Budget Fit</span>
-            <span class="breakdown-val">${budgetScore}%</span>
-          </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Win Prob</span>
-            <span class="breakdown-val">${winProb}%</span>
-          </div>
-          <div class="breakdown-item">
-            <span class="breakdown-label">Status</span>
-            <span class="breakdown-val">${escapeHtml(p.status)}</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-primary" onclick="openProposalModal(${p.id})">
+              ✨ Craft Proposal
+            </button>
+            <a href="${escapeHtml(p.source_url)}" target="_blank" class="btn btn-sm btn-ghost">
+              Source ↗
+            </a>
           </div>
         </div>
-      </div>
-
-      <div class="opp-card-actions">
-        <button class="btn btn-sm btn-primary" onclick="openProposalModal(${p.id})">
-          🪄 Generate Proposal
-        </button>
-        <button class="btn btn-sm btn-ghost" onclick="quickAutoPitch(${p.id})">
-          ⚡ Auto-Pitch
-        </button>
-      </div>
-    </div>
-  `;
+      </article>
+    `;
+    })
+    .join("");
 }
 
-// Live Lead Harvest
+// 2. Multi-Source Collector Actions
 async function triggerLiveHarvest() {
+  const chosenSource = DOM.selectHarvestSource ? DOM.selectHarvestSource.value : "all";
   DOM.btnTriggerCollector.disabled = true;
-  DOM.btnTriggerCollector.innerHTML = `
-    <div class="spinner" style="width: 16px; height: 16px; border-width: 2px; margin: 0;"></div>
-    <span>Harvesting Leads...</span>
-  `;
+  DOM.btnTriggerCollector.innerHTML = `<span>⏳ Harvesting...</span>`;
+  showToast(`Harvesting live opportunities from ${chosenSource}...`, "info");
 
   try {
-    const res = await fetch("/api/collectors/trigger?limit=5", { method: "POST" });
+    const res = await fetch(`/api/collectors/collect?collector_name=${encodeURIComponent(chosenSource)}&limit=10`, {
+      method: "POST",
+    });
     const data = await res.json();
-    showToast(`Harvested ${data.collected_count} items & scored ${data.scored_count} leads!`, "success");
-    await loadStats();
-    await fetchOpportunities();
+    showToast(data.message || `Discovered ${data.collected_count} opportunities!`, "success");
+    fetchOpportunities();
+    loadStats();
   } catch (err) {
-    showToast("Error triggering collector", "info");
-    console.error(err);
+    showToast("Error triggering feed harvester", "info");
   } finally {
     DOM.btnTriggerCollector.disabled = false;
-    DOM.btnTriggerCollector.innerHTML = `
-      <span class="btn-icon">⚡</span>
-      <span>Harvest Live Leads</span>
-    `;
+    DOM.btnTriggerCollector.innerHTML = `<span class="btn-icon">⚡</span><span>Harvest Leads</span>`;
   }
 }
 
-// Proposal Modal Actions
-window.openProposalModal = function (projectId) {
-  const p = STATE.projects.find((item) => item.id === projectId);
-  if (!p) return;
+async function openSourcesModal() {
+  if (!DOM.sourcesModal) return;
+  DOM.sourcesModal.style.display = "flex";
+  loadSourcesHealth();
+}
 
-  STATE.currentModalProject = p;
-  DOM.modalProjectTitle.textContent = p.title;
+function closeSourcesModal() {
+  if (DOM.sourcesModal) DOM.sourcesModal.style.display = "none";
+}
+
+async function loadSourcesHealth() {
+  if (!DOM.sourcesListContainer) return;
+  DOM.sourcesListContainer.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading source health...</p></div>`;
+
+  try {
+    const res = await fetch("/api/collectors/health");
+    const sources = await res.json();
+
+    DOM.sourcesListContainer.innerHTML = sources
+      .map(
+        (s) => `
+      <div class="source-item-card">
+        <div>
+          <div class="source-name-header">
+            <span>${escapeHtml(s.source_name)}</span>
+            ${s.circuit_broken ? `<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-rose);">⚠️ Circuit Tripped</span>` : s.enabled ? `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald);">Active</span>` : `<span class="badge" style="background: rgba(148, 163, 184, 0.2); color: var(--text-secondary);">Disabled</span>`}
+          </div>
+          <div class="source-meta-row">
+            <span>Success Rate: <strong>${s.success_rate}%</strong></span>
+            <span>Items Harvested: <strong>${s.total_items_collected}</strong></span>
+            ${s.last_scrape_at ? `<span>Last Scrape: ${new Date(s.last_scrape_at).toLocaleTimeString()}</span>` : ""}
+          </div>
+          ${s.last_error ? `<div style="font-size: 11px; color: var(--accent-rose); margin-top: 4px;">Last Error: ${escapeHtml(s.last_error)}</div>` : ""}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          ${s.circuit_broken ? `<button class="btn btn-sm btn-accent" onclick="resetCircuit('${escapeHtml(s.source_name)}')">Reset Circuit</button>` : ""}
+          <button class="btn btn-sm ${s.enabled ? "btn-secondary" : "btn-primary"}" onclick="toggleSource('${escapeHtml(s.source_name)}')">
+            ${s.enabled ? "Disable" : "Enable"}
+          </button>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  } catch (err) {
+    DOM.sourcesListContainer.innerHTML = `<p style="color: var(--accent-rose);">Failed to load sources health.</p>`;
+  }
+}
+
+window.toggleSource = async function (sourceName) {
+  try {
+    const res = await fetch(`/api/collectors/${encodeURIComponent(sourceName)}/toggle`, { method: "POST" });
+    if (res.ok) {
+      showToast(`Toggled ${sourceName}`, "success");
+      loadSourcesHealth();
+    }
+  } catch (err) {
+    showToast("Failed to toggle source", "info");
+  }
+};
+
+window.resetCircuit = async function (sourceName) {
+  try {
+    const res = await fetch(`/api/collectors/${encodeURIComponent(sourceName)}/reset-circuit`, { method: "POST" });
+    if (res.ok) {
+      showToast(`Reset circuit breaker for ${sourceName}`, "success");
+      loadSourcesHealth();
+    }
+  } catch (err) {
+    showToast("Failed to reset circuit breaker", "info");
+  }
+};
+
+// 3. Proposal Modal Actions
+window.openProposalModal = function (projectId) {
+  const project = STATE.projects.find((p) => p.id === projectId);
+  if (!project) return;
+
+  STATE.currentModalProject = project;
+  DOM.modalProjectTitle.textContent = project.title;
   DOM.proposalOutputContainer.style.display = "none";
   DOM.proposalModal.style.display = "flex";
 };
 
-window.quickAutoPitch = async function (projectId) {
-  showToast("Synthesizing optimal AI proposal...", "info");
-  try {
-    const res = await fetch("/api/proposals/auto", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ project_id: projectId }),
-    });
-    const result = await res.json();
-
-    // Open modal directly with generated content
-    const p = STATE.projects.find((item) => item.id === projectId);
-    if (p) STATE.currentModalProject = p;
-    DOM.modalProjectTitle.textContent = p ? p.title : "Custom Proposal";
-    displayProposalResult(result);
-    DOM.proposalModal.style.display = "flex";
-  } catch (err) {
-    showToast("Failed to auto-generate proposal", "info");
-  }
-};
-
-async function executeProposalGeneration() {
+async function generateProposal() {
   if (!STATE.currentModalProject) return;
 
   DOM.btnGenerateProposal.disabled = true;
-  DOM.btnGenerateProposal.innerHTML = `<span>✨ Synthesizing Proposal...</span>`;
+  DOM.btnGenerateProposal.innerHTML = `<span>⚡ Generating Proposal with Portfolio RAG...</span>`;
 
   const payload = {
     project_id: STATE.currentModalProject.id,
@@ -361,7 +406,6 @@ async function executeProposalGeneration() {
     displayProposalResult(result);
   } catch (err) {
     showToast("Error generating proposal", "info");
-    console.error(err);
   } finally {
     DOM.btnGenerateProposal.disabled = false;
     DOM.btnGenerateProposal.innerHTML = `<span>✨ Synthesize Customized Proposal</span>`;
@@ -386,7 +430,7 @@ function closeModal() {
   DOM.proposalModal.style.display = "none";
 }
 
-// Profile Drawer Actions
+// 4. Profile Drawer Actions
 function openProfileDrawer() {
   if (!STATE.profile) return;
   DOM.profileName.value = STATE.profile.name;
@@ -405,6 +449,22 @@ function openProfileDrawer() {
     `
     )
     .join("");
+
+  if (DOM.profilePortfolioList) {
+    DOM.profilePortfolioList.innerHTML = (STATE.profile.portfolio || [])
+      .map(
+        (p) => `
+      <div class="portfolio-card">
+        <div class="portfolio-card-title">${escapeHtml(p.title)}</div>
+        <div class="portfolio-card-desc">${escapeHtml(p.description)}</div>
+        <div class="portfolio-tags">
+          ${(p.technologies || []).map((t) => `<span class="skill-tag">${escapeHtml(t)}</span>`).join("")}
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
 
   DOM.profileDrawer.style.display = "flex";
 }
@@ -439,7 +499,7 @@ async function saveProfileChanges() {
   }
 }
 
-// Helper Utilities
+// Utilities
 function showToast(message, type = "info") {
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
@@ -460,6 +520,7 @@ function escapeHtml(str) {
 
 window.resetFilters = function () {
   DOM.searchInput.value = "";
+  if (DOM.filterSource) DOM.filterSource.value = "";
   DOM.filterCategory.value = "";
   DOM.filterStatus.value = "";
   DOM.filterMinScore.value = "0";

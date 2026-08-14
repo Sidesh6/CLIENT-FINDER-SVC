@@ -159,7 +159,15 @@ class HeuristicProposalGenerator:
             )
 
     def _generate_case_studies(self, skills: list[str], profile: UserProfile) -> list[str]:
-        """Generate relevant case study highlights."""
+        """Generate relevant case study highlights utilizing developer portfolio."""
+        relevant_portfolio = profile.find_relevant_portfolio(skills, max_results=3)
+        if relevant_portfolio:
+            highlights: list[str] = []
+            for p in relevant_portfolio:
+                outcome_text = f" ({p.outcomes[0]})" if p.outcomes else ""
+                highlights.append(f"{p.title}: {p.description}{outcome_text}")
+            return highlights
+
         highlights = [
             f"Built and scaled a production backend microservice in {skills[0] if skills else 'Python'}, reducing latency by 45%.",
             "Designed end-to-end data pipelines and automated workflows handling 50k+ daily transactions.",

@@ -3,44 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Finder SVC • AI Opportunity & Proposal Engine</title>
+  <title>CLIENT FINDER SVC - Multi-Source Opportunity Discovery & Proposal Engine</title>
+  <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Top Navigation Bar -->
-    <header class="navbar">
-      <div class="nav-brand">
-        <div class="logo-icon">⚡</div>
-        <div>
-          <h1 class="nav-title">CLIENT FINDER <span class="badge-accent">AI</span></h1>
-          <p class="nav-subtitle">Multi-Source Opportunity Discovery & Proposal Generator</p>
+  <div class="app-shell">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-badge">⚡</div>
+        <div class="brand-info">
+          <h1 class="brand-title">CLIENT FINDER <span class="badge-pro">PRO</span></h1>
+          <p class="brand-subtitle">Autonomous Multi-Source Lead Intelligence & Proposal Engine</p>
         </div>
       </div>
-      <div class="nav-actions">
-        <button id="btn-trigger-collector" class="btn btn-primary">
+      <div class="header-actions">
+        <select id="select-harvest-source" class="select-control" style="max-width: 180px; font-size: 13px;">
+          <option value="all">🌐 All Sources</option>
+          <option value="Hacker News">🟠 Hacker News</option>
+          <option value="RemoteOK">🔴 RemoteOK</option>
+          <option value="WeWorkRemotely">🔵 WeWorkRemotely</option>
+        </select>
+        <button id="btn-trigger-collector" class="btn btn-secondary btn-glow">
           <span class="btn-icon">⚡</span>
-          <span>Harvest Live Leads</span>
+          <span>Harvest Leads</span>
         </button>
-        <button id="btn-open-profile" class="btn btn-secondary">
+        <button id="btn-open-sources" class="btn btn-ghost">
+          <span>📡 Sources Health</span>
+        </button>
+        <button id="btn-open-profile" class="btn btn-primary">
           <span class="btn-icon">👤</span>
-          <span>Profile Settings</span>
+          <span>Developer Profile</span>
         </button>
-        <a href="/docs" target="_blank" class="btn btn-ghost" title="API Documentation">
-          <span>API Docs ↗</span>
-        </a>
       </div>
     </header>
 
-    <!-- KPI Stats Banner -->
+    <!-- KPI Analytics Bar -->
     <section class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-icon icon-indigo">🎯</div>
+        <div class="kpi-icon icon-blue">🎯</div>
         <div class="kpi-content">
-          <div class="kpi-label">Total Leads Found</div>
+          <div class="kpi-label">Total Harvested Opportunities</div>
           <div id="stat-total-leads" class="kpi-value">0</div>
         </div>
       </div>
@@ -76,6 +82,13 @@
       </div>
 
       <div class="filters-group">
+        <select id="filter-source" class="select-control">
+          <option value="">All Feed Sources</option>
+          <option value="Hacker News">Hacker News</option>
+          <option value="RemoteOK">RemoteOK</option>
+          <option value="WeWorkRemotely">WeWorkRemotely</option>
+        </select>
+
         <select id="filter-category" class="select-control">
           <option value="">All Categories</option>
           <option value="AI Development">AI Development & LLMs</option>
@@ -181,7 +194,7 @@
         <!-- Custom Directive Input -->
         <div class="input-field">
           <label for="custom-instructions">Custom Pitch Directives (Optional):</label>
-          <input type="text" id="custom-instructions" placeholder="e.g., Emphasize experience with Docker and pgvector..." class="text-input">
+          <input type="text" id="custom-instructions" placeholder="e.g., Emphasize experience with Docker, FastAPI, or RAG..." class="text-input">
         </div>
 
         <!-- Action Button -->
@@ -205,11 +218,27 @@
     </div>
   </div>
 
+  <!-- Sources Health & Management Modal -->
+  <div id="sources-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">📡 Multi-Source Feeds & Collector Health</h3>
+          <p class="modal-subtitle">Monitor scrape success rates, circuit breakers, and toggle external sources</p>
+        </div>
+        <button id="btn-close-sources" class="btn-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="sources-list-container" class="sources-list-grid"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Developer Profile Drawer -->
   <div id="profile-drawer" class="drawer-backdrop" style="display: none;">
     <div class="drawer-card">
       <div class="drawer-header">
-        <h3>Developer Profile & Matching Configuration</h3>
+        <h3>Developer Profile & Portfolio Configuration</h3>
         <button id="btn-close-drawer" class="btn-close">✕</button>
       </div>
       <div class="drawer-body">
@@ -233,11 +262,15 @@
         </div>
         <div class="form-group">
           <label for="profile-bio">Professional Bio & Value Proposition</label>
-          <textarea id="profile-bio" class="text-input textarea-control" rows="4"></textarea>
+          <textarea id="profile-bio" class="text-input textarea-control" rows="3"></textarea>
         </div>
         <div class="form-group">
           <label>Core Skills & Proficiencies (1-10)</label>
           <div id="profile-skills-list" class="skills-editor"></div>
+        </div>
+        <div class="form-group" style="margin-top: 16px;">
+          <label>🏆 Portfolio Case Studies & Reference Work</label>
+          <div id="profile-portfolio-list" class="portfolio-list-editor"></div>
         </div>
       </div>
       <div class="drawer-footer">
