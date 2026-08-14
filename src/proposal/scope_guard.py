@@ -3,9 +3,8 @@ Scope of Work (SOW), Milestone Schedule, and Contract Scope Guard Engine.
 Transforms freelance opportunities into legally-sound milestone schedules with scope-creep guardrails.
 """
 
-from datetime import datetime, timezone
 import logging
-from typing import Any
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
@@ -41,10 +40,16 @@ class SOWRequest(BaseModel):
     project_description: str = Field(default="", description="High level scope requirements")
     client_name: str | None = Field(default="Client", description="Client or company name")
     developer_name: str | None = Field(default=None, description="Developer or agency name")
-    total_budget: float = Field(default=5000.0, ge=100.0, description="Total project contract value")
+    total_budget: float = Field(
+        default=5000.0, ge=100.0, description="Total project contract value"
+    )
     skills: list[str] = Field(default_factory=list, description="Target technologies")
-    include_ip_assignment: bool = Field(default=True, description="Include IP transfer clause upon full payment")
-    include_change_order_clause: bool = Field(default=True, description="Include formal Change Order scope-creep guard")
+    include_ip_assignment: bool = Field(
+        default=True, description="Include IP transfer clause upon full payment"
+    )
+    include_change_order_clause: bool = Field(
+        default=True, description="Include formal Change Order scope-creep guard"
+    )
 
 
 class SOWResult(BaseModel):
@@ -139,16 +144,16 @@ class ScopeGuard:
         milestones = [m1, m2, m3]
         clauses = self.get_standard_protective_clauses()
 
-        now_str = datetime.now(timezone.utc).strftime("%B %d, %Y")
+        now_str = datetime.now(UTC).strftime("%B %d, %Y")
 
         # Synthesize Markdown Document
         md = f"""# STATEMENT OF WORK & MILESTONE CONTRACT
 
-**Project Name:** {req.project_title}  
-**Effective Date:** {now_str}  
-**Contractor / Lead Engineer:** {dev_name}  
-**Client:** {client}  
-**Total Contract Value:** ${total:,.2f} USD  
+**Project Name:** {req.project_title}
+**Effective Date:** {now_str}
+**Contractor / Lead Engineer:** {dev_name}
+**Client:** {client}
+**Total Contract Value:** ${total:,.2f} USD
 
 ---
 
@@ -185,8 +190,8 @@ The Contractor shall design, build, test, and deliver the technical solution for
 
 IN WITNESS WHEREOF, the parties hereto have executed this Statement of Work as of the Effective Date.
 
-**For Client:** ___________________________ &nbsp;&nbsp;&nbsp;&nbsp; **Date:** _______________  
-**For Contractor:** _______________________ &nbsp;&nbsp;&nbsp;&nbsp; **Date:** _______________
+**For Client:** ___________________________  **Date:** _______________
+**For Contractor:** _______________________  **Date:** _______________
 """
 
         return SOWResult(

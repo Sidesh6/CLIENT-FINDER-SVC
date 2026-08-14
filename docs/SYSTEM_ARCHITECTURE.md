@@ -135,7 +135,7 @@ The codebase follows a clean, modular layer architecture located in `src/`:
 | `src/analytics/` | Conversion funnel analytics (`AnalyticsEngine`), velocity tracking, pitch-angle win rate analysis, and empirical Bayesian learning calibration (`WinProbabilityCalibrator`). |
 | `src/api/` | FastAPI REST application (`src/api/main.py`), 11 modular route routers (`/api/projects`, `/api/opportunities`, `/api/proposals`, `/api/collectors`, etc.), and glassmorphic static single-page web dashboard (`src/api/static/`). |
 | `src/collectors/` | External platform harvesters (`HackerNewsCollector`, `RemoteOKCollector`, `WeWorkRemotelyCollector`, `RSSFeedCollector`), and the centralized `CollectorRegistry` with health telemetry and circuit breaker protection. |
-| `src/database/` | Database engine management (`src/database/connection.py`), SQLAlchemy ORM declarative models (`ProjectModel`, `OpportunityModel`, `SourceModel`, `ApplicationModel`), and CRUD repositories. |
+| `src/database/` | Multi-backend persistence layer supporting **SQLite**, **PostgreSQL** (SQLAlchemy 2.0 ORM), and **MongoDB** (PyMongo NoSQL collections: `projects`, `opportunities`, `sources`, `applications`, `collection_runs`), automated index creation, and dynamic repository factory (`src/database/factory.py`). |
 | `src/matching/` | Skill matching engine (`SkillMatcher`), hierarchical synonym taxonomy graph (`src/matching/taxonomy.py`), and explainable match result generators. |
 | `src/models/` | Core domain entities: `Project`, `UserProfile`, `SkillProficiency`, `PortfolioProject`, and default profile factories. |
 | `src/notifications/`| Multi-channel dispatcher (`NotificationDispatcher`), token-bucket rate limiter, and channel adapters (`DiscordNotifier`, `SlackNotifier`, `EmailNotifier`, `DesktopNotifier`). |
@@ -150,7 +150,9 @@ The codebase follows a clean, modular layer architecture located in `src/`:
 
 ## 5. Database Schema & Data Models
 
-The relational persistence layer uses SQLAlchemy 2.0 ORM with support for SQLite and PostgreSQL:
+The persistence layer features dual-mode multi-backend architecture:
+1. **Relational Mode (SQLite / PostgreSQL)**: SQLAlchemy 2.0 ORM models with ForeignKeys, cascading constraints, and automatic migration indexing.
+2. **Document Mode (MongoDB NoSQL)**: High-throughput PyMongo document collections (`projects`, `opportunities`, `sources`, `applications`, `collection_runs`, `counters`) with automated sparse unique indexing on `url_hash`, `content_hash`, and indexed query paths on `score`, `status`, and `created_at`. Configured via `MONGODB_URI=mongodb://CLIENT_FINDER:YOUR_PASSWORD@127.0.0.1:27017/?authSource=admin`.
 
 ```mermaid
 erDiagram
@@ -312,6 +314,9 @@ When generating proposals, the system executes dynamic Retrieval-Augmented Gener
 | **Market** | `/api/market/skills/roi` | `GET` | Ranked compensation benchmarks, demand counts, and growth trends |
 | **Market** | `/api/market/recommendations/upskill` | `GET` | Personalized high-yield upskilling roadmap matching developer profile |
 | **Market** | `/api/market/optimize-rate` | `POST` | Simulate Expected Value pricing curve ($EV = \text{Price} \times P_{\text{win}}$) |
+| **Contracts** | `/api/contracts/audit-proposal` | `POST` | Perform conversion quality audit on proposal draft (Readiness score 0-100) |
+| **Contracts** | `/api/contracts/generate-sow` | `POST` | Synthesize formal Scope of Work & Milestone Schedule with acceptance gates |
+| **Contracts** | `/api/contracts/clauses` | `GET` | List protective contract clauses (Scope boundaries, IP transfer, late fees) |
 
 ---
 

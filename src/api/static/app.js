@@ -117,6 +117,32 @@ const DOM = {
   btnCalculateRateOpt: document.getElementById("btn-calculate-rate-opt"),
   rateOptOutputContainer: document.getElementById("rate-opt-output-container"),
 
+  // Scope of Work (SOW) & Proposal Quality Auditor Modal
+  btnOpenContracts: document.getElementById("btn-open-contracts"),
+  btnCloseContracts: document.getElementById("btn-close-contracts"),
+  contractsModal: document.getElementById("contracts-modal"),
+  subtabBtnAudit: document.getElementById("subtab-btn-audit"),
+  subtabBtnSow: document.getElementById("subtab-btn-sow"),
+  subtabBtnClauses: document.getElementById("subtab-btn-clauses"),
+  sectionAudit: document.getElementById("section-audit"),
+  sectionSow: document.getElementById("section-sow"),
+  sectionClauses: document.getElementById("section-clauses"),
+  auditProjectTitle: document.getElementById("audit-project-title"),
+  auditTargetSkills: document.getElementById("audit-target-skills"),
+  auditProposalText: document.getElementById("audit-proposal-text"),
+  btnRunProposalAudit: document.getElementById("btn-run-proposal-audit"),
+  auditOutputContainer: document.getElementById("audit-output-container"),
+  sowProjectTitle: document.getElementById("sow-project-title"),
+  sowClientName: document.getElementById("sow-client-name"),
+  sowBudget: document.getElementById("sow-budget"),
+  sowSkills: document.getElementById("sow-skills"),
+  btnGenerateSowContract: document.getElementById("btn-generate-sow-contract"),
+  sowOutputContainer: document.getElementById("sow-output-container"),
+  sowContractTitle: document.getElementById("sow-contract-title"),
+  sowMarkdownView: document.getElementById("sow-markdown-view"),
+  btnCopySowMarkdown: document.getElementById("btn-copy-sow-markdown"),
+  clausesCardsContainer: document.getElementById("clauses-cards-container"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -268,6 +294,16 @@ function initEventListeners() {
   if (DOM.subtabBtnUpskill) DOM.subtabBtnUpskill.addEventListener("click", () => switchMarketSubtab("upskill"));
   if (DOM.subtabBtnRateOpt) DOM.subtabBtnRateOpt.addEventListener("click", () => switchMarketSubtab("rate-opt"));
   if (DOM.btnCalculateRateOpt) DOM.btnCalculateRateOpt.addEventListener("click", handleCalculateRateOpt);
+
+  // SOW & Proposal Quality Auditor
+  if (DOM.btnOpenContracts) DOM.btnOpenContracts.addEventListener("click", openContractsModal);
+  if (DOM.btnCloseContracts) DOM.btnCloseContracts.addEventListener("click", closeContractsModal);
+  if (DOM.subtabBtnAudit) DOM.subtabBtnAudit.addEventListener("click", () => switchContractsSubtab("audit"));
+  if (DOM.subtabBtnSow) DOM.subtabBtnSow.addEventListener("click", () => switchContractsSubtab("sow"));
+  if (DOM.subtabBtnClauses) DOM.subtabBtnClauses.addEventListener("click", () => switchContractsSubtab("clauses"));
+  if (DOM.btnRunProposalAudit) DOM.btnRunProposalAudit.addEventListener("click", handleRunProposalAudit);
+  if (DOM.btnGenerateSowContract) DOM.btnGenerateSowContract.addEventListener("click", handleGenerateSowContract);
+  if (DOM.btnCopySowMarkdown) DOM.btnCopySowMarkdown.addEventListener("click", copySowMarkdown);
 }
 
 // 1. Data Fetching
@@ -1156,5 +1192,180 @@ async function handleCalculateRateOpt() {
   } finally {
     DOM.btnCalculateRateOpt.disabled = false;
     DOM.btnCalculateRateOpt.textContent = "✨ Calculate Optimal Expected Value Quote";
+  }
+}
+
+// ----------------------------------------------------
+// SOW & Proposal Quality Auditor Logic
+// ----------------------------------------------------
+function openContractsModal() {
+  if (DOM.contractsModal) {
+    DOM.contractsModal.style.display = "flex";
+    loadContractClauses();
+  }
+}
+
+function closeContractsModal() {
+  if (DOM.contractsModal) {
+    DOM.contractsModal.style.display = "none";
+  }
+}
+
+function switchContractsSubtab(tabName) {
+  const tabs = [
+    { name: "audit", btn: DOM.subtabBtnAudit, sec: DOM.sectionAudit },
+    { name: "sow", btn: DOM.subtabBtnSow, sec: DOM.sectionSow },
+    { name: "clauses", btn: DOM.subtabBtnClauses, sec: DOM.sectionClauses },
+  ];
+
+  tabs.forEach((t) => {
+    if (t.name === tabName) {
+      t.btn.classList.add("btn-primary");
+      t.btn.classList.remove("btn-ghost");
+      t.sec.style.display = "block";
+    } else {
+      t.btn.classList.remove("btn-primary");
+      t.btn.classList.add("btn-ghost");
+      t.sec.style.display = "none";
+    }
+  });
+}
+
+async function handleRunProposalAudit() {
+  const text = DOM.auditProposalText ? DOM.auditProposalText.value.trim() : "";
+  if (!text) {
+    showToast("Please paste proposal text to audit", "info");
+    return;
+  }
+
+  const rawSkills = DOM.auditTargetSkills ? DOM.auditTargetSkills.value : "";
+  const skills = rawSkills.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const payload = {
+    proposal_text: text,
+    project_title: DOM.auditProjectTitle ? DOM.auditProjectTitle.value || "Software Project" : "Software Project",
+    target_skills: skills.length > 0 ? skills : ["Python", "FastAPI", "PostgreSQL"],
+  };
+
+  DOM.btnRunProposalAudit.disabled = true;
+  DOM.btnRunProposalAudit.textContent = "Auditing Conversion Heuristics...";
+
+  try {
+    const res = await fetch("/api/contracts/audit-proposal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (DOM.auditOutputContainer) {
+      let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <span style="font-weight: 700; font-size: 16px; color: var(--accent-indigo);">Proposal Readiness Score:</span>
+            <span style="font-size: 20px; font-weight: 800; color: ${data.overall_readiness_score >= 75 ? "var(--accent-emerald)" : "var(--accent-purple);"}; margin-left: 8px;">
+              ${data.overall_readiness_score}/100 (${data.grade})
+            </span>
+          </div>
+          <span style="font-size: 12px; color: var(--text-muted);">${data.word_count} words</span>
+        </div>
+      `;
+
+      html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-bottom: 12px;">`;
+      data.dimensions.forEach((d) => {
+        html += `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+              <span>${escapeHtml(d.dimension_name)}</span>
+              <span style="color: ${d.passed ? "var(--accent-emerald)" : "var(--accent-purple)"};">${d.score}/100</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${escapeHtml(d.feedback)}</div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+
+      if (data.actionable_recommendations && data.actionable_recommendations.length > 0) {
+        html += `<div style="font-weight: 600; font-size: 13px; color: var(--accent-purple); margin-bottom: 4px;">💡 Actionable Optimization Tips:</div>`;
+        html += `<ul style="padding-left: 20px; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">`;
+        data.actionable_recommendations.forEach((r) => {
+          html += `<li>${escapeHtml(r)}</li>`;
+        });
+        html += `</ul>`;
+      }
+
+      DOM.auditOutputContainer.innerHTML = html;
+      DOM.auditOutputContainer.style.display = "block";
+    }
+    showToast("Proposal quality audit complete!", "success");
+  } catch (err) {
+    showToast("Failed to audit proposal", "info");
+  } finally {
+    DOM.btnRunProposalAudit.disabled = false;
+    DOM.btnRunProposalAudit.textContent = "✨ Run Deep Conversion Quality Audit";
+  }
+}
+
+async function handleGenerateSowContract() {
+  const rawSkills = DOM.sowSkills ? DOM.sowSkills.value : "";
+  const skills = rawSkills.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const payload = {
+    project_title: DOM.sowProjectTitle ? DOM.sowProjectTitle.value || "Custom Software Implementation" : "Custom Software Implementation",
+    client_name: DOM.sowClientName ? DOM.sowClientName.value || "Client" : "Client",
+    total_budget: DOM.sowBudget ? parseFloat(DOM.sowBudget.value) || 5000 : 5000,
+    skills: skills.length > 0 ? skills : ["Python", "FastAPI", "PostgreSQL"],
+    include_ip_assignment: true,
+    include_change_order_clause: true,
+  };
+
+  DOM.btnGenerateSowContract.disabled = true;
+  DOM.btnGenerateSowContract.textContent = "Drafting SOW Contract...";
+
+  try {
+    const res = await fetch("/api/contracts/generate-sow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (DOM.sowContractTitle) DOM.sowContractTitle.textContent = data.contract_title;
+    if (DOM.sowMarkdownView) DOM.sowMarkdownView.textContent = data.formatted_markdown_contract;
+    if (DOM.sowOutputContainer) DOM.sowOutputContainer.style.display = "block";
+    showToast("Milestone SOW contract generated!", "success");
+  } catch (err) {
+    showToast("Failed to generate SOW contract", "info");
+  } finally {
+    DOM.btnGenerateSowContract.disabled = false;
+    DOM.btnGenerateSowContract.textContent = "✨ Generate Milestone SOW Contract";
+  }
+}
+
+function copySowMarkdown() {
+  if (DOM.sowMarkdownView) {
+    navigator.clipboard.writeText(DOM.sowMarkdownView.textContent);
+    showToast("SOW Markdown contract copied to clipboard!", "success");
+  }
+}
+
+async function loadContractClauses() {
+  if (!DOM.clausesCardsContainer) return;
+  try {
+    const res = await fetch("/api/contracts/clauses");
+    const clauses = await res.json();
+    let html = "";
+    clauses.forEach((c) => {
+      html += `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px;">
+          <div style="font-weight: 700; font-size: 13px; color: var(--accent-indigo); margin-bottom: 4px;">🛡️ ${escapeHtml(c.clause_title)}</div>
+          <div style="font-size: 12px; color: var(--text-primary); margin-bottom: 6px; line-height: 1.4; font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px;">${escapeHtml(c.clause_text)}</div>
+          <div style="font-size: 11px; color: var(--accent-emerald);"><strong>Purpose:</strong> ${escapeHtml(c.purpose)}</div>
+        </div>
+      `;
+    });
+    DOM.clausesCardsContainer.innerHTML = html;
+  } catch (err) {
+    console.error("Failed to load contract clauses:", err);
   }
 }

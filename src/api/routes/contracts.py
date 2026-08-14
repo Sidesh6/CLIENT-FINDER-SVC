@@ -6,9 +6,9 @@ from fastapi import APIRouter
 
 from src.api.routes.profile import get_current_active_profile
 from src.proposal.auditor import (
+    ProposalAuditor,
     ProposalAuditRequest,
     ProposalAuditResult,
-    ProposalAuditor,
 )
 from src.proposal.scope_guard import (
     ContractClause,

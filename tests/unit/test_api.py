@@ -69,7 +69,7 @@ class TestProjectsEndpoints:
     """Tests for project listing, detail retrieval, and status updates."""
 
     def test_list_projects(self, seed_test_project):
-        response = client.get("/api/projects?limit=10")
+        response = client.get("/api/projects?limit=100")
         assert response.status_code == 200
         data = response.json()
         assert "items" in data

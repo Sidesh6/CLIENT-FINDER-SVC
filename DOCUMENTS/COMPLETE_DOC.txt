@@ -155,6 +155,18 @@ subpackages in `src/`:
 - Generated tailored upskilling roadmaps matching developer core skills with high-yield technology premiums.
 - Built "📈 Market Intelligence & Rate Optimizer" interactive studio into the Web Dashboard.
 
+[PHASE 16: Automated Proposal Quality Auditor, Contract Milestone Builder & Scope Guard Engine]
+- Engineered `ProposalAuditor` evaluating specificity, social proof & metrics, CTA clarity, brevity, and pricing transparency.
+- Developed `ScopeGuard` synthesizing formal 3-phase Scope of Work contracts with explicit acceptance gates and payment triggers.
+- Codified standard protective contract clauses (Scope Boundaries, IP Assignment upon Full Payment, Late Fees, Deemed Acceptance).
+- Integrated "📋 SOW & Audit" studio modal into the Web Dashboard with 1-click Markdown contract export.
+
+[PHASE 17: Native MongoDB Database Integration & Multi-Backend Repository Engine]
+- Implemented `src/database/mongo.py` with singleton MongoClient management, health check pings, and automated multi-collection indexing.
+- Engineered `src/database/mongo_repository.py` providing `MongoProjectRepository`, `MongoOpportunityRepository`, `MongoSourceRepository`, `MongoCollectionRunRepository`, and `MongoApplicationRepository`.
+- Built `src/database/factory.py` repository dispatcher providing dynamic switching between SQL (SQLite/PostgreSQL) and NoSQL (MongoDB).
+- Configured MongoDB connection URI `mongodb://CLIENT_FINDER:YOUR_PASSWORD@127.0.0.1:27017/?authSource=admin` via `MONGODB_URI` / `DATABASE_TYPE`.
+
 ===============================================================================
 4. DATA PIPELINE & END-TO-END EXECUTION FLOW
 ===============================================================================

@@ -4,7 +4,6 @@ Evaluates draft proposals across 5 dimensions: Specificity, Social Proof, CTA, B
 """
 
 import re
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -79,7 +78,9 @@ class ProposalAuditor:
                 + ", ".join(req.target_skills[:3] or ["FastAPI", "Python"])
                 + ") to avoid sounding like a generic template."
             )
-            spec_feedback = "Lacks direct references to the client's explicit technical requirements."
+            spec_feedback = (
+                "Lacks direct references to the client's explicit technical requirements."
+            )
 
         dimensions.append(
             ProposalAuditDimension(
@@ -91,8 +92,21 @@ class ProposalAuditor:
         )
 
         # 2. SOCIAL PROOF & QUANTITATIVE METRICS AUDIT
-        metric_matches = re.findall(r"(\d+%\s*|\d+x\s*|\$\d+[\d,]*|\d+\+?\s*(hours|days|weeks|months|users|rps))", text, re.IGNORECASE)
-        case_study_phrases = ["in past projects", "previously built", "delivered", "reduced", "scaled to", "achieved", "case study", "portfolio"]
+        metric_matches = re.findall(
+            r"(\d+%\s*|\d+x\s*|\$\d+[\d,]*|\d+\+?\s*(hours|days|weeks|months|users|rps))",
+            text,
+            re.IGNORECASE,
+        )
+        case_study_phrases = [
+            "in past projects",
+            "previously built",
+            "delivered",
+            "reduced",
+            "scaled to",
+            "achieved",
+            "case study",
+            "portfolio",
+        ]
         has_case_study = any(p in text.lower() for p in case_study_phrases)
 
         proof_score = 30.0
@@ -109,7 +123,9 @@ class ProposalAuditor:
             recommendations.append(
                 "Include at least one measurable past achievement (e.g., 'reduced API latency by 45%', 'scaled to 50k DAU')."
             )
-            proof_feedback = "Needs concrete quantitative results rather than unverified assertions."
+            proof_feedback = (
+                "Needs concrete quantitative results rather than unverified assertions."
+            )
 
         dimensions.append(
             ProposalAuditDimension(
@@ -121,7 +137,17 @@ class ProposalAuditor:
         )
 
         # 3. CALL TO ACTION (CTA) AUDIT
-        cta_keywords = ["call", "chat", "zoom", "loom", "discuss", "hop on", "available", "schedule", "free for a quick"]
+        cta_keywords = [
+            "call",
+            "chat",
+            "zoom",
+            "loom",
+            "discuss",
+            "hop on",
+            "available",
+            "schedule",
+            "free for a quick",
+        ]
         has_cta = any(k in text.lower() for k in cta_keywords)
         has_question_mark = "?" in text
 
@@ -139,7 +165,9 @@ class ProposalAuditor:
             recommendations.append(
                 "End with a low-friction question (e.g., 'Are you free for a quick 10-minute chat this Tuesday?')."
             )
-            cta_feedback = "Missing an explicit, conversational Call-to-Action to prompt client reply."
+            cta_feedback = (
+                "Missing an explicit, conversational Call-to-Action to prompt client reply."
+            )
 
         dimensions.append(
             ProposalAuditDimension(
@@ -153,16 +181,24 @@ class ProposalAuditor:
         # 4. BREVITY & READABILITY AUDIT (Optimal: 80 - 280 words)
         if 80 <= word_count <= 260:
             brevity_score = 100.0
-            brevity_feedback = f"Ideal length ({word_count} words). Highly readable on mobile and desktop."
+            brevity_feedback = (
+                f"Ideal length ({word_count} words). Highly readable on mobile and desktop."
+            )
             strengths.append(f"Optimal conciseness ({word_count} words) respects client attention.")
         elif word_count < 80:
             brevity_score = max(40.0, (word_count / 80.0) * 80.0)
-            brevity_feedback = f"Too brief ({word_count} words). May appear low-effort to discerning clients."
-            recommendations.append("Expand slightly on your technical approach or relevant case studies.")
+            brevity_feedback = (
+                f"Too brief ({word_count} words). May appear low-effort to discerning clients."
+            )
+            recommendations.append(
+                "Expand slightly on your technical approach or relevant case studies."
+            )
         else:  # word_count > 260
             brevity_score = max(50.0, 100.0 - ((word_count - 260) / 4.0))
             brevity_feedback = f"Slightly verbose ({word_count} words). Founders often skim proposals longer than 250 words."
-            recommendations.append("Trim filler sentences to keep proposal tightly focused under 250 words.")
+            recommendations.append(
+                "Trim filler sentences to keep proposal tightly focused under 250 words."
+            )
 
         dimensions.append(
             ProposalAuditDimension(
@@ -174,14 +210,25 @@ class ProposalAuditor:
         )
 
         # 5. RISK & PRICING TRANSPARENCY AUDIT
-        pricing_terms = ["milestone", "sprint", "$", "rate", "phase 1", "timeline", "scope", "deposit"]
+        pricing_terms = [
+            "milestone",
+            "sprint",
+            "$",
+            "rate",
+            "phase 1",
+            "timeline",
+            "scope",
+            "deposit",
+        ]
         has_pricing_terms = any(t in text.lower() for t in pricing_terms)
         risk_score = 75.0 if has_pricing_terms else 55.0
 
         if risk_score >= 70.0:
             risk_feedback = "Includes structured milestone delivery or pricing framing."
         else:
-            recommendations.append("Mention a phased milestone structure or clear timeline to reduce client perceived risk.")
+            recommendations.append(
+                "Mention a phased milestone structure or clear timeline to reduce client perceived risk."
+            )
             risk_feedback = "Could benefit from mentioning delivery phases or milestone structure."
 
         dimensions.append(
@@ -195,7 +242,7 @@ class ProposalAuditor:
 
         # Compute Overall Score (Weighted)
         weights = [0.25, 0.25, 0.20, 0.15, 0.15]
-        overall = sum(d.score * w for d, w in zip(dimensions, weights))
+        overall = sum(d.score * w for d, w in zip(dimensions, weights, strict=False))
         overall = round(overall, 1)
 
         if overall >= 88.0:

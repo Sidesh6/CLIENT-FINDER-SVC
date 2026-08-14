@@ -21,6 +21,7 @@ from src.api.routes import (
     applications,
     closing,
     collectors,
+    contracts,
     events,
     export,
     health,
@@ -35,6 +36,7 @@ from src.api.routes import (
     search,
 )
 from src.database.connection import init_db
+from src.database.mongo import init_mongo_indexes, is_mongo_configured
 
 logger = logging.getLogger("ClientFinderAPI")
 
@@ -44,8 +46,16 @@ STATIC_DIR = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application startup and shutdown lifecycle management."""
-    logger.info("Initializing database schema for Client Finder Service...")
-    init_db()
+    if is_mongo_configured():
+        logger.info("Initializing MongoDB collections and indexes...")
+        try:
+            init_mongo_indexes()
+        except Exception as e:
+            logger.warning("MongoDB index initialization deferred: %s", e)
+    else:
+        logger.info("Initializing SQL database schema for Client Finder Service...")
+        init_db()
+
     GLOBAL_EVENT_BROADCASTER.set_event_loop(asyncio.get_running_loop())
     logger.info("Client Finder Service REST API initialized successfully.")
     yield
@@ -87,6 +97,7 @@ app.include_router(export.router)
 app.include_router(integrations.router)
 app.include_router(closing.router)
 app.include_router(market.router)
+app.include_router(contracts.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():
