@@ -1,372 +1,2023 @@
-===============================================================================
-CLIENT FINDER SVC — COMPLETE TECHNICAL & ARCHITECTURAL DOCUMENTATION
-===============================================================================
-Version: 1.0.0 (Phases 1 through 12)
-Project: AI-Powered Autonomous Freelance Opportunity Discovery, Multi-Factor Scoring,
-         Dynamic Portfolio Case-Study RAG, and Conversion Engine
+# AI Project Hunter
 
--------------------------------------------------------------------------------
-TABLE OF CONTENTS
--------------------------------------------------------------------------------
-1. Executive Summary & Vision
-2. Architectural Layer Overview
-3. Phase-by-Phase Feature & Engineering History
-   - Phase 1: Core Foundation, Pydantic Schemas & Repository Structure
-   - Phase 2: Hacker News Harvester & HTTP Client
-   - Phase 3: Data Cleaning & Text Normalization Pipeline
-   - Phase 4: AI & Heuristic Requirement Extraction Engine
-   - Phase 5: SQLAlchemy ORM Persistence Layer & Deduplication
-   - Phase 6: Multi-Factor Opportunity Scoring & Skill Taxonomy
-   - Phase 7: Context-Aware AI Proposal & Cover Letter Generator
-   - Phase 8: FastAPI REST API & Glassmorphic Web Dashboard
-   - Phase 9: Multi-Channel Notification System (Discord, Slack, Email, Desktop)
-   - Phase 10: Application Tracking State Machine & Conversion Analytics
-   - Phase 11: Multi-Source Harvester Registry & Portfolio Case-Study RAG
-   - Phase 12: Pipeline Coordinator Multi-Source Integration & Documentation Suite
-4. Data Pipeline & End-to-End Execution Flow
-5. Database Schema & Data Models
-6. Scoring Engine Mathematical Formulations & Calibration
-7. Portfolio Case-Study RAG & Dynamic Proposal Engine
-8. Multi-Channel Notification Subsystem
-9. Application Lifecycle State Machine (12 Stages)
-10. REST API Endpoint Reference Catalog
-11. CLI Command Reference
-12. Quality Assurance & Test Verification Summary
+## Business Requirements Document, System Architecture & Coding Standards
 
-===============================================================================
-1. EXECUTIVE SUMMARY & VISION
-===============================================================================
-Finding high-value, legitimate freelance and contract development opportunities
-manually requires monitoring dozens of remote boards, community threads, and RSS
-feeds. Developers lose countless hours parsing noise, evaluating requirements,
-calculating market compensation fit, and crafting bespoke proposals.
+**Version:** 1.0
+**Date:** 12 August 2026
+**Status:** Development Specification
+**Product Type:** AI-powered project discovery and opportunity intelligence platform
 
-CLIENT FINDER SVC automates this entire lifecycle into an intelligent, high-velocity
-pipeline:
-- Ingests opportunities continuously from Hacker News, RemoteOK, WeWorkRemotely,
-  and arbitrary RSS/Atom feeds with autonomous circuit-breaker fault tolerance.
-- Strips HTML and normalizes dirty text data.
-- Extracts structured schemas (required skills, budget, deadline, client credibility)
-  using LLM extraction with deterministic regex/heuristic fallback.
-- Detects duplicates across titles and URLs using SHA-256 cryptographic hashes.
-- Matches opportunities against developer proficiencies using a hierarchical
-  synonym taxonomy graph.
-- Calculates explainable multi-factor match scores (0-100) and historical win rates.
-- Dispatches instantaneous alerts via Discord, Slack, SMTP Email, and Desktop toasts.
-- Generates tailored proposals citing matching developer portfolio case studies.
-- Tracks proposal lifecycle progression through a 12-stage conversion funnel with
-  Bayesian win-rate calibration.
+---
 
-===============================================================================
-2. ARCHITECTURAL LAYER OVERVIEW
-===============================================================================
-The system is constructed with strict separation of concerns across 15 modular
-subpackages in `src/`:
+# 1. Executive Summary
 
-- `src/ai/`          : LLM client providers (OpenAI, Gemini, Ollama) and extraction schemas.
-- `src/analytics/`   : Funnel conversion metrics, velocity, and win-probability calibration.
-- `src/api/`         : FastAPI REST application, 11 route routers, and static glassmorphic UI.
-- `src/collectors/`  : Multi-source feed harvesters, registry singleton, and circuit breaker.
-- `src/database/`    : SQLAlchemy 2.0 ORM models, migrations, and repository layer.
-- `src/matching/`    : Skill matcher, taxonomy synonym dictionary, and implied skill graph.
-- `src/models/`      : Core domain models (Project, UserProfile, SkillProficiency, PortfolioProject).
-- `src/notifications/`: Multi-channel notification dispatcher, rate limiter, and channel adapters.
-- `src/processors/`  : Data cleaners, URL extractors, and text normalizers.
-- `src/proposal/`    : AI proposal generator, prompt engineering, and heuristic fallback engine.
-- `src/scheduler/`   : Autonomous pipeline coordinator and background recurring daemon thread.
-- `src/scoring/`     : Multi-factor opportunity scoring algorithms and score breakdowns.
-- `src/tracking/`    : 12-state application lifecycle tracker and progression schema.
-- `src/utils/`       : HTTP client with backoff retries, date/currency utilities, and formatters.
+[Certain] AI Project Hunter is a software platform that continuously discovers publicly available software and AI project opportunities from online sources, extracts and structures project requirements, evaluates project and client quality, matches opportunities against a user's skills and preferences, ranks opportunities, generates personalized application proposals, and tracks application outcomes.
 
-===============================================================================
-3. PHASE-BY-PHASE FEATURE & ENGINEERING HISTORY
-===============================================================================
+The system is initially intended for a single user and will later be extensible into a multi-user SaaS platform.
 
-[PHASE 1: Core Foundation & Domain Modeling]
-- Established Pydantic v2 core schemas (`Project`, `UserProfile`, `SkillProficiency`).
-- Implemented data validation constraints for budgets, currency codes, and match scores.
+The primary objective is not simply to collect project listings.
 
-[PHASE 2: Hacker News Harvester & Resilient HTTP Client]
-- Built `HttpClient` with configurable timeout, exponential backoff retries, and rate limiting.
-- Developed `HackerNewsCollector` querying Algolia Search API for monthly "Ask HN" hiring threads.
+The objective is:
 
-[PHASE 3: Data Cleaning & Normalization Pipeline]
-- Created `ProjectCleaner` with HTML tag removal, whitespace compaction, and URL extraction.
-- Built deterministic unit test fixtures for dirty HTML and unicode data.
+> **Find projects that the user has a realistic probability of winning and that are financially worth pursuing.**
 
-[PHASE 4: AI & Heuristic Requirement Extraction Engine]
-- Implemented `ProjectExtractor` with two-tier extraction:
-  1. Primary: LLM structured JSON completion via `OpenAILLMClient` / `GeminiLLMClient`.
-  2. Fallback: `HeuristicProjectExtractor` parsing budgets, currency, skills, and complexity via regex.
+---
 
-[PHASE 5: Persistence Layer & Deduplication]
-- Designed SQLAlchemy 2.0 ORM models: `SourceModel`, `ProjectModel`, `OpportunityModel`.
-- Built `ProjectRepository` with SHA-256 content and URL deduplication preventing duplicate storage.
+# 2. Business Problem
 
-[PHASE 6: Multi-Factor Opportunity Scoring & Skill Taxonomy]
-- Engineered `OpportunityScorer` combining 6 weighted dimensions (Skill, Budget, Client, Competition, Complexity, Freshness).
-- Developed `SkillMatcher` with canonical synonym mapping and hierarchical implied skill graphs.
+## 2.1 Current Problem
 
-[PHASE 7: Context-Aware AI Proposal & Cover Letter Generator]
-- Implemented `ProposalGenerator` with 5 strategic pitch angles:
-  `TECHNICAL_EXPERT`, `FAST_DELIVERY`, `VALUE_ROI`, `PORTFOLIO_PROOF`, `CONSULTATIVE_ADVISOR`.
-- Built deterministic `HeuristicProposalGenerator` for offline, instantaneous proposal creation.
+[Certain] Freelancers and independent developers spend significant time:
 
-[PHASE 8: REST API & Modern Glassmorphic Web Dashboard]
-- Built FastAPI application with interactive OpenAPI documentation at `/docs`.
-- Designed dark-mode glassmorphic dashboard (`index.html`, `style.css`, `app.js`) with live filtering,
-  search, score sliders, proposal generator modal, and developer profile editor.
+* Searching multiple websites for projects
+* Reading long project descriptions
+* Identifying required technologies
+* Comparing project budgets
+* Checking whether clients appear legitimate
+* Determining whether a project matches their capabilities
+* Writing customized proposals
+* Tracking applications
+* Following up with clients
+* Learning which types of projects actually convert into revenue
 
-[PHASE 9: Multi-Channel Notification Dispatcher]
-- Built `NotificationDispatcher` with token-bucket rate limiting and global cooldown.
-- Integrated Discord embeds, Slack Block Kit payloads, HTML/plain-text SMTP email, and OS desktop notifications.
+This creates a large amount of repetitive work.
 
-[PHASE 10: Application Tracking State Machine & Conversion Analytics]
-- Implemented `ApplicationTracker` with a 12-state lifecycle (LEAD -> WON / LOST).
-- Developed `AnalyticsEngine` computing conversion funnels, velocity, and skill revenue attribution.
-- Built `WinProbabilityCalibrator` dynamically adjusting future win probabilities from historical win rates.
+## 2.2 Business Opportunity
 
-[PHASE 11: Multi-Source Collector Expansion & Portfolio Case-Study RAG]
-- Added `RemoteOKCollector` (REST API), `WeWorkRemotelyCollector` (RSS 2.0), and `RSSFeedCollector` (RSS/Atom).
-- Created `CollectorRegistry` with health telemetry and 3-strike circuit breaker isolation.
-- Added `PortfolioProject` model and dynamic skill-weighted case-study RAG enrichment into proposals.
+[Likely] An intelligent system can automate much of the discovery and analysis process while keeping the final client interaction under human control.
 
-[PHASE 12: Pipeline Coordinator Multi-Source Integration & Documentation Suite]
-- Integrated `CollectorRegistry` into `PipelineCoordinator` so all active sources are harvested by default.
-- Added collector health recording on every harvest cycle.
-- Authored comprehensive documentation (`SYSTEM_ARCHITECTURE.md`, `SOURCE.md`, `COMPLETE_DOC.txt`).
+The platform should answer:
 
-[PHASE 13: Real-Time Event Streaming, Dynamic Custom Feeds & Integration Hub]
-- Built `EventBroadcaster` for bi-directional WebSockets (`/api/ws/events`) and SSE streams (`/api/events/stream`).
-- Added dynamic runtime custom RSS/Atom feed registration (`POST /api/collectors/custom`).
-- Built RFC 4180 CSV and formatted JSON data export endpoints (`/api/export/csv`, `/api/export/json`).
-- Implemented outbound webhook integration manager (`OutboundWebhookManager`) with HMAC-SHA256 payload signing.
-- Enhanced Glassmorphic Web Dashboard with live status badge, instant toast stream, and custom feed manager.
+> "Which projects available right now are worth my time?"
 
-[PHASE 14: AI Client Negotiation, Follow-Up & Technical Interview Prep Studio]
-- Created `NegotiationAdvisor` with 5 strategies (`VALUE_ANCHORING`, `SCOPE_MODULATION`, `MILESTONE_SPLIT`, `DISCOUNT_FOR_TERM`, `DEPOSIT_RETAINER`).
-- Implemented `FollowUpManager` synthesizing timed messages for Day 3, Day 7, Day 14, and Cold Lead revival.
-- Developed `InterviewPrepAdvisor` generating architectural questions, model answers, and reverse client questions.
-- Built interactive "💬 Negotiation & Closing Studio" modal into the Web Dashboard.
+rather than:
 
-[PHASE 15: AI Market Intelligence, Skill ROI Heatmaps & Rate Benchmark Forecasting Engine]
-- Implemented `MarketIntelligenceEngine` aggregating total market pipeline valuation and technology compensation rankings.
-- Developed `RateOptimizer` simulating price elasticity and Expected Value maximization curves ($EV = \text{Price} \times P_{\text{win}}$).
-- Generated tailored upskilling roadmaps matching developer core skills with high-yield technology premiums.
-- Built "📈 Market Intelligence & Rate Optimizer" interactive studio into the Web Dashboard.
+> "What projects are available?"
 
-[PHASE 16: Automated Proposal Quality Auditor, Contract Milestone Builder & Scope Guard Engine]
-- Engineered `ProposalAuditor` evaluating specificity, social proof & metrics, CTA clarity, brevity, and pricing transparency.
-- Developed `ScopeGuard` synthesizing formal 3-phase Scope of Work contracts with explicit acceptance gates and payment triggers.
-- Codified standard protective contract clauses (Scope Boundaries, IP Assignment upon Full Payment, Late Fees, Deemed Acceptance).
-- Integrated "📋 SOW & Audit" studio modal into the Web Dashboard with 1-click Markdown contract export.
+---
 
-[PHASE 17: Native MongoDB Database Integration & Multi-Backend Repository Engine]
-- Implemented `src/database/mongo.py` with singleton MongoClient management, health check pings, and automated multi-collection indexing.
-- Engineered `src/database/mongo_repository.py` providing `MongoProjectRepository`, `MongoOpportunityRepository`, `MongoSourceRepository`, `MongoCollectionRunRepository`, and `MongoApplicationRepository`.
-- Built `src/database/factory.py` repository dispatcher providing dynamic switching between SQL (SQLite/PostgreSQL) and NoSQL (MongoDB).
-- Configured MongoDB connection URI `mongodb://CLIENT_FINDER:YOUR_PASSWORD@127.0.0.1:27017/?authSource=admin` via `MONGODB_URI` / `DATABASE_TYPE`.
+# 3. Product Vision
 
-===============================================================================
-4. DATA PIPELINE & END-TO-END EXECUTION FLOW
-===============================================================================
-When `PipelineCoordinator.run_cycle()` executes:
+## Vision
 
-1. COLLECTION: Active collectors (`Hacker News`, `RemoteOK`, `WeWorkRemotely`) harvest listings.
-   Collector health telemetry (`success_count` or `failure_count`) is logged in `CollectorRegistry`.
-2. CLEANING: `clean_project_data()` normalizes unicode, trims whitespace, and strips HTML markup.
-3. EXTRACTION: `ProjectExtractor.extract()` extracts required skills, budget numbers, and project type.
-4. PERSISTENCE: `ProjectRepository.add_many()` computes SHA-256 hashes; existing items are skipped.
-5. SCORING: `OpportunityScorer.score_and_persist()` calculates multi-factor score and win probability.
-6. DISPATCH: If overall score >= min_notification_score (default 75.0), alerts are dispatched.
-7. CONVERSION: User reviews leads in web dashboard or CLI, crafts tailored proposals with portfolio RAG,
-   and progresses applications through the tracking funnel.
+Build an AI-powered opportunity intelligence system that becomes a personal project-hunting agent.
 
-===============================================================================
-5. DATABASE SCHEMA & DATA MODELS
-===============================================================================
+The long-term system should understand:
 
-[sources table]
-- id (Integer, PK)
-- name (String(100), Unique, Indexed)
-- base_url (String(500))
-- source_type (String(50))
-- enabled (Boolean, Default True)
-- created_at (DateTime UTC)
+* What the user can build
+* What the user has previously built
+* What projects the user prefers
+* Which clients are trustworthy
+* Which projects are financially attractive
+* Which projects the user is likely to win
+* Which proposals produce responses
+* Which project categories generate revenue
 
-[projects table]
-- id (Integer, PK)
-- source_id (Integer, FK sources.id)
-- title (String(300), Indexed)
-- description (Text)
-- source (String(100), Indexed)
-- source_url (String(1000))
-- content_hash (String(64), Unique, Indexed) -> sha256(title|description)
-- url_hash (String(64), Indexed) -> sha256(normalized_url)
-- skills (JSON Array)
-- budget (Float, Nullable)
-- currency (String(10), Default "USD")
-- project_type (String(50), Nullable)
-- client_name (String(200), Nullable)
-- status (String(50), Default "NEW") -> NEW, REVIEWED, APPLIED, ARCHIVED
-- posted_at (DateTime UTC, Nullable)
-- created_at (DateTime UTC)
+---
 
-[opportunities table]
-- id (Integer, PK)
-- project_id (Integer, FK projects.id, Unique, Indexed)
-- overall_score (Float, Indexed) -> 0.0 to 100.0
-- skill_match_score (Float)
-- budget_score (Float)
-- client_score (Float)
-- competition_score (Float)
-- complexity_score (Float)
-- freshness_score (Float)
-- win_probability (Float) -> 0.0 to 1.0
-- explanation (Text)
-- created_at (DateTime UTC)
+# 4. Product Objectives
 
-[applications table]
-- id (Integer, PK)
-- project_id (Integer, FK projects.id, Unique, Indexed)
-- status (String(50), Indexed) -> LEAD, PROPOSAL_DRAFTED, APPLIED, INTERVIEWING, WON, etc.
-- pitch_angle (String(50))
-- proposal_subject (String(300))
-- proposal_text (Text)
-- proposed_rate (Float, Nullable)
-- agreed_rate (Float, Nullable)
-- win_probability_at_apply (Float, Nullable)
-- applied_at (DateTime UTC, Nullable)
-- response_at (DateTime UTC, Nullable)
-- interview_at (DateTime UTC, Nullable)
-- closed_at (DateTime UTC, Nullable)
+## Primary Objectives
 
-===============================================================================
-6. SCORING ENGINE MATHEMATICAL FORMULATIONS
-===============================================================================
-Composite Opportunity Score:
-  Score = (0.35 * S_skill)
-        + (0.20 * S_budget)
-        + (0.15 * S_client)
-        + (0.10 * S_competition)
-        + (0.10 * S_complexity)
-        + (0.10 * S_freshness)
+[Certain]
 
-Where:
-- S_skill       : Evaluates primary/secondary match ratio and proficiency ratings (1-10).
-- S_budget      : Evaluates hourly rate and fixed budget fit relative to developer target.
-- S_client      : Checks client name clarity, contact transparency, and risk indicators.
-- S_competition : Penalizes over-applied platforms; boosts low-competition niches.
-- S_complexity  : Rates architectural alignment with developer target seniority.
-- S_freshness   : Exponential recency decay based on hours elapsed since posting.
+1. Discover project opportunities automatically.
+2. Normalize project information from different sources.
+3. Extract structured requirements using AI.
+4. Detect duplicate opportunities.
+5. Match projects against the user's skills.
+6. Score opportunities using explainable criteria.
+7. Analyze available client-quality signals.
+8. Rank opportunities by expected value.
+9. Generate personalized proposals.
+10. Track applications and outcomes.
+11. Learn from historical results.
 
-Win Probability Calibration:
-  P_calibrated = P_base * M_skill * M_pitch
-  where M_skill in [0.5, 2.0] and M_pitch in [0.7, 1.5] are updated empirically from won/lost outcomes.
+## Secondary Objectives
 
-===============================================================================
-7. PORTFOLIO CASE-STUDY RAG & PROPOSAL GENERATION
-===============================================================================
-The developer profile (`UserProfile`) contains verified past project case studies (`PortfolioProject`).
+1. Reduce time spent searching.
+2. Increase quality of applications.
+3. Increase application response rate.
+4. Increase project conversion rate.
+5. Improve project selection over time.
+6. Eventually support multiple users.
 
-Dynamic Retrieval Flow:
-1. `UserProfile.find_relevant_portfolio(target_skills, max_results=2)` ranks past case studies
-   by technology tag overlap and description keyword matches.
-2. Top matching case studies with quantified business outcomes (e.g. "Reduced support latency by 65%")
-   are formatted into the LLM system prompt and heuristic templates.
-3. The generated proposal subject line, opening hook, architectural approach, and CTA directly
-   cite past proven achievements matching the client's exact stack.
+---
 
-===============================================================================
-8. MULTI-CHANNEL NOTIFICATION SUBSYSTEM
-===============================================================================
-The `NotificationDispatcher` routes high-priority opportunities (Score >= 75.0) to:
-- Discord : Rich embed format with color-coded score badge and direct CTA links.
-- Slack   : Formatted Slack Block Kit cards with metadata breakdown sections.
-- Email   : HTML email with CSS-styled score badge and responsive tables + plain text.
-- Desktop : Native OS toast notifications for instant developer awareness.
+# 5. Non-Goals for MVP
 
-Token-bucket rate limiting prevents webhook abuse and notification spam.
+[Certain] The following should NOT be implemented in Version 1:
 
-===============================================================================
-9. APPLICATION LIFECYCLE STATE MACHINE (12 STAGES)
-===============================================================================
-1. LEAD                 : Discovered opportunity qualified for application.
-2. PROPOSAL_DRAFTED     : AI proposal generated and customized.
-3. SUBMITTED            : Proposal transmitted to client.
-4. VIEWED               : Client confirmed viewed proposal.
-5. SHORTLISTED          : Client shortlisted candidate.
-6. INTERVIEW_SCHEDULED  : Interview confirmed.
-7. INTERVIEWING         : Active interview process in progress.
-8. OFFER_RECEIVED       : Contract offer extended.
-9. NEGOTIATING          : Rate or scope negotiation.
-10. WON                 : Contract signed / milestone commenced (Terminal Success).
-11. LOST                : Opportunity closed or rejected (Terminal Closed).
-12. WITHDRAWN           : Candidate withdrew application (Terminal Closed).
+* Fully autonomous client communication
+* Automatic proposal submission
+* Automatic bidding
+* Payment processing
+* Mobile application
+* Microservice architecture
+* Kubernetes deployment
+* Complex autonomous multi-agent architecture
+* Training a large custom language model
+* Ten or more data sources
+* Real-time browser automation for every platform
 
-Automated timestamps (`applied_at`, `response_at`, `interview_at`, `closed_at`) enable
-rigorous conversion funnel velocity and drop-off analytics.
+These may be considered after the core system is validated.
 
-===============================================================================
-10. REST API ENDPOINT REFERENCE CATALOG
-===============================================================================
-GET    /health                          : System uptime and operational status
-GET    /api/projects                    : Paginated project opportunities with score filtering
-GET    /api/projects/{id}               : Project detail with full score breakdown
-PUT    /api/projects/{id}/status        : Update review status (NEW, REVIEWED, APPLIED, ARCHIVED)
-GET    /api/search                      : Full-text search across title, body, and skills
-GET    /api/opportunities               : Ranked opportunities by match score
-GET    /api/opportunities/stats         : Opportunity volume and score tier metrics
-POST   /api/proposals/generate          : Synthesize tailored AI proposal with portfolio RAG
-GET    /api/profile                     : Retrieve active developer profile & portfolio
-PUT    /api/profile                     : Update profile capabilities and target rates
-GET    /api/collectors                  : List all registered collector sources
-GET    /api/collectors/health           : Detailed collector health telemetry & circuit states
-POST   /api/collectors/{source}/toggle  : Enable / disable a specific source
-POST   /api/collectors/{source}/reset-circuit : Reset tripped circuit breaker
-POST   /api/collectors/collect          : Trigger immediate multi-source collection
-POST   /api/notifications/test          : Dispatch test alert to configured channels
-GET    /api/scheduler/status            : Background scheduler telemetry
-POST   /api/scheduler/trigger           : Trigger immediate background harvest
-POST   /api/scheduler/pause             : Pause automated background cycles
-POST   /api/scheduler/resume            : Resume recurring background cycles
-GET    /api/applications                : List tracked applications
-POST   /api/applications                : Create new application record
-PUT    /api/applications/{id}/status    : Progress application lifecycle stage
-GET    /api/analytics/funnel            : Conversion funnel drop-off metrics
-GET    /api/analytics/insights          : Conversion velocity and pitch strategy insights
+---
 
-===============================================================================
-11. CLI COMMAND REFERENCE
-===============================================================================
-Execute from project root directory:
+# 6. Target Users
 
-# Run immediate multi-source harvest cycle
-python -m src.cli harvest --min-score 75 --limit 15
+## 6.1 Primary User
 
-# List top ranked opportunities
-python -m src.cli list --limit 10 --min-score 70
+Independent software/AI developer seeking paid projects.
 
-# Synthesize customized proposal
-python -m src.cli propose <PROJECT_ID> --angle TECHNICAL_EXPERT --pricing
+## 6.2 Future Users
 
-# Track an application in the conversion funnel
-python -m src.cli apply <PROJECT_ID> --angle TECHNICAL_EXPERT --rate 95.0
+* Freelancers
+* AI consultants
+* Small development agencies
+* Software agencies
+* Independent technical consultants
+* Specialized developers
 
-# Display conversion funnel analytics
-python -m src.cli funnel
+---
 
-# Launch autonomous background scheduler daemon
-python -m src.cli daemon --interval 60
+# 7. Core User Journey
 
-===============================================================================
-12. QUALITY ASSURANCE & VERIFICATION SUMMARY
-===============================================================================
-- Automated Test Suite  : 148+ pytest unit tests with 100% pass rate.
-- Linter & Formatter    : 100% clean Ruff check and format pass.
-- Static Type Checking  : 0 mypy errors across all 64 source modules (Python 3.12 strict mode).
-- Live Verification     : Real HTTP requests verified against Hacker News, RemoteOK, and WeWorkRemotely.
+```text
+User creates profile
+        ↓
+User defines skills and earning preferences
+        ↓
+System discovers projects
+        ↓
+System normalizes projects
+        ↓
+System removes duplicates
+        ↓
+AI extracts requirements
+        ↓
+System analyzes project/client
+        ↓
+System calculates skill match
+        ↓
+System calculates opportunity score
+        ↓
+System ranks projects
+        ↓
+User reviews opportunities
+        ↓
+User selects project
+        ↓
+AI generates proposal
+        ↓
+User reviews/edits proposal
+        ↓
+User manually applies
+        ↓
+Application is tracked
+        ↓
+Outcome is recorded
+        ↓
+System learns from results
+```
 
-===============================================================================
-END OF DOCUMENTATION — CLIENT FINDER SVC
-===============================================================================
+---
+
+# 8. Functional Requirements
+
+## FR-001: User Profile
+
+The system shall allow a user to define:
+
+* Name
+* Professional title
+* Skills
+* Skill proficiency
+* Years/months of experience
+* Preferred project categories
+* Minimum budget
+* Maximum budget
+* Preferred currencies
+* Availability
+* Preferred technologies
+* Excluded technologies
+* Portfolio projects
+* GitHub repositories
+* Previous experience
+* Preferred project locations
+* Preferred project sources
+
+---
+
+# 9. Project Discovery
+
+## FR-002: Source Management
+
+The system shall support configurable project sources.
+
+Each source should have:
+
+```text
+Source ID
+Source name
+Source type
+Base URL
+API/RSS/Web source
+Enabled status
+Collection frequency
+Rate limit
+Authentication requirement
+Terms/compliance status
+```
+
+## FR-003: Project Collection
+
+The system shall periodically collect publicly available project opportunities.
+
+Each collected project should preserve the original source information.
+
+---
+
+# 10. Project Normalization
+
+## FR-004: Standard Project Schema
+
+Different sources must be converted into a common internal structure.
+
+Example:
+
+```json
+{
+  "title": "...",
+  "description": "...",
+  "source": "...",
+  "source_project_id": "...",
+  "url": "...",
+  "budget_min": 50000,
+  "budget_max": 100000,
+  "currency": "INR",
+  "posted_at": "...",
+  "deadline": null,
+  "skills": [],
+  "client": {}
+}
+```
+
+---
+
+# 11. Duplicate Detection
+
+## FR-005: Duplicate Identification
+
+The system shall identify potentially duplicated projects.
+
+Detection should combine:
+
+* Source project ID
+* URL
+* Title similarity
+* Description similarity
+* Client similarity
+* Embedding similarity
+
+The system should preserve the original records while linking them as duplicates.
+
+---
+
+# 12. AI Requirement Extraction
+
+## FR-006: Requirement Extraction
+
+The AI pipeline shall extract:
+
+* Project category
+* Required skills
+* Optional skills
+* Functional requirements
+* Technical requirements
+* Budget
+* Currency
+* Deadline
+* Experience requirements
+* Deliverables
+* Estimated complexity
+* Project type
+* Potential risks
+
+The output must be validated against a predefined schema.
+
+---
+
+# 13. Skill Matching
+
+## FR-007: Skill Matching
+
+The system shall compare project requirements against the user's profile.
+
+Example:
+
+```text
+Project:
+Python
+RAG
+FastAPI
+React
+PostgreSQL
+
+User:
+Python       8/10
+RAG          7/10
+FastAPI      6/10
+React        5/10
+PostgreSQL   4/10
+```
+
+The system shall generate:
+
+```text
+Skill Match = 86%
+```
+
+The result must include an explanation.
+
+---
+
+# 14. Opportunity Scoring
+
+## FR-008: Opportunity Score
+
+The system shall calculate an overall score.
+
+Initial scoring model:
+
+```text
+Skill Match             30%
+Budget Attractiveness   20%
+Client Quality          15%
+Competition             10%
+Project Complexity      10%
+Freshness               10%
+Win Probability          5%
+```
+
+Total:
+
+```text
+100%
+```
+
+The scoring system must be configurable.
+
+---
+
+# 15. Client Analysis
+
+## FR-009: Client Quality
+
+Where publicly available, the system should evaluate:
+
+* Previous project history
+* Reviews
+* Hiring history
+* Account/profile information
+* Public company information
+* Domain information
+* Project consistency
+* Suspicious requirements
+* Unrealistic budgets
+* Potential scam indicators
+
+The system should never claim that a client is definitely fraudulent unless there is reliable evidence.
+
+Output:
+
+```text
+Client Score: 82/100
+
+Positive Signals:
+- Previous hiring history
+- Relevant project history
+
+Warnings:
+- Budget appears unusually low
+```
+
+---
+
+# 16. Opportunity Ranking
+
+## FR-010: Ranking
+
+The system shall rank projects according to:
+
+```text
+Overall Opportunity Score
+```
+
+Users should be able to filter by:
+
+* Budget
+* Score
+* Skill
+* Category
+* Source
+* Date
+* Client score
+* Complexity
+* Location
+* Project status
+
+---
+
+# 17. Proposal Generation
+
+## FR-011: Proposal Generator
+
+The system shall generate a project-specific proposal based on:
+
+* Project requirements
+* User profile
+* Relevant portfolio projects
+* Relevant skills
+* Recommended approach
+* Suggested timeline
+* Suggested pricing
+
+The system must not invent experience, certifications, projects, clients, or skills.
+
+---
+
+# 18. Application Tracking
+
+## FR-012: Application Lifecycle
+
+Applications shall support:
+
+```text
+DISCOVERED
+QUALIFIED
+SHORTLISTED
+PROPOSAL_GENERATED
+APPLIED
+CLIENT_REPLIED
+INTERVIEW
+NEGOTIATION
+WON
+LOST
+CANCELLED
+COMPLETED
+```
+
+---
+
+# 19. Outcome Tracking
+
+## FR-013: Outcome Recording
+
+The system shall record:
+
+* Application date
+* Response date
+* Interview
+* Result
+* Final price
+* Revenue
+* Time spent
+* Project type
+* Client
+* Proposal version
+
+This data will later support predictive models.
+
+---
+
+# 20. Notifications
+
+The system should eventually support:
+
+* Email
+* Web notifications
+* Telegram/Discord/other messaging integrations where appropriate
+
+Example:
+
+```text
+HIGH PRIORITY OPPORTUNITY
+
+Score: 93/100
+Budget: ₹1,20,000
+Skill Match: 94%
+Client Score: 88%
+
+Posted: 18 minutes ago
+```
+
+---
+
+# 21. Non-Functional Requirements
+
+## NFR-001: Reliability
+
+Collectors should tolerate:
+
+* Network failures
+* API failures
+* Timeouts
+* Rate limits
+* Invalid responses
+* Partial data
+
+## NFR-002: Security
+
+The system must:
+
+* Keep API keys outside source code
+* Use environment variables/secrets
+* Validate external input
+* Protect user authentication
+* Restrict database access
+* Log security-relevant events
+
+## NFR-003: Maintainability
+
+Each component should have a single responsibility.
+
+## NFR-004: Observability
+
+The system should log:
+
+* Collection attempts
+* Collection failures
+* AI requests
+* AI failures
+* Processing time
+* Database failures
+* Application events
+
+## NFR-005: Testability
+
+Important business logic must be independently testable.
+
+---
+
+# 22. System Architecture
+
+## 22.1 Initial Architecture
+
+[Certain] Start with a **modular monolith**, not microservices.
+
+```text
+                    ┌─────────────────────┐
+                    │       Frontend      │
+                    │ React + TypeScript  │
+                    └──────────┬──────────┘
+                               │ HTTPS
+                               ▼
+                    ┌─────────────────────┐
+                    │      FastAPI        │
+                    │     REST API        │
+                    └──────────┬──────────┘
+                               │
+            ┌──────────────────┼───────────────────┐
+            │                  │                   │
+            ▼                  ▼                   ▼
+     ┌─────────────┐   ┌───────────────┐   ┌──────────────┐
+     │ Project     │   │ Opportunity   │   │ Application  │
+     │ Service     │   │ Service       │   │ Service      │
+     └──────┬──────┘   └───────┬───────┘   └──────┬───────┘
+            │                  │                   │
+            └──────────────────┼───────────────────┘
+                               ▼
+                     ┌──────────────────┐
+                     │    PostgreSQL    │
+                     └──────────────────┘
+
+                     ┌──────────────────┐
+                     │     Workers      │
+                     │ APScheduler /    │
+                     │ Celery later     │
+                     └────────┬─────────┘
+                              │
+             ┌────────────────┼────────────────┐
+             ▼                ▼                ▼
+       ┌───────────┐    ┌────────────┐   ┌────────────┐
+       │ Collectors│    │ AI Pipeline│   │ Notifications│
+       └─────┬─────┘    └──────┬─────┘   └────────────┘
+             │                 │
+             └─────────────────┘
+```
+
+---
+
+# 23. Architecture Principles
+
+## Principle 1: Modular Monolith First
+
+[Certain] Keep one deployable backend while maintaining strict internal modules.
+
+Benefits:
+
+* Easier development
+* Easier debugging
+* Easier deployment
+* Easier learning
+* Lower infrastructure cost
+
+Microservices can be introduced only when there is an actual scaling or organizational reason.
+
+---
+
+# 24. Backend Architecture
+
+Use layered architecture:
+
+```text
+API Layer
+    ↓
+Application/Service Layer
+    ↓
+Domain Layer
+    ↓
+Repository Layer
+    ↓
+Database
+```
+
+Example:
+
+```text
+HTTP Request
+     ↓
+FastAPI Router
+     ↓
+OpportunityService
+     ↓
+OpportunityDomain
+     ↓
+OpportunityRepository
+     ↓
+PostgreSQL
+```
+
+---
+
+# 25. Coding Structure
+
+[Certain] Recommended repository:
+
+```text
+ai-project-hunter/
+│
+├── README.md
+├── LICENSE
+├── .gitignore
+├── .env.example
+├── pyproject.toml
+├── docker-compose.yml
+├── Makefile
+│
+├── docs/
+│   ├── brd/
+│   │   └── business-requirements.md
+│   │
+│   ├── architecture/
+│   │   ├── system-architecture.md
+│   │   ├── data-flow.md
+│   │   ├── security.md
+│   │   └── deployment.md
+│   │
+│   ├── api/
+│   │   └── api-specification.md
+│   │
+│   └── ai/
+│       ├── extraction.md
+│       ├── matching.md
+│       ├── scoring.md
+│       └── evaluation.md
+│
+├── backend/
+│   │
+│   ├── app/
+│   │   │
+│   │   ├── main.py
+│   │   │
+│   │   ├── config/
+│   │   │   ├── settings.py
+│   │   │   └── logging.py
+│   │   │
+│   │   ├── api/
+│   │   │   ├── router.py
+│   │   │   └── v1/
+│   │   │       ├── projects.py
+│   │   │       ├── opportunities.py
+│   │   │       ├── applications.py
+│   │   │       ├── profiles.py
+│   │   │       └── health.py
+│   │   │
+│   │   ├── domain/
+│   │   │   ├── projects/
+│   │   │   ├── opportunities/
+│   │   │   ├── applications/
+│   │   │   ├── profiles/
+│   │   │   └── clients/
+│   │   │
+│   │   ├── services/
+│   │   │   ├── project_service.py
+│   │   │   ├── opportunity_service.py
+│   │   │   ├── application_service.py
+│   │   │   └── profile_service.py
+│   │   │
+│   │   ├── collectors/
+│   │   │   ├── base.py
+│   │   │   ├── registry.py
+│   │   │   └── sources/
+│   │   │       ├── source_a.py
+│   │   │       └── source_b.py
+│   │   │
+│   │   ├── ai/
+│   │   │   ├── client.py
+│   │   │   ├── prompts/
+│   │   │   ├── extraction/
+│   │   │   ├── matching/
+│   │   │   ├── scoring/
+│   │   │   └── proposal/
+│   │   │
+│   │   ├── repositories/
+│   │   │   ├── project_repository.py
+│   │   │   ├── client_repository.py
+│   │   │   ├── application_repository.py
+│   │   │   └── profile_repository.py
+│   │   │
+│   │   ├── models/
+│   │   │   ├── database/
+│   │   │   └── schemas/
+│   │   │
+│   │   ├── workers/
+│   │   │   ├── collector_worker.py
+│   │   │   ├── processing_worker.py
+│   │   │   └── notification_worker.py
+│   │   │
+│   │   ├── database/
+│   │   │   ├── session.py
+│   │   │   └── migrations/
+│   │   │
+│   │   └── utils/
+│   │       ├── dates.py
+│   │       ├── currency.py
+│   │       └── text.py
+│   │
+│   └── tests/
+│       ├── unit/
+│       ├── integration/
+│       └── e2e/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── features/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── types/
+│   │   └── utils/
+│   └── tests/
+│
+├── scripts/
+│   ├── seed_database.py
+│   └── import_projects.py
+│
+└── infra/
+    ├── docker/
+    └── deployment/
+```
+
+---
+
+# 26. Collector Architecture
+
+[Certain] Every source should implement a common interface.
+
+Conceptually:
+
+```text
+BaseCollector
+│
+├── SourceCollectorA
+├── SourceCollectorB
+├── SourceCollectorC
+└── SourceCollectorD
+```
+
+The rest of the application should not care where a project came from.
+
+The collector should return a normalized internal object.
+
+```text
+External Source
+      ↓
+Collector
+      ↓
+Raw Project
+      ↓
+Normalizer
+      ↓
+Canonical Project
+```
+
+---
+
+# 27. AI Architecture
+
+The AI layer should be divided into separate capabilities.
+
+```text
+AI/
+│
+├── extraction
+│     └── Project → Structured Requirements
+│
+├── classification
+│     └── Project → Category
+│
+├── matching
+│     └── Project + User → Match Score
+│
+├── scoring
+│     └── Project Features → Opportunity Score
+│
+├── risk
+│     └── Project + Client → Risk Signals
+│
+└── proposal
+      └── Project + Profile → Proposal
+```
+
+Do not create one giant prompt that attempts to do everything.
+
+---
+
+# 28. Data Architecture
+
+## Main Entities
+
+```text
+User
+Profile
+Skill
+PortfolioProject
+Source
+Project
+ProjectSkill
+Client
+Opportunity
+Application
+Proposal
+Outcome
+Notification
+```
+
+Relationships:
+
+```text
+User
+ │
+ └── Profile
+      │
+      ├── Skills
+      └── Portfolio Projects
+
+Source
+ │
+ └── Projects
+       │
+       ├── Client
+       ├── Skills
+       └── Opportunity
+              │
+              ├── Proposal
+              └── Application
+                       │
+                       └── Outcome
+```
+
+---
+
+# 29. Database Design
+
+## users
+
+```text
+id
+email
+password_hash
+created_at
+updated_at
+```
+
+## profiles
+
+```text
+id
+user_id
+name
+headline
+bio
+minimum_budget
+maximum_budget
+currency
+availability
+created_at
+updated_at
+```
+
+## skills
+
+```text
+id
+name
+category
+```
+
+## user_skills
+
+```text
+user_id
+skill_id
+proficiency
+years_experience
+```
+
+## sources
+
+```text
+id
+name
+type
+base_url
+enabled
+collection_interval
+created_at
+```
+
+## projects
+
+```text
+id
+source_id
+external_id
+title
+description
+url
+budget_min
+budget_max
+currency
+posted_at
+deadline
+raw_data
+status
+created_at
+updated_at
+```
+
+## clients
+
+```text
+id
+name
+source
+external_id
+profile_url
+trust_score
+raw_data
+created_at
+updated_at
+```
+
+## opportunities
+
+```text
+id
+project_id
+skill_match_score
+budget_score
+client_score
+competition_score
+complexity_score
+freshness_score
+win_probability
+overall_score
+explanation
+created_at
+updated_at
+```
+
+## applications
+
+```text
+id
+project_id
+user_id
+status
+applied_at
+response_at
+final_price
+notes
+created_at
+updated_at
+```
+
+## proposals
+
+```text
+id
+application_id
+content
+model
+prompt_version
+created_at
+updated_at
+```
+
+## outcomes
+
+```text
+id
+application_id
+result
+revenue
+hours_spent
+reason
+created_at
+```
+
+---
+
+# 30. Processing Pipeline
+
+[Certain] Every project should pass through a predictable state machine.
+
+```text
+COLLECTED
+    ↓
+NORMALIZED
+    ↓
+VALIDATED
+    ↓
+DUPLICATE_CHECKED
+    ↓
+AI_EXTRACTED
+    ↓
+SKILLS_MATCHED
+    ↓
+CLIENT_ANALYZED
+    ↓
+SCORED
+    ↓
+RANKED
+    ↓
+PRESENTED
+```
+
+Failed processing should not destroy the original project.
+
+Example:
+
+```text
+AI_EXTRACTION_FAILED
+```
+
+The project remains available for retry.
+
+---
+
+# 31. Background Jobs
+
+Background processing should handle:
+
+```text
+collect_projects()
+normalize_projects()
+detect_duplicates()
+extract_requirements()
+calculate_matches()
+calculate_scores()
+generate_embeddings()
+send_notifications()
+refresh_client_scores()
+```
+
+The API should not perform long-running work synchronously.
+
+---
+
+# 32. API Structure
+
+Version APIs from the beginning.
+
+```text
+/api/v1/
+```
+
+Recommended endpoints:
+
+```text
+GET    /health
+
+GET    /projects
+GET    /projects/{project_id}
+
+GET    /opportunities
+GET    /opportunities/{opportunity_id}
+
+POST   /opportunities/{id}/shortlist
+DELETE /opportunities/{id}/shortlist
+
+POST   /opportunities/{id}/proposal
+
+GET    /applications
+POST   /applications
+GET    /applications/{id}
+PATCH  /applications/{id}
+
+GET    /profile
+PATCH  /profile
+
+GET    /skills
+```
+
+---
+
+# 33. Coding Standards
+
+## Rule 1: Type Everything
+
+Use Python type hints.
+
+```python
+def calculate_score(
+    skill_match: float,
+    budget_score: float,
+) -> float:
+    ...
+```
+
+## Rule 2: Small Functions
+
+Avoid:
+
+```text
+process_everything()
+```
+
+Prefer:
+
+```text
+collect()
+normalize()
+validate()
+extract()
+score()
+persist()
+```
+
+## Rule 3: No Business Logic in API Routes
+
+Bad:
+
+```text
+router
+ └── 300 lines of business logic
+```
+
+Good:
+
+```text
+router
+  ↓
+service
+  ↓
+domain
+  ↓
+repository
+```
+
+## Rule 4: No Hardcoded Secrets
+
+Never:
+
+```python
+API_KEY = "..."
+```
+
+Use environment variables.
+
+## Rule 5: Validate External Data
+
+Never trust data received from:
+
+* APIs
+* Websites
+* Users
+* LLMs
+
+LLM output is also external input.
+
+---
+
+# 34. Error Handling
+
+Every external operation should account for:
+
+```text
+Timeout
+ConnectionError
+HTTP errors
+Rate limiting
+Invalid response
+Malformed JSON
+AI failure
+Database failure
+```
+
+Use retries only where retrying is safe.
+
+---
+
+# 35. Logging
+
+Use structured logs.
+
+Example:
+
+```text
+INFO  collector.started
+INFO  collector.completed projects=42
+WARN  collector.rate_limited
+ERROR ai.extraction_failed project_id=123
+INFO  opportunity.scored score=91
+```
+
+Never log:
+
+* Passwords
+* API keys
+* Tokens
+* Sensitive personal information
+
+---
+
+# 36. Testing Strategy
+
+## Unit Tests
+
+Test:
+
+* Score calculations
+* Skill matching
+* Currency conversion
+* Normalization
+* Validation
+* Duplicate detection
+* State transitions
+
+## Integration Tests
+
+Test:
+
+```text
+API → Service → Database
+```
+
+## AI Evaluation
+
+Create a fixed evaluation dataset.
+
+Example:
+
+```text
+100 projects
+```
+
+Manually define expected:
+
+```text
+Category
+Skills
+Budget
+Complexity
+```
+
+Then measure AI performance.
+
+## End-to-End Tests
+
+Test:
+
+```text
+Collect
+ ↓
+Process
+ ↓
+Score
+ ↓
+API
+ ↓
+Dashboard
+```
+
+---
+
+# 37. AI Safety and Reliability Rules
+
+The AI must not:
+
+* Invent user experience
+* Invent portfolio projects
+* Invent client information
+* Invent budgets
+* Invent deadlines
+* Claim uncertain information as fact
+
+Every extracted field should have a confidence or evidence source where practical.
+
+Example:
+
+```json
+{
+  "budget": {
+    "value": 120000,
+    "currency": "INR",
+    "source": "project_description"
+  }
+}
+```
+
+---
+
+# 38. Security Architecture
+
+```text
+User
+ ↓ HTTPS
+Frontend
+ ↓ HTTPS
+FastAPI
+ ↓
+Authentication
+ ↓
+Authorization
+ ↓
+Services
+ ↓
+Repositories
+ ↓
+PostgreSQL
+```
+
+External AI/API credentials should be stored using secrets management.
+
+Database credentials must never appear in Git.
+
+---
+
+# 39. Deployment Architecture
+
+## Development
+
+```text
+Developer PC
+│
+├── Backend
+├── Frontend
+├── PostgreSQL
+└── Redis later
+```
+
+Docker Compose can run the environment.
+
+## Production V1
+
+```text
+Internet
+   ↓
+Reverse Proxy
+   ↓
+Frontend
+   ↓
+FastAPI
+   ↓
+PostgreSQL
+
+Background Worker
+   ↓
+Redis
+```
+
+Do not introduce Kubernetes until there is a genuine operational reason.
+
+---
+
+# 40. Git Strategy
+
+Use:
+
+```text
+main
+develop
+feature/*
+bugfix/*
+```
+
+Example:
+
+```text
+feature/project-collector
+feature/ai-extraction
+feature/opportunity-scoring
+bugfix/duplicate-projects
+```
+
+Commit examples:
+
+```text
+feat: add project source abstraction
+feat: implement project normalization
+feat: add opportunity scoring
+fix: handle collector timeout
+test: add scoring unit tests
+docs: document project schema
+```
+
+---
+
+# 41. Definition of Done
+
+A feature is NOT complete merely because it runs.
+
+A feature is complete when:
+
+```text
+✓ Code implemented
+✓ Tests written
+✓ Error handling added
+✓ Logging added
+✓ Documentation updated
+✓ Configuration documented
+✓ Git commit created
+✓ You can explain the implementation
+✓ You can reproduce it without AI
+```
+
+The last two are particularly important for your learning objective.
+
+---
+
+# 42. Development Phases
+
+## Phase 1: Engineering Foundation
+
+Learn:
+
+* Python packaging
+* Git
+* HTTP
+* REST
+* PostgreSQL
+* SQL
+* Testing
+
+Deliver:
+
+```text
+Project skeleton
+Database connection
+Health endpoint
+Basic tests
+```
+
+---
+
+## Phase 2: First Collector
+
+Build:
+
+```text
+One source
+ ↓
+Collector
+ ↓
+Normalizer
+ ↓
+PostgreSQL
+```
+
+Deliver:
+
+```text
+At least 50 real project records
+```
+
+---
+
+## Phase 3: AI Extraction
+
+Build:
+
+```text
+Project
+ ↓
+LLM
+ ↓
+Structured requirements
+ ↓
+Validation
+ ↓
+Database
+```
+
+Deliver:
+
+```text
+100-project evaluation dataset
+```
+
+---
+
+## Phase 4: Matching
+
+Build:
+
+```text
+User profile
++
+Project
+↓
+Skill match
+```
+
+Deliver:
+
+```text
+Explainable match score
+```
+
+---
+
+## Phase 5: Opportunity Engine
+
+Build:
+
+```text
+Skill match
++
+Budget
++
+Client
++
+Freshness
++
+Complexity
+↓
+Opportunity score
+```
+
+Deliver:
+
+```text
+Ranked project feed
+```
+
+---
+
+## Phase 6: Backend
+
+Build:
+
+```text
+FastAPI
+Authentication
+CRUD
+Services
+Repositories
+Tests
+```
+
+---
+
+## Phase 7: Frontend
+
+Build:
+
+```text
+Dashboard
+Project page
+Opportunity page
+Profile
+Application tracker
+```
+
+---
+
+## Phase 8: Proposal Engine
+
+Build:
+
+```text
+Project
++
+User profile
++
+Portfolio
+↓
+Relevant context
+↓
+Proposal
+```
+
+Human approval remains mandatory.
+
+---
+
+## Phase 9: Automation
+
+Build:
+
+```text
+Scheduler
+ ↓
+Collectors
+ ↓
+Processing
+ ↓
+Scoring
+ ↓
+Notifications
+```
+
+---
+
+## Phase 10: Learning System
+
+Collect:
+
+```text
+Applications
+Responses
+Interviews
+Wins
+Losses
+Revenue
+```
+
+Then build predictive analytics.
+
+---
+
+# 43. MVP Acceptance Criteria
+
+The MVP should satisfy:
+
+```text
+[ ] One reliable project source
+[ ] Project collection works automatically
+[ ] Projects stored in PostgreSQL
+[ ] Duplicate projects detected
+[ ] Requirements extracted
+[ ] Skills extracted
+[ ] User profile supported
+[ ] Skill matching works
+[ ] Opportunity score works
+[ ] Opportunities ranked
+[ ] Dashboard displays opportunities
+[ ] User can shortlist
+[ ] Proposal can be generated
+[ ] Application can be tracked
+[ ] Tests exist
+[ ] Logging exists
+[ ] Documentation exists
+[ ] Project runs from a clean machine
+```
+
+---
+
+# 44. Learning Rules for This Project
+
+[Certain] You should deliberately avoid immediately asking AI to write the implementation.
+
+For each module:
+
+### Step 1
+
+Understand the concept.
+
+### Step 2
+
+Read official documentation.
+
+### Step 3
+
+Design the solution yourself.
+
+### Step 4
+
+Write the code.
+
+### Step 5
+
+Run tests.
+
+### Step 6
+
+Debug.
+
+### Step 7
+
+Ask for explanation when blocked.
+
+### Step 8
+
+Refactor yourself.
+
+### Step 9
+
+Document the concept.
+
+### Step 10
+
+Rebuild a small version without assistance.
+
+The objective is:
+
+```text
+AI-assisted development
+          ↓
+Understanding
+          ↓
+Independent development
+```
+
+not:
+
+```text
+Prompt
+ ↓
+Copy
+ ↓
+Paste
+ ↓
+Pray
+```
+
+---
+
+# 45. Recommended Technology Stack
+
+## Backend
+
+```text
+Python
+FastAPI
+Pydantic
+SQLAlchemy
+Alembic
+PostgreSQL
+```
+
+## AI
+
+```text
+LLM API
+Embeddings
+Structured output
+Vector search later
+```
+
+## Frontend
+
+```text
+React
+TypeScript
+Vite or Next.js
+```
+
+## Infrastructure
+
+```text
+Docker
+Docker Compose
+GitHub Actions
+Cloud VM/container platform
+```
+
+## Testing
+
+```text
+Pytest
+HTTPX
+Frontend testing framework
+```
+
+## Observability
+
+```text
+Python logging initially
+Structured logs
+Metrics later
+```
+
+---
+
+# 46. What NOT to Add Yet
+
+Do not add these simply because they sound impressive:
+
+```text
+Kubernetes
+Kafka
+RabbitMQ
+Microservices
+LangGraph
+Multi-agent systems
+Vector database
+Fine-tuning
+GPU inference
+Complex event-driven architecture
+```
+
+Each should have a demonstrated requirement before being introduced.
+
+---
+
+# 47. Future Architecture
+
+Once the product has significant traffic, the architecture can evolve:
+
+```text
+                         API Gateway
+                              │
+          ┌───────────────────┼──────────────────┐
+          ▼                   ▼                  ▼
+    Project Service     Opportunity Service   User Service
+          │                   │                  │
+          ▼                   ▼                  ▼
+      PostgreSQL          PostgreSQL          PostgreSQL
+          │
+          ▼
+   Message Queue
+          │
+    ┌─────┼─────────┐
+    ▼     ▼         ▼
+Collector AI       Notification
+Workers  Workers   Workers
+    │     │
+    ▼     ▼
+Sources Vector Store
+```
+
+But this is **future architecture**, not your starting point.
+
+---
+
+# 48. Success Metrics
+
+The business should eventually track:
+
+## Discovery
+
+```text
+Projects discovered/day
+Unique projects/day
+Duplicate percentage
+```
+
+## Quality
+
+```text
+Average opportunity score
+Percentage of relevant projects
+False-positive rate
+```
+
+## Conversion
+
+```text
+Applications
+Responses
+Interviews
+Wins
+```
+
+## Financial
+
+```text
+Total project value
+Revenue
+Average project value
+Revenue/application
+Revenue/hour spent searching
+```
+
+## AI
+
+```text
+Extraction accuracy
+Matching accuracy
+Ranking quality
+Proposal acceptance rate
+```
+
+The most important metric is:
+
+> **Revenue generated per hour of project-searching effort.**
+
+---
+
+# 49. Final Product Architecture
+
+The complete product should eventually become:
+
+```text
+                    AI PROJECT HUNTER
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+       DATA COLLECTION              USER PROFILE
+             │                           │
+             ▼                           ▼
+       PROJECT DATABASE          SKILLS / PORTFOLIO
+             │                           │
+             └─────────────┬─────────────┘
+                           ▼
+                    AI UNDERSTANDING
+                           │
+            ┌──────────────┼──────────────┐
+            ▼              ▼              ▼
+       REQUIREMENTS     CLIENT         PROJECT
+       EXTRACTION       ANALYSIS       ANALYSIS
+            │              │              │
+            └──────────────┼──────────────┘
+                           ▼
+                    MATCHING ENGINE
+                           │
+                           ▼
+                    SCORING ENGINE
+                           │
+                           ▼
+                  OPPORTUNITY RANKING
+                           │
+                           ▼
+                     USER DASHBOARD
+                           │
+                           ▼
+                  PROPOSAL GENERATOR
+                           │
+                           ▼
+                    HUMAN APPROVAL
+                           │
+                           ▼
+                  APPLICATION TRACKER
+                           │
+                           ▼
+                     OUTCOME DATA
+                           │
+                           ▼
+                   LEARNING ENGINE
+                           │
+                           └──────────────┐
+                                          │
+                                          ▼
+                                BETTER OPPORTUNITY
+                                      RANKING
+```
+
+# 50. First Implementation Milestone
+
+Do **not** start by implementing the entire architecture.
+
+Your first milestone is deliberately small:
+
+```text
+Git Repository
+      ↓
+Python Project
+      ↓
+FastAPI
+      ↓
+PostgreSQL
+      ↓
+One Project Collector
+      ↓
+Normalized Project Model
+      ↓
+Store 50+ Projects
+      ↓
+Unit Tests
+```
+
+Only after this works should the AI layer be introduced.
+
+The development order is therefore:
+
+**Foundation → Data → AI → Matching → Scoring → API → UI → Proposals → Automation → Learning.**
+
+That ordering gives you a proper engineering education while simultaneously producing a usable product. By the time the project is finished, you should be able to delete the AI-generated scaffolding, recreate the architecture yourself, and explain why every major component exists. That is the standard worth aiming for.
