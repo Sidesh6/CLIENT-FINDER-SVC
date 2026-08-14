@@ -15,7 +15,7 @@ from src.collectors.base_collector import BaseCollector
 from src.collectors.hackernews_collector import HackerNewsCollector
 from src.database.connection import SessionLocal
 from src.database.models import ProjectModel
-from src.database.repository import CollectionRunRepository, ProjectRepository
+from src.database.repository import ProjectRepository
 from src.models.profile import UserProfile, get_default_profile
 from src.models.project import Project
 from src.notifications.dispatcher import NotificationDispatcher
@@ -141,7 +141,6 @@ class PipelineCoordinator:
 
         with SessionLocal() as session:
             repo = ProjectRepository(session)
-            run_repo = CollectionRunRepository(session)
 
             # Persist projects
             saved_project_models = repo.add_many(
@@ -197,19 +196,6 @@ class PipelineCoordinator:
                         logger.warning(
                             "Notification dispatch failed for project ID %d: %s", pm.id, exc
                         )
-
-            # Step 7: Audit Collection Run
-            try:
-                run_repo.create_run(
-                    source_name="PipelineCoordinator",
-                    projects_found=result.collected_count,
-                    new_projects=result.new_projects_saved,
-                    duration_seconds=time.perf_counter() - start_time,
-                    status="SUCCESS" if not result.errors else "PARTIAL",
-                )
-                session.commit()
-            except Exception as exc:
-                logger.warning("Failed to record collection run audit: %s", exc)
 
         result.completed_at = datetime.now(UTC)
         result.duration_seconds = time.perf_counter() - start_time
