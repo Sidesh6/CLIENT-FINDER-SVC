@@ -139,7 +139,9 @@ class ProjectModel(Base):
     )
 
     # Relationships
-    source_model: Mapped[Optional["SourceModel"]] = relationship("SourceModel", back_populates="projects")
+    source_model: Mapped[Optional["SourceModel"]] = relationship(
+        "SourceModel", back_populates="projects"
+    )
     opportunity: Mapped[Optional["OpportunityModel"]] = relationship(
         "OpportunityModel", back_populates="project", uselist=False, cascade="all, delete-orphan"
     )
