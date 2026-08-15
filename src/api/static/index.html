@@ -49,6 +49,9 @@
         <button id="btn-open-negotiation" class="btn btn-ghost">
           <span>💬 Closing Studio</span>
         </button>
+        <button id="btn-open-outreach" class="btn btn-ghost">
+          <span>🚀 Outreach & A/B</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -641,6 +644,141 @@
           <div id="section-clauses" style="display: none;">
             <div id="clauses-cards-container"
               style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outreach & A/B Studio Modal -->
+    <div id="modal-outreach" class="modal-backdrop" style="display: none;">
+      <div class="modal-card modal-lg" style="max-width: 960px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">🚀</span>
+            <div>
+              <h3 style="margin: 0;">Autonomous Lead Outreach & A/B Pitch Studio</h3>
+              <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Multi-touch sequence automation, inbound reply intent classification & statistical pitch optimization</p>
+            </div>
+          </div>
+          <button id="btn-close-outreach-modal" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <!-- Sub-Tab Navigation -->
+          <div class="tabs-header" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 8px;">
+            <button id="tab-btn-outreach-cadences" class="btn btn-sm btn-primary">📅 Multi-Touch Cadences</button>
+            <button id="tab-btn-outreach-inbound" class="btn btn-sm btn-ghost">📥 Inbound Reply Analyzer</button>
+            <button id="tab-btn-outreach-ab" class="btn btn-sm btn-ghost">📊 A/B Pitch Matrix</button>
+          </div>
+
+          <!-- Section 1: Multi-Touch Cadences -->
+          <div id="section-outreach-cadences">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="card p-3" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">⚡ Quick Start Cadence</h4>
+                <div class="form-group" style="margin-bottom: 8px;">
+                  <label style="font-size: 12px;">Target Application ID</label>
+                  <input type="number" id="outreach-app-id" class="text-input" placeholder="e.g. 1" value="1">
+                </div>
+                <div class="form-group" style="margin-bottom: 8px;">
+                  <label style="font-size: 12px;">Project Opportunity Title</label>
+                  <input type="text" id="outreach-proj-title" class="text-input" placeholder="e.g. AI Workflow Backend in FastAPI" value="AI Workflow Backend in FastAPI">
+                </div>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                  <div class="form-group">
+                    <label style="font-size: 12px;">Client Name</label>
+                    <input type="text" id="outreach-client-name" class="text-input" value="Founders Tech">
+                  </div>
+                  <div class="form-group">
+                    <label style="font-size: 12px;">Pitch Angle</label>
+                    <select id="outreach-pitch-angle" class="select-control" style="width: 100%;">
+                      <option value="TECHNICAL_EXPERT">Technical Expert</option>
+                      <option value="FAST_DELIVERY">Fast Delivery</option>
+                      <option value="VALUE_ROI">Value & ROI</option>
+                      <option value="CONSULTATIVE_ADVISOR">Consultative Advisor</option>
+                      <option value="PORTFOLIO_PROOF">Portfolio Proof & Case Study</option>
+                    </select>
+                  </div>
+                </div>
+                <button id="btn-create-sequence" class="btn btn-primary btn-block btn-sm" style="margin-top: 8px;">🚀 Launch 5-Step Outreach Sequence</button>
+              </div>
+
+              <div class="card p-3" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">📋 Active Sequence Inspector</h4>
+                <div id="outreach-sequence-summary" style="font-size: 12px; color: var(--text-muted);">
+                  Launch or select an outreach sequence to preview active touchpoints and message copy.
+                </div>
+                <div id="outreach-actions-bar" style="margin-top: 12px; display: none; gap: 8px;">
+                  <button id="btn-advance-sequence" class="btn btn-secondary btn-sm">⏩ Advance Step</button>
+                  <button id="btn-pause-sequence" class="btn btn-ghost btn-sm">⏸️ Pause</button>
+                </div>
+              </div>
+            </div>
+
+            <h4 style="margin: 14px 0 8px 0; font-size: 13px; color: var(--text-muted);">Cadence Steps & Touchpoints</h4>
+            <div id="outreach-steps-timeline" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto;">
+              <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px;">No sequence loaded. Launch one above to inspect steps.</div>
+            </div>
+          </div>
+
+          <!-- Section 2: Inbound Reply Analyzer -->
+          <div id="section-outreach-inbound" style="display: none;">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 13px; font-weight: 500;">Paste Inbound Client Message / Email Text</label>
+              <textarea id="inbound-message-text" class="text-input textarea-control" rows="4" placeholder="e.g. Hi! We liked your proposal. Are you free for a quick Zoom call this Thursday at 2pm EST to discuss the architecture?"></textarea>
+            </div>
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div class="form-group">
+                <label style="font-size: 12px;">Project Title</label>
+                <input type="text" id="inbound-proj-title" class="text-input" value="AI Workflow Backend">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 12px;">Client Name</label>
+                <input type="text" id="inbound-client-name" class="text-input" value="Sarah / Founders Tech">
+              </div>
+            </div>
+            <button id="btn-analyze-inbound" class="btn btn-primary btn-block">🤖 Classify Intent & Synthesize Auto-Reply</button>
+
+            <!-- Analysis Output Container -->
+            <div id="inbound-analysis-results" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+              <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Classified Intent</div>
+                  <div id="inbound-intent-badge" style="font-size: 14px; font-weight: 700; color: #3b82f6;">SCHEDULE_CALL</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Sentiment Score</div>
+                  <div id="inbound-sentiment-badge" style="font-size: 14px; font-weight: 700; color: #10b981;">+0.85 (Enthusiastic)</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Funnel Action</div>
+                  <div id="inbound-status-badge" style="font-size: 14px; font-weight: 700; color: #8b5cf6;">➔ INTERVIEW</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 13px; font-weight: 500;">Synthesized Contextual Reply Draft</label>
+                  <button id="btn-copy-inbound-draft" class="btn btn-sm btn-ghost">📋 Copy Reply</button>
+                </div>
+                <textarea id="inbound-reply-draft" class="text-input textarea-control" rows="6" readonly style="font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: A/B Pitch Testing Matrix -->
+          <div id="section-outreach-ab" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h4 style="margin: 0; font-size: 14px;">Multi-Armed Bandit Pitch Conversion Analytics</h4>
+                <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Empirical conversion tracking and 95% statistical confidence intervals across pitch strategies</p>
+              </div>
+              <button id="btn-refresh-ab" class="btn btn-sm btn-secondary">🔄 Refresh Stats</button>
+            </div>
+
+            <div id="ab-pitch-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px;"></div>
+
+            <h4 style="margin: 14px 0 8px 0; font-size: 13px; color: var(--text-muted);">🎯 Optimal Domain & Category Pitch Routing</h4>
+            <div id="ab-category-routing-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;"></div>
           </div>
         </div>
       </div>

@@ -12,6 +12,14 @@ from src.analytics.engine import AnalyticsEngine
 from src.database.connection import SessionLocal, init_db
 from src.database.models import ApplicationStatus, ProjectModel
 from src.models.profile import get_default_profile
+from src.outreach.experiments import GLOBAL_PROPOSAL_EXPERIMENTER
+from src.outreach.inbound import InboundReplyClassifier
+from src.outreach.schemas import (
+    InboundReplyRequest,
+    OutreachSequenceCreate,
+    SequenceStatus,
+)
+from src.outreach.sequences import GLOBAL_OUTREACH_ENGINE
 from src.proposal.generator import ProposalGenerator
 from src.proposal.schemas import PitchAngle, ProposalTone
 from src.scheduler.coordinator import PipelineCoordinator
@@ -306,6 +314,132 @@ def cmd_funnel(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_outreach_create(args: argparse.Namespace) -> int:
+    """Create an automated 5-step outreach cadence for an application."""
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Create Outreach Cadence")
+    print("=" * 70)
+
+    angle = PitchAngle(args.angle) if args.angle else PitchAngle.TECHNICAL_EXPERT
+    skills = [s.strip() for s in args.skills.split(",")] if args.skills else ["Python", "FastAPI"]
+
+    req = OutreachSequenceCreate(
+        application_id=args.app_id,
+        project_title=args.title,
+        client_name=args.client or "Client",
+        pitch_angle=angle,
+        target_skills=skills,
+        proposed_budget=args.budget,
+        auto_start=not args.no_auto_start,
+    )
+
+    seq = GLOBAL_OUTREACH_ENGINE.create_sequence(req)
+    print(f"\n[+] Created Sequence ID: {seq.sequence_id}")
+    print(f"    Application ID     : {seq.application_id}")
+    print(f"    Project Title      : {seq.project_title}")
+    print(f"    Client             : {seq.client_name}")
+    print(f"    Pitch Angle        : {seq.pitch_angle.value}")
+    print(f"    Status             : {seq.status.value}")
+    print(f"    Next Step          : Step {seq.current_step_index} / {seq.total_steps}")
+    print("\n--- CADENCE TIMELINE ---")
+    for step in seq.steps:
+        status_icon = "✅" if step.status.value == "EXECUTED" else "⏳"
+        print(f"  [{status_icon}] Step {step.step_index}: {step.step_type.value} (+{step.delay_days}d)")
+        print(f"      Subject: {step.subject}")
+    print("-" * 70)
+    return 0
+
+
+def cmd_outreach_list(args: argparse.Namespace) -> int:
+    """List tracked outreach cadences."""
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Active Outreach Sequences")
+    print("=" * 70)
+
+    status_filter = SequenceStatus(args.status) if args.status else None
+    seqs = GLOBAL_OUTREACH_ENGINE.list_sequences(status=status_filter)
+
+    if not seqs:
+        print("No outreach sequences found matching criteria.")
+        return 0
+
+    for s in seqs:
+        print(f"Sequence ID: {s.sequence_id} | Status: {s.status.value} | Step: {s.current_step_index}/{s.total_steps}")
+        print(f"  App ID: {s.application_id} | Project: {s.project_title} | Client: {s.client_name}")
+        print(f"  Pitch: {s.pitch_angle.value} | Updated: {s.updated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        print("-" * 70)
+    return 0
+
+
+def cmd_outreach_advance(args: argparse.Namespace) -> int:
+    """Advance an outreach sequence to its next step."""
+    try:
+        seq = GLOBAL_OUTREACH_ENGINE.advance_step(args.seq_id)
+        print(f"[+] Advanced sequence {seq.sequence_id} to Step {seq.current_step_index}/{seq.total_steps} (Status: {seq.status.value})")
+        return 0
+    except KeyError:
+        print(f"[!] Sequence with ID '{args.seq_id}' not found.")
+        return 1
+
+
+def cmd_reply_analyze(args: argparse.Namespace) -> int:
+    """Analyze incoming client response, classify intent, and synthesize counter-script."""
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Inbound Reply Intent Classifier")
+    print("=" * 70)
+
+    classifier = InboundReplyClassifier()
+    req = InboundReplyRequest(
+        message_text=args.text,
+        application_id=args.app_id,
+        project_title=args.title or "Target Project",
+        client_name=args.client or "Client",
+    )
+    result = classifier.analyze_reply(req=req, update_db=not args.dry_run)
+
+    print(f"\n[+] Classified Intent    : {result.classified_intent.value} (Confidence: {result.confidence:.2f})")
+    print(f"    Sentiment Score      : {result.sentiment_score:+.2f}")
+    print(f"    Recommended Status   : {result.recommended_funnel_status}")
+    print(f"    Database Updated     : {result.application_status_updated}")
+    print(f"    Recommended Action   : {result.recommended_next_action}")
+
+    if result.detected_objections:
+        print(f"    Detected Objections  : {', '.join(result.detected_objections)}")
+
+    print("\n--- SUGGESTED RESPONSE DRAFT ---")
+    print(result.suggested_response_draft)
+    print("-" * 70)
+    return 0
+
+
+def cmd_ab_stats(args: argparse.Namespace) -> int:
+    """Display statistical A/B pitch testing performance metrics and category recommendations."""
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Dynamic A/B Pitch Angle Experimenter")
+    print("=" * 70)
+
+    summary = GLOBAL_PROPOSAL_EXPERIMENTER.get_summary()
+    print(f"\nTotal Outreach Events   : {summary.total_outreach_events}")
+    print(f"Total Client Responses  : {summary.total_replies}")
+    print(f"Overall Response Rate   : {summary.overall_reply_rate}%")
+    print(f"Best Converting Pitch   : {summary.best_performing_pitch.value}")
+    print(f"Best Win-Rate Pitch     : {summary.best_performing_win_pitch.value}")
+
+    print("\n--- PITCH ANGLE STATISTICAL CONVERSION MATRIX ---")
+    print(f"{'Pitch Angle':<25} | {'Sent':<5} | {'Reply %':<8} | {'Win %':<6} | {'Score':<6} | {'95% CI':<14} | {'Sig?'}")
+    print("-" * 80)
+    for m in summary.pitch_metrics:
+        ci_str = f"[{m.confidence_interval_low:.1f}%, {m.confidence_interval_high:.1f}%]"
+        sig_str = "⭐ Yes" if m.is_statistically_significant else "No"
+        print(f"{m.pitch_angle.value:<25} | {m.impressions_sent:<5} | {m.reply_rate_percent:<7.1f}% | {m.win_rate_percent:<5.1f}% | {m.conversion_score:<6.1f} | {ci_str:<14} | {sig_str}")
+
+    print("\n--- CATEGORY-SPECIFIC OPTIMAL ROUTING ---")
+    for cat, angle in summary.category_recommendations.items():
+        print(f"  🎯 {cat:<28} ➔ {angle.value}")
+    print("-" * 70)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build root CLI argument parser and subcommands."""
     parser = argparse.ArgumentParser(
@@ -404,6 +538,41 @@ def build_parser() -> argparse.ArgumentParser:
         "funnel", help="Display conversion funnel and revenue analytics"
     )
     p_funnel.set_defaults(func=cmd_funnel)
+
+    # 10. Outreach Sequence Subcommands
+    p_outreach = subparsers.add_parser("outreach", help="Manage automated lead outreach sequences")
+    outreach_subs = p_outreach.add_subparsers(dest="outreach_action", help="Outreach actions")
+
+    p_o_create = outreach_subs.add_parser("create", help="Create new outreach sequence")
+    p_o_create.add_argument("--app-id", type=int, required=True, help="Target application ID")
+    p_o_create.add_argument("--title", type=str, required=True, help="Project title")
+    p_o_create.add_argument("--client", type=str, default="Client", help="Client name")
+    p_o_create.add_argument("--angle", choices=[a.value for a in PitchAngle], default=PitchAngle.TECHNICAL_EXPERT.value)
+    p_o_create.add_argument("--skills", type=str, default="Python, FastAPI", help="Comma-separated skills")
+    p_o_create.add_argument("--budget", type=float, default=None, help="Target budget")
+    p_o_create.add_argument("--no-auto-start", action="store_true", help="Do not execute Step 1 immediately")
+    p_o_create.set_defaults(func=cmd_outreach_create)
+
+    p_o_list = outreach_subs.add_parser("list", help="List active outreach sequences")
+    p_o_list.add_argument("--status", choices=[s.value for s in SequenceStatus], default=None)
+    p_o_list.set_defaults(func=cmd_outreach_list)
+
+    p_o_adv = outreach_subs.add_parser("advance", help="Advance sequence step")
+    p_o_adv.add_argument("--seq-id", type=str, required=True, help="Sequence ID")
+    p_o_adv.set_defaults(func=cmd_outreach_advance)
+
+    # 11. Inbound Reply Classifier Command
+    p_reply = subparsers.add_parser("reply", help="Classify incoming client reply intent and draft response")
+    p_reply.add_argument("--text", type=str, required=True, help="Raw message received from client")
+    p_reply.add_argument("--app-id", type=int, default=None, help="Application ID to update in DB")
+    p_reply.add_argument("--title", type=str, default=None, help="Project title")
+    p_reply.add_argument("--client", type=str, default=None, help="Client name")
+    p_reply.add_argument("--dry-run", action="store_true", help="Do not update database status")
+    p_reply.set_defaults(func=cmd_reply_analyze)
+
+    # 12. A/B Stats Command
+    p_ab = subparsers.add_parser("ab-stats", help="Display A/B pitch testing metrics and category routing")
+    p_ab.set_defaults(func=cmd_ab_stats)
 
     return parser
 

@@ -143,6 +143,40 @@ const DOM = {
   btnCopySowMarkdown: document.getElementById("btn-copy-sow-markdown"),
   clausesCardsContainer: document.getElementById("clauses-cards-container"),
 
+  // Autonomous Outreach & A/B Studio
+  btnOpenOutreach: document.getElementById("btn-open-outreach"),
+  btnCloseOutreachModal: document.getElementById("btn-close-outreach-modal"),
+  modalOutreach: document.getElementById("modal-outreach"),
+  tabBtnOutreachCadences: document.getElementById("tab-btn-outreach-cadences"),
+  tabBtnOutreachInbound: document.getElementById("tab-btn-outreach-inbound"),
+  tabBtnOutreachAb: document.getElementById("tab-btn-outreach-ab"),
+  sectionOutreachCadences: document.getElementById("section-outreach-cadences"),
+  sectionOutreachInbound: document.getElementById("section-outreach-inbound"),
+  sectionOutreachAb: document.getElementById("section-outreach-ab"),
+  outreachAppId: document.getElementById("outreach-app-id"),
+  outreachProjTitle: document.getElementById("outreach-proj-title"),
+  outreachClientName: document.getElementById("outreach-client-name"),
+  outreachPitchAngle: document.getElementById("outreach-pitch-angle"),
+  btnCreateSequence: document.getElementById("btn-create-sequence"),
+  outreachSequenceSummary: document.getElementById("outreach-sequence-summary"),
+  outreachActionsBar: document.getElementById("outreach-actions-bar"),
+  btnAdvanceSequence: document.getElementById("btn-advance-sequence"),
+  btnPauseSequence: document.getElementById("btn-pause-sequence"),
+  outreachStepsTimeline: document.getElementById("outreach-steps-timeline"),
+  inboundMessageText: document.getElementById("inbound-message-text"),
+  inboundProjTitle: document.getElementById("inbound-proj-title"),
+  inboundClientName: document.getElementById("inbound-client-name"),
+  btnAnalyzeInbound: document.getElementById("btn-analyze-inbound"),
+  inboundAnalysisResults: document.getElementById("inbound-analysis-results"),
+  inboundIntentBadge: document.getElementById("inbound-intent-badge"),
+  inboundSentimentBadge: document.getElementById("inbound-sentiment-badge"),
+  inboundStatusBadge: document.getElementById("inbound-status-badge"),
+  inboundReplyDraft: document.getElementById("inbound-reply-draft"),
+  btnCopyInboundDraft: document.getElementById("btn-copy-inbound-draft"),
+  btnRefreshAb: document.getElementById("btn-refresh-ab"),
+  abPitchCardsGrid: document.getElementById("ab-pitch-cards-grid"),
+  abCategoryRoutingList: document.getElementById("ab-category-routing-list"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -304,6 +338,19 @@ function initEventListeners() {
   if (DOM.btnRunProposalAudit) DOM.btnRunProposalAudit.addEventListener("click", handleRunProposalAudit);
   if (DOM.btnGenerateSowContract) DOM.btnGenerateSowContract.addEventListener("click", handleGenerateSowContract);
   if (DOM.btnCopySowMarkdown) DOM.btnCopySowMarkdown.addEventListener("click", copySowMarkdown);
+
+  // Autonomous Outreach & A/B Studio
+  if (DOM.btnOpenOutreach) DOM.btnOpenOutreach.addEventListener("click", openOutreachModal);
+  if (DOM.btnCloseOutreachModal) DOM.btnCloseOutreachModal.addEventListener("click", closeOutreachModal);
+  if (DOM.tabBtnOutreachCadences) DOM.tabBtnOutreachCadences.addEventListener("click", () => switchOutreachTab("cadences"));
+  if (DOM.tabBtnOutreachInbound) DOM.tabBtnOutreachInbound.addEventListener("click", () => switchOutreachTab("inbound"));
+  if (DOM.tabBtnOutreachAb) DOM.tabBtnOutreachAb.addEventListener("click", () => switchOutreachTab("ab"));
+  if (DOM.btnCreateSequence) DOM.btnCreateSequence.addEventListener("click", handleCreateSequence);
+  if (DOM.btnAdvanceSequence) DOM.btnAdvanceSequence.addEventListener("click", handleAdvanceSequence);
+  if (DOM.btnPauseSequence) DOM.btnPauseSequence.addEventListener("click", handlePauseSequence);
+  if (DOM.btnAnalyzeInbound) DOM.btnAnalyzeInbound.addEventListener("click", handleAnalyzeInboundReply);
+  if (DOM.btnCopyInboundDraft) DOM.btnCopyInboundDraft.addEventListener("click", copyInboundDraft);
+  if (DOM.btnRefreshAb) DOM.btnRefreshAb.addEventListener("click", loadAbPitchStats);
 }
 
 // 1. Data Fetching
@@ -1367,5 +1414,256 @@ async function loadContractClauses() {
     DOM.clausesCardsContainer.innerHTML = html;
   } catch (err) {
     console.error("Failed to load contract clauses:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Autonomous Lead Outreach & A/B Studio Functions
+// ---------------------------------------------------------------------------
+
+let ACTIVE_OUTREACH_SEQUENCE = null;
+
+function openOutreachModal() {
+  if (DOM.modalOutreach) {
+    DOM.modalOutreach.style.display = "flex";
+    loadAbPitchStats();
+  }
+}
+
+function closeOutreachModal() {
+  if (DOM.modalOutreach) {
+    DOM.modalOutreach.style.display = "none";
+  }
+}
+
+function switchOutreachTab(tabName) {
+  if (!DOM.tabBtnOutreachCadences) return;
+
+  const tabs = [
+    { btn: DOM.tabBtnOutreachCadences, sec: DOM.sectionOutreachCadences },
+    { btn: DOM.tabBtnOutreachInbound, sec: DOM.sectionOutreachInbound },
+    { btn: DOM.tabBtnOutreachAb, sec: DOM.sectionOutreachAb },
+  ];
+
+  tabs.forEach((t) => {
+    if (t.btn && t.sec) {
+      t.btn.classList.remove("btn-primary");
+      t.btn.classList.add("btn-ghost");
+      t.sec.style.display = "none";
+    }
+  });
+
+  if (tabName === "cadences" && DOM.tabBtnOutreachCadences && DOM.sectionOutreachCadences) {
+    DOM.tabBtnOutreachCadences.classList.add("btn-primary");
+    DOM.tabBtnOutreachCadences.classList.remove("btn-ghost");
+    DOM.sectionOutreachCadences.style.display = "block";
+  } else if (tabName === "inbound" && DOM.tabBtnOutreachInbound && DOM.sectionOutreachInbound) {
+    DOM.tabBtnOutreachInbound.classList.add("btn-primary");
+    DOM.tabBtnOutreachInbound.classList.remove("btn-ghost");
+    DOM.sectionOutreachInbound.style.display = "block";
+  } else if (tabName === "ab" && DOM.tabBtnOutreachAb && DOM.sectionOutreachAb) {
+    DOM.tabBtnOutreachAb.classList.add("btn-primary");
+    DOM.tabBtnOutreachAb.classList.remove("btn-ghost");
+    DOM.sectionOutreachAb.style.display = "block";
+    loadAbPitchStats();
+  }
+}
+
+async function handleCreateSequence() {
+  const appId = parseInt(DOM.outreachAppId?.value) || 1;
+  const projTitle = DOM.outreachProjTitle?.value || "AI Workflow Implementation";
+  const clientName = DOM.outreachClientName?.value || "Founders Tech";
+  const pitchAngle = DOM.outreachPitchAngle?.value || "TECHNICAL_EXPERT";
+
+  const payload = {
+    application_id: appId,
+    project_title: projTitle,
+    client_name: clientName,
+    pitch_angle: pitchAngle,
+    target_skills: ["Python", "FastAPI", "PostgreSQL"],
+    auto_start: true,
+  };
+
+  DOM.btnCreateSequence.disabled = true;
+  DOM.btnCreateSequence.textContent = "Launching Cadence...";
+
+  try {
+    const res = await fetch("/api/outreach/sequences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const seq = await res.json();
+    ACTIVE_OUTREACH_SEQUENCE = seq;
+    renderSequenceTimeline(seq);
+    showToast("Outreach sequence launched successfully!", "success");
+  } catch (err) {
+    showToast("Failed to create outreach sequence", "info");
+  } finally {
+    DOM.btnCreateSequence.disabled = false;
+    DOM.btnCreateSequence.textContent = "🚀 Launch 5-Step Outreach Sequence";
+  }
+}
+
+async function handleAdvanceSequence() {
+  if (!ACTIVE_OUTREACH_SEQUENCE) return;
+  try {
+    const res = await fetch(`/api/outreach/sequences/${ACTIVE_OUTREACH_SEQUENCE.sequence_id}/advance`, {
+      method: "POST",
+    });
+    const updated = await res.json();
+    ACTIVE_OUTREACH_SEQUENCE = updated;
+    renderSequenceTimeline(updated);
+    showToast(`Advanced sequence to Step ${updated.current_step_index}!`, "success");
+  } catch (err) {
+    showToast("Failed to advance sequence", "info");
+  }
+}
+
+async function handlePauseSequence() {
+  if (!ACTIVE_OUTREACH_SEQUENCE) return;
+  try {
+    const res = await fetch(`/api/outreach/sequences/${ACTIVE_OUTREACH_SEQUENCE.sequence_id}/pause`, {
+      method: "POST",
+    });
+    const updated = await res.json();
+    ACTIVE_OUTREACH_SEQUENCE = updated;
+    renderSequenceTimeline(updated);
+    showToast("Sequence paused", "info");
+  } catch (err) {
+    showToast("Failed to pause sequence", "info");
+  }
+}
+
+function renderSequenceTimeline(seq) {
+  if (!DOM.outreachStepsTimeline || !DOM.outreachSequenceSummary) return;
+
+  DOM.outreachSequenceSummary.innerHTML = `
+    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">ID: <code>${escapeHtml(seq.sequence_id)}</code></div>
+    <div><strong>Target:</strong> ${escapeHtml(seq.project_title)} (${escapeHtml(seq.client_name)})</div>
+    <div><strong>Pitch Angle:</strong> <span class="badge" style="background: rgba(99,102,241,0.2); color: #818cf8; padding: 2px 6px; border-radius: 4px;">${escapeHtml(seq.pitch_angle)}</span></div>
+    <div><strong>Status:</strong> <span style="font-weight: 700; color: ${seq.status === "ACTIVE" ? "#10b981" : "#f59e0b"};">${escapeHtml(seq.status)}</span> (Step ${seq.current_step_index} of ${seq.total_steps})</div>
+  `;
+
+  if (DOM.outreachActionsBar) {
+    DOM.outreachActionsBar.style.display = "flex";
+  }
+
+  let html = "";
+  seq.steps.forEach((step) => {
+    const isDone = step.status === "EXECUTED";
+    const statusIcon = isDone ? "✅" : "⏳";
+    const bg = isDone ? "rgba(16,185,129,0.06)" : "rgba(255,255,255,0.02)";
+    const border = isDone ? "1px solid rgba(16,185,129,0.3)" : "1px solid var(--border-color)";
+
+    html += `
+      <div style="background: ${bg}; border: ${border}; border-radius: 8px; padding: 10px 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <div style="font-weight: 600; font-size: 13px;">
+            ${statusIcon} Step ${step.step_index}: <strong>${escapeHtml(step.step_type)}</strong> (+${step.delay_days}d delay)
+          </div>
+          <span style="font-size: 11px; font-weight: 600; color: ${isDone ? "#10b981" : "#94a3b8"};">${escapeHtml(step.status)}</span>
+        </div>
+        <div style="font-size: 12px; color: var(--accent-indigo); font-weight: 500; margin-bottom: 4px;">Subject: ${escapeHtml(step.subject)}</div>
+        <div style="font-size: 11px; color: var(--text-muted); font-family: monospace; white-space: pre-wrap; max-height: 80px; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 6px; border-radius: 4px;">${escapeHtml(step.message_content)}</div>
+      </div>
+    `;
+  });
+
+  DOM.outreachStepsTimeline.innerHTML = html;
+}
+
+async function handleAnalyzeInboundReply() {
+  const text = DOM.inboundMessageText?.value.trim();
+  if (!text) {
+    showToast("Please enter an inbound message to analyze", "info");
+    return;
+  }
+
+  const payload = {
+    message_text: text,
+    project_title: DOM.inboundProjTitle?.value || "Target Project",
+    client_name: DOM.inboundClientName?.value || "Client",
+  };
+
+  DOM.btnAnalyzeInbound.disabled = true;
+  DOM.btnAnalyzeInbound.textContent = "Analyzing Intent...";
+
+  try {
+    const res = await fetch("/api/outreach/inbound/analyze?update_db=false", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (DOM.inboundIntentBadge) DOM.inboundIntentBadge.textContent = data.classified_intent;
+    if (DOM.inboundSentimentBadge) {
+      const s = data.sentiment_score;
+      const label = s > 0.4 ? "Enthusiastic" : s < -0.2 ? "Hesitant / Critical" : "Neutral";
+      DOM.inboundSentimentBadge.textContent = `${s > 0 ? "+" : ""}${s.toFixed(2)} (${label})`;
+      DOM.inboundSentimentBadge.style.color = s > 0.2 ? "#10b981" : s < -0.2 ? "#ef4444" : "#f59e0b";
+    }
+    if (DOM.inboundStatusBadge) DOM.inboundStatusBadge.textContent = `➔ ${data.recommended_funnel_status}`;
+    if (DOM.inboundReplyDraft) DOM.inboundReplyDraft.value = data.suggested_response_draft;
+    if (DOM.inboundAnalysisResults) DOM.inboundAnalysisResults.style.display = "block";
+
+    showToast(`Intent classified: ${data.classified_intent}`, "success");
+  } catch (err) {
+    showToast("Failed to analyze inbound message", "info");
+  } finally {
+    DOM.btnAnalyzeInbound.disabled = false;
+    DOM.btnAnalyzeInbound.textContent = "🤖 Classify Intent & Synthesize Auto-Reply";
+  }
+}
+
+function copyInboundDraft() {
+  if (DOM.inboundReplyDraft) {
+    navigator.clipboard.writeText(DOM.inboundReplyDraft.value);
+    showToast("Response draft copied to clipboard!", "success");
+  }
+}
+
+async function loadAbPitchStats() {
+  if (!DOM.abPitchCardsGrid) return;
+  try {
+    const res = await fetch("/api/outreach/experiments/pitch-stats");
+    const summary = await res.json();
+
+    let cardsHtml = "";
+    summary.pitch_metrics.forEach((m) => {
+      const isSig = m.is_statistically_significant;
+      cardsHtml += `
+        <div class="card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-weight: 700; font-size: 13px; color: var(--accent-indigo);">${escapeHtml(m.pitch_angle)}</span>
+            ${isSig ? '<span class="badge" style="background: rgba(16,185,129,0.2); color: #34d399; font-size: 10px; padding: 2px 6px; border-radius: 4px;">⭐ High Win</span>' : ""}
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; margin-bottom: 8px;">
+            <div>Sent: <strong>${m.impressions_sent}</strong></div>
+            <div>Replies: <strong>${m.replies_received}</strong> (${m.reply_rate_percent}%)</div>
+            <div>Wins: <strong>${m.wins_recorded}</strong> (${m.win_rate_percent}%)</div>
+            <div>Score: <strong>${m.conversion_score}</strong></div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">95% CI: [${m.confidence_interval_low}%, ${m.confidence_interval_high}%]</div>
+        </div>
+      `;
+    });
+    DOM.abPitchCardsGrid.innerHTML = cardsHtml;
+
+    if (DOM.abCategoryRoutingList && summary.category_recommendations) {
+      let routingHtml = "";
+      for (const [cat, angle] of Object.entries(summary.category_recommendations)) {
+        routingHtml += `
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 10px; display: flex; justify-content: space-between;">
+            <span>${escapeHtml(cat)}</span>
+            <span style="font-weight: 600; color: var(--accent-emerald);">➔ ${escapeHtml(angle)}</span>
+          </div>
+        `;
+      }
+      DOM.abCategoryRoutingList.innerHTML = routingHtml;
+    }
+  } catch (err) {
+    console.error("Failed to load A/B stats:", err);
   }
 }
