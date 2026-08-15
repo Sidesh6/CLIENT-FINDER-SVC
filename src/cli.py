@@ -606,6 +606,120 @@ def cmd_feasibility(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_search_semantic(args: argparse.Namespace) -> int:
+    """Execute natural language dense semantic vector search."""
+    from src.vectors.engine import GLOBAL_VECTOR_STORE
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Semantic Vector Search ('{args.query}')")
+    print("=" * 70)
+
+    init_db()
+    if GLOBAL_VECTOR_STORE.count() == 0:
+        count = GLOBAL_VECTOR_STORE.index_from_database()
+        print(f"[+] Populated vector store with {count} database opportunities.")
+
+    results = GLOBAL_VECTOR_STORE.search(
+        query=args.query,
+        limit=args.limit,
+        min_similarity=args.min_sim,
+    )
+
+    print(f"\n[+] Found {len(results)} semantically similar opportunity(s):\n")
+    for idx, r in enumerate(results, start=1):
+        print(f"  [{idx}] {r.title}")
+        print(
+            f"      Cosine Sim: {r.cosine_similarity * 100:.1f}% | Budget: ${r.budget or 0:,.2f} | Source: {r.source}"
+        )
+        if r.skills:
+            print(f"      Skills    : {', '.join(r.skills[:4])}")
+        print(f"      Summary   : {r.description[:120]}...\n")
+    print("-" * 70)
+    return 0
+
+
+def cmd_search_hybrid(args: argparse.Namespace) -> int:
+    """Execute hybrid dense vector + lexical BM25 search."""
+    from src.vectors.hybrid_search import GLOBAL_HYBRID_SEARCH
+    from src.vectors.schemas import HybridSearchRequest
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Hybrid Semantic + Lexical Search (alpha={args.alpha})")
+    print("=" * 70)
+
+    init_db()
+    req = HybridSearchRequest(
+        query=args.query,
+        alpha=args.alpha,
+        limit=args.limit,
+        min_score=args.min_score,
+    )
+    res = GLOBAL_HYBRID_SEARCH.search(req)
+
+    print(f"\n[+] Retrieved {res.total_matches} hybrid matches in {res.duration_ms:.1f}ms:\n")
+    for idx, r in enumerate(res.results, start=1):
+        print(f"  [{idx}] {r.title}")
+        print(
+            f"      Hybrid Score: {r.hybrid_score * 100:.1f}% (Dense: {r.semantic_similarity * 100:.0f}%, Lexical: {r.lexical_score * 100:.0f}%)"
+        )
+        print(f"      Budget      : ${r.budget or 0:,.2f} | Source: {r.source}")
+        if r.skills:
+            print(f"      Skills      : {', '.join(r.skills[:4])}")
+        print(f"      Summary     : {r.description[:120]}...\n")
+    print("-" * 70)
+    return 0
+
+
+def cmd_rag_match(args: argparse.Namespace) -> int:
+    """Semantically retrieve matching developer case studies for a project."""
+    from src.vectors.rag_retriever import GLOBAL_PORTFOLIO_RAG
+    from src.vectors.schemas import PortfolioRAGRequest
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Portfolio RAG Matcher ('{args.title}')")
+    print("=" * 70)
+
+    skills = [s.strip() for s in args.skills.split(",")] if args.skills else []
+    req = PortfolioRAGRequest(
+        project_title=args.title,
+        project_description=args.desc or "",
+        target_skills=skills,
+        top_k=args.top_k,
+    )
+    res = GLOBAL_PORTFOLIO_RAG.retrieve_context(req)
+
+    print(f"\n[+] Semantically Aligned Case Studies ({len(res.matched_case_studies)}):\n")
+    for idx, cs in enumerate(res.matched_case_studies, start=1):
+        print(
+            f"  [{idx}] {cs.title} ({cs.client_industry}) — Similarity: {cs.semantic_similarity * 100:.1f}%"
+        )
+        print(f"      Tech Stack: {', '.join(cs.technologies[:4])}")
+        print(f"      Citation  : {cs.relevant_citation_snippet}\n")
+
+    print("--- SYNTHESIZED PROPOSAL EVIDENCE PARAGRAPH ---")
+    print(f"{res.suggested_proof_paragraph}\n")
+    print("-" * 70)
+    return 0
+
+
+def cmd_vectors_reindex(args: argparse.Namespace) -> int:
+    """Rebuild the in-memory dense vector index from database opportunities."""
+    from src.vectors.engine import GLOBAL_VECTOR_STORE
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Dense Vector Store Reindex")
+    print("=" * 70)
+
+    init_db()
+    count = GLOBAL_VECTOR_STORE.index_from_database()
+    stats = GLOBAL_VECTOR_STORE.get_stats()
+
+    print(f"\n[SUCCESS] Successfully indexed {count} documents into 384-dimensional vector store.")
+    print(f"          Total Memory: {stats.index_memory_bytes / 1024:.1f} KB")
+    print("-" * 70)
+    return 0
+
+
 def cmd_sources(args: argparse.Namespace) -> int:
     """List all registered collectors and their health metrics."""
     from src.collectors.registry import DEFAULT_REGISTRY
@@ -847,6 +961,39 @@ def build_parser() -> argparse.ArgumentParser:
     p_feas.add_argument("--desc", type=str, default="", help="Project requirements / scope")
     p_feas.add_argument("--skills", type=str, default=None, help="Comma-separated skills")
     p_feas.set_defaults(func=cmd_feasibility)
+
+    # 18. Semantic Search Command
+    p_vsearch = subparsers.add_parser(
+        "search-semantic", help="Natural language dense semantic vector search"
+    )
+    p_vsearch.add_argument("--query", type=str, required=True, help="Natural language query string")
+    p_vsearch.add_argument("--limit", type=int, default=10, help="Max results to return")
+    p_vsearch.add_argument("--min-sim", type=float, default=0.2, help="Min cosine similarity")
+    p_vsearch.set_defaults(func=cmd_search_semantic)
+
+    # 19. Hybrid Search Command
+    p_hyb = subparsers.add_parser("search-hybrid", help="Hybrid dense vector + lexical BM25 search")
+    p_hyb.add_argument("--query", type=str, required=True, help="Search query string")
+    p_hyb.add_argument("--alpha", type=float, default=0.5, help="Semantic weight (0.0 to 1.0)")
+    p_hyb.add_argument("--limit", type=int, default=10, help="Max results to return")
+    p_hyb.add_argument("--min-score", type=float, default=0.1, help="Min fused hybrid score")
+    p_hyb.set_defaults(func=cmd_search_hybrid)
+
+    # 20. Portfolio RAG Matcher Command
+    p_rag = subparsers.add_parser(
+        "rag-match", help="Semantically retrieve matching developer case studies for proposal RAG"
+    )
+    p_rag.add_argument("--title", type=str, required=True, help="Target project title")
+    p_rag.add_argument("--desc", type=str, default="", help="Target project description")
+    p_rag.add_argument("--skills", type=str, default=None, help="Target skills comma-separated")
+    p_rag.add_argument("--top-k", type=int, default=3, help="Max case studies to match")
+    p_rag.set_defaults(func=cmd_rag_match)
+
+    # 21. Vectors Reindex Command
+    p_reidx = subparsers.add_parser(
+        "vectors-reindex", help="Rebuild the in-memory dense vector store from SQL database"
+    )
+    p_reidx.set_defaults(func=cmd_vectors_reindex)
 
     return parser
 

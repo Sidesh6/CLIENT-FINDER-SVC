@@ -179,7 +179,9 @@ class ScamSentinel:
             recommendations.append("Use standard milestone schedule (30% upfront deposit).")
             recommendations.append("Enforce formal Change Order clauses to prevent scope creep.")
         else:
-            recommendations.append("[SAFE] Legitimate opportunity parameters. Safe to submit proposal.")
+            recommendations.append(
+                "[SAFE] Legitimate opportunity parameters. Safe to submit proposal."
+            )
 
         confidence = 0.95 if red_flags else 0.85
 

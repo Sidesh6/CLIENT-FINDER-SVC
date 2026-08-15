@@ -221,6 +221,36 @@ const DOM = {
   feasCounterBadge: document.getElementById("feas-counter-badge"),
   feasSuggestions: document.getElementById("feas-suggestions"),
 
+  // Semantic Vector & RAG Studio
+  btnOpenVectors: document.getElementById("btn-open-vectors"),
+  modalVectors: document.getElementById("modal-vectors"),
+  btnCloseVectors: document.getElementById("btn-close-vectors"),
+  tabVectorsSearch: document.getElementById("tab-vectors-search"),
+  tabVectorsRag: document.getElementById("tab-vectors-rag"),
+  tabVectorsStats: document.getElementById("tab-vectors-stats"),
+  sectionVectorsSearch: document.getElementById("section-vectors-search"),
+  sectionVectorsRag: document.getElementById("section-vectors-rag"),
+  sectionVectorsStats: document.getElementById("section-vectors-stats"),
+  vectorSearchQuery: document.getElementById("vector-search-query"),
+  vectorAlphaSlider: document.getElementById("vector-alpha-slider"),
+  vectorAlphaLabel: document.getElementById("vector-alpha-label"),
+  btnRunVectorSearch: document.getElementById("btn-run-vector-search"),
+  btnTriggerReindex: document.getElementById("btn-trigger-reindex"),
+  vectorSearchResults: document.getElementById("vector-search-results"),
+  vectorSearchMeta: document.getElementById("vector-search-meta"),
+  vectorResultsList: document.getElementById("vector-results-list"),
+  ragProjectTitle: document.getElementById("rag-project-title"),
+  ragProjectDesc: document.getElementById("rag-project-desc"),
+  btnRunPortfolioRag: document.getElementById("btn-run-portfolio-rag"),
+  portfolioRagOutput: document.getElementById("portfolio-rag-output"),
+  ragProofParagraph: document.getElementById("rag-proof-paragraph"),
+  btnCopyRagProof: document.getElementById("btn-copy-rag-proof"),
+  ragCaseStudiesList: document.getElementById("rag-case-studies-list"),
+  vecStatDocs: document.getElementById("vec-stat-docs"),
+  vecStatDim: document.getElementById("vec-stat-dim"),
+  vecStatMem: document.getElementById("vec-stat-mem"),
+  vecStatReady: document.getElementById("vec-stat-ready"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -405,6 +435,23 @@ function initEventListeners() {
   if (DOM.btnRunDossier) DOM.btnRunDossier.addEventListener("click", handleRunDossier);
   if (DOM.btnRunScamAudit) DOM.btnRunScamAudit.addEventListener("click", handleRunScamAudit);
   if (DOM.btnRunFeasibility) DOM.btnRunFeasibility.addEventListener("click", handleRunFeasibility);
+
+  // Semantic Vector & RAG Studio
+  if (DOM.btnOpenVectors) DOM.btnOpenVectors.addEventListener("click", openVectorsModal);
+  if (DOM.btnCloseVectors) DOM.btnCloseVectors.addEventListener("click", closeVectorsModal);
+  if (DOM.tabVectorsSearch) DOM.tabVectorsSearch.addEventListener("click", () => switchVectorsTab("search"));
+  if (DOM.tabVectorsRag) DOM.tabVectorsRag.addEventListener("click", () => switchVectorsTab("rag"));
+  if (DOM.tabVectorsStats) DOM.tabVectorsStats.addEventListener("click", () => switchVectorsTab("stats"));
+  if (DOM.vectorAlphaSlider) {
+    DOM.vectorAlphaSlider.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      DOM.vectorAlphaLabel.textContent = `${val}% Semantic / ${100 - val}% Lexical`;
+    });
+  }
+  if (DOM.btnRunVectorSearch) DOM.btnRunVectorSearch.addEventListener("click", handleRunVectorSearch);
+  if (DOM.btnTriggerReindex) DOM.btnTriggerReindex.addEventListener("click", handleTriggerReindex);
+  if (DOM.btnRunPortfolioRag) DOM.btnRunPortfolioRag.addEventListener("click", handleRunPortfolioRag);
+  if (DOM.btnCopyRagProof) DOM.btnCopyRagProof.addEventListener("click", copyRagProof);
 }
 
 // 1. Data Fetching
@@ -1876,4 +1923,227 @@ async function handleRunFeasibility() {
   } catch (err) {
     showToast(err.message, "error");
   }
+}
+
+// ----------------------------------------------------
+// 12. Dense Semantic Vector Search & Hybrid RAG Studio
+// ----------------------------------------------------
+
+function openVectorsModal() {
+  if (DOM.modalVectors) {
+    DOM.modalVectors.style.display = "flex";
+    loadVectorStats();
+  }
+}
+
+function closeVectorsModal() {
+  if (DOM.modalVectors) {
+    DOM.modalVectors.style.display = "none";
+  }
+}
+
+function switchVectorsTab(tab) {
+  const tabs = [
+    { btn: DOM.tabVectorsSearch, sec: DOM.sectionVectorsSearch, id: "search" },
+    { btn: DOM.tabVectorsRag, sec: DOM.sectionVectorsRag, id: "rag" },
+    { btn: DOM.tabVectorsStats, sec: DOM.sectionVectorsStats, id: "stats" },
+  ];
+
+  tabs.forEach((t) => {
+    if (!t.btn || !t.sec) return;
+    if (t.id === tab) {
+      t.btn.className = "btn btn-sm btn-primary";
+      t.sec.style.display = "block";
+    } else {
+      t.btn.className = "btn btn-sm btn-ghost";
+      t.sec.style.display = "none";
+    }
+  });
+
+  if (tab === "stats") {
+    loadVectorStats();
+  }
+}
+
+async function loadVectorStats() {
+  try {
+    const res = await fetch("/api/vectors/stats");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (DOM.vecStatDocs) DOM.vecStatDocs.textContent = data.total_indexed_documents;
+    if (DOM.vecStatDim) DOM.vecStatDim.textContent = `${data.vector_dimension}-D`;
+    if (DOM.vecStatMem) {
+      const kb = Math.round(data.index_memory_bytes / 1024);
+      DOM.vecStatMem.textContent = `${kb} KB`;
+    }
+    if (DOM.vecStatReady) {
+      DOM.vecStatReady.textContent = data.is_ready ? "Ready" : "Empty (Index Required)";
+      DOM.vecStatReady.style.color = data.is_ready ? "#10b981" : "#f59e0b";
+    }
+  } catch (err) {
+    console.error("Failed to load vector stats:", err);
+  }
+}
+
+async function handleTriggerReindex() {
+  if (DOM.btnTriggerReindex) {
+    DOM.btnTriggerReindex.disabled = true;
+    DOM.btnTriggerReindex.textContent = "⚡ Indexing...";
+  }
+  try {
+    const res = await fetch("/api/vectors/reindex", { method: "POST" });
+    if (!res.ok) throw new Error("Vector reindex failed");
+    const data = await res.json();
+    showToast(data.message);
+    loadVectorStats();
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    if (DOM.btnTriggerReindex) {
+      DOM.btnTriggerReindex.disabled = false;
+      DOM.btnTriggerReindex.textContent = "⚡ Rebuild Vector Index";
+    }
+  }
+}
+
+async function handleRunVectorSearch() {
+  const query = DOM.vectorSearchQuery ? DOM.vectorSearchQuery.value.trim() : "";
+  if (!query) {
+    showToast("Please enter a natural language requirement query", "info");
+    return;
+  }
+
+  const alpha = DOM.vectorAlphaSlider ? parseInt(DOM.vectorAlphaSlider.value, 10) / 100.0 : 0.5;
+
+  if (DOM.btnRunVectorSearch) {
+    DOM.btnRunVectorSearch.disabled = true;
+    DOM.btnRunVectorSearch.textContent = "🔮 Embedding & Retrieving...";
+  }
+
+  try {
+    const res = await fetch("/api/vectors/hybrid-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: query,
+        alpha: alpha,
+        limit: 8,
+        min_score: 0.1,
+      }),
+    });
+    if (!res.ok) throw new Error("Hybrid vector search failed");
+    const data = await res.json();
+
+    if (DOM.vectorSearchResults) DOM.vectorSearchResults.style.display = "block";
+    if (DOM.vectorSearchMeta) {
+      DOM.vectorSearchMeta.textContent = `${data.total_matches} match(es) in ${data.duration_ms}ms (α=${data.alpha})`;
+    }
+
+    if (DOM.vectorResultsList) {
+      if (data.results && data.results.length > 0) {
+        DOM.vectorResultsList.innerHTML = data.results
+          .map(
+            (item) => `
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">${escapeHtml(item.title)}</div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3); font-weight: 700;">
+                  Hybrid: ${(item.hybrid_score * 100).toFixed(1)}%
+                </span>
+                <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; font-size: 10px;">
+                  Dense: ${(item.semantic_similarity * 100).toFixed(0)}%
+                </span>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">${escapeHtml(item.description)}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                ${(item.skills || []).slice(0, 4).map((s) => `<span class="badge" style="font-size: 10px;">${escapeHtml(s)}</span>`).join("")}
+              </div>
+              <div style="color: var(--accent-emerald); font-weight: 600;">${item.budget ? `$${item.budget.toLocaleString()}` : "Budget Unspecified"}</div>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      } else {
+        DOM.vectorResultsList.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No semantic matches found above the similarity threshold. Try re-phrasing your requirement query.</div>`;
+      }
+    }
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    if (DOM.btnRunVectorSearch) {
+      DOM.btnRunVectorSearch.disabled = false;
+      DOM.btnRunVectorSearch.textContent = "🔮 Execute Semantic Hybrid Search";
+    }
+  }
+}
+
+async function handleRunPortfolioRag() {
+  const title = DOM.ragProjectTitle ? DOM.ragProjectTitle.value.trim() : "";
+  const desc = DOM.ragProjectDesc ? DOM.ragProjectDesc.value.trim() : "";
+
+  if (!title && !desc) {
+    showToast("Please enter target project title or description", "info");
+    return;
+  }
+
+  if (DOM.btnRunPortfolioRag) {
+    DOM.btnRunPortfolioRag.disabled = true;
+    DOM.btnRunPortfolioRag.textContent = "🎯 Retrieving Semantically Aligned Case Studies...";
+  }
+
+  try {
+    const res = await fetch("/api/vectors/portfolio-rag", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_title: title || "Target Project",
+        project_description: desc,
+        top_k: 3,
+      }),
+    });
+    if (!res.ok) throw new Error("Portfolio RAG retrieval failed");
+    const data = await res.json();
+
+    if (DOM.portfolioRagOutput) DOM.portfolioRagOutput.style.display = "block";
+    if (DOM.ragProofParagraph) DOM.ragProofParagraph.value = data.suggested_proof_paragraph;
+
+    if (DOM.ragCaseStudiesList) {
+      DOM.ragCaseStudiesList.innerHTML = (data.matched_case_studies || [])
+        .map(
+          (cs) => `
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-weight: 700; font-size: 12px; color: var(--text-main);">${escapeHtml(cs.title)} (${escapeHtml(cs.client_industry)})</span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; font-size: 11px;">
+              Similarity: ${(cs.semantic_similarity * 100).toFixed(1)}%
+            </span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">${escapeHtml(cs.summary_paragraph)}</div>
+          <div style="font-size: 11px; color: #f59e0b; background: rgba(245, 158, 11, 0.08); border-radius: 4px; padding: 4px 8px;">
+            <strong>Citation Snippet:</strong> ${escapeHtml(cs.relevant_citation_snippet)}
+          </div>
+        </div>
+      `
+        )
+        .join("");
+    }
+    showToast("Retrieved semantically aligned portfolio proof points!");
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    if (DOM.btnRunPortfolioRag) {
+      DOM.btnRunPortfolioRag.disabled = false;
+      DOM.btnRunPortfolioRag.textContent = "🎯 Semantically Align Portfolio Proof Points";
+    }
+  }
+}
+
+function copyRagProof() {
+  if (!DOM.ragProofParagraph || !DOM.ragProofParagraph.value) return;
+  navigator.clipboard.writeText(DOM.ragProofParagraph.value);
+  showToast("Portfolio proof snippet copied to clipboard!");
 }

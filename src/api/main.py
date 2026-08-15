@@ -36,6 +36,7 @@ from src.api.routes import (
     proposals,
     scheduler,
     search,
+    vectors,
 )
 from src.database.connection import init_db
 from src.database.mongo import init_mongo_indexes, is_mongo_configured
@@ -102,6 +103,7 @@ app.include_router(market.router)
 app.include_router(contracts.router)
 app.include_router(outreach.router)
 app.include_router(client_intel.router)
+app.include_router(vectors.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():

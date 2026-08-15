@@ -55,6 +55,9 @@
         <button id="btn-open-intel" class="btn btn-ghost">
           <span>🛡️ Client Intel</span>
         </button>
+        <button id="btn-open-vectors" class="btn btn-ghost">
+          <span>🔮 Semantic RAG</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -962,6 +965,118 @@
                 <ul id="feas-suggestions" style="margin: 0; padding-left: 16px; font-size: 11px;"></ul>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Semantic Vector Search & Hybrid RAG Studio Modal -->
+    <div id="modal-vectors" class="modal-backdrop" style="display: none;">
+      <div class="modal-card modal-lg" style="max-width: 960px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">🔮</span>
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">Dense Semantic Vector Search & Portfolio RAG Studio</h3>
+              <p style="margin: 0; font-size: 12px; color: var(--text-muted);">High-dimensional vector embeddings, hybrid BM25 search, and contextual case study injection</p>
+            </div>
+          </div>
+          <button id="btn-close-vectors" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px 20px;">
+          <!-- Tab Navigation -->
+          <div class="filter-group" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <button id="tab-vectors-search" class="btn btn-sm btn-primary">🔍 Semantic & Hybrid Search</button>
+            <button id="tab-vectors-rag" class="btn btn-sm btn-ghost">🏆 Portfolio RAG Retriever</button>
+            <button id="tab-vectors-stats" class="btn btn-sm btn-ghost">📊 Vector Index Telemetry</button>
+          </div>
+
+          <!-- Tab 1: Semantic & Hybrid Search -->
+          <div id="section-vectors-search">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Natural Language Requirement Query</label>
+              <input type="text" id="vector-search-query" class="text-input" placeholder="e.g. Scalable distributed background task queue with Redis and FastAPI">
+            </div>
+
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 12px; font-weight: 600;">Hybrid Blend Balance (&alpha;)</span>
+                <span id="vector-alpha-label" style="font-size: 12px; font-weight: 700; color: #8b5cf6;">50% Semantic / 50% Lexical</span>
+              </div>
+              <input type="range" id="vector-alpha-slider" min="0" max="100" value="50" style="width: 100%; cursor: pointer;">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+                <span>0% (Pure Keyword BM25)</span>
+                <span>50% (Balanced Hybrid)</span>
+                <span>100% (Pure Dense Vector)</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+              <button id="btn-run-vector-search" class="btn btn-primary" style="flex: 2;">🔮 Execute Semantic Hybrid Search</button>
+              <button id="btn-trigger-reindex" class="btn btn-secondary" style="flex: 1;">⚡ Rebuild Vector Index</button>
+            </div>
+
+            <!-- Search Results Container -->
+            <div id="vector-search-results" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h4 style="margin: 0; font-size: 13px; color: var(--text-muted);">Retrieved Nearest Opportunities:</h4>
+                <span id="vector-search-meta" style="font-size: 11px; color: var(--text-muted);"></span>
+              </div>
+              <div id="vector-results-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Portfolio RAG Retriever -->
+          <div id="section-vectors-rag" style="display: none;">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Target Project Title</label>
+              <input type="text" id="rag-project-title" class="text-input" placeholder="e.g. AI Agent Knowledge Graph Orchestrator">
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Target Project Description</label>
+              <textarea id="rag-project-desc" class="text-input textarea-control" rows="3" placeholder="Paste project requirements to retrieve matching proof points from your portfolio..."></textarea>
+            </div>
+            <button id="btn-run-portfolio-rag" class="btn btn-primary btn-block">🎯 Semantically Align Portfolio Proof Points</button>
+
+            <!-- RAG Results Container -->
+            <div id="portfolio-rag-output" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+              <div class="form-group" style="margin-bottom: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 12px; font-weight: 700; color: #10b981;">💡 Synthesized Proposal Proof Evidence (1-Click Copy)</label>
+                  <button id="btn-copy-rag-proof" class="btn btn-sm btn-ghost">📋 Copy Evidence</button>
+                </div>
+                <textarea id="rag-proof-paragraph" class="text-input textarea-control" rows="3" readonly style="font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
+              </div>
+
+              <label style="font-size: 12px; font-weight: 600; margin-bottom: 6px; display: block;">Ranked Portfolio Case Studies (Top-k):</label>
+              <div id="rag-case-studies-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Vector Index Telemetry -->
+          <div id="section-vectors-stats" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Indexed Documents</div>
+                <div id="vec-stat-docs" style="font-size: 20px; font-weight: 800; color: #3b82f6;">0</div>
+              </div>
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Embedding Dimensions</div>
+                <div id="vec-stat-dim" style="font-size: 20px; font-weight: 800; color: #8b5cf6;">384-D</div>
+              </div>
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Index Memory Usage</div>
+                <div id="vec-stat-mem" style="font-size: 20px; font-weight: 800; color: #10b981;">0 KB</div>
+              </div>
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Index Readiness</div>
+                <div id="vec-stat-ready" style="font-size: 16px; font-weight: 700; color: #10b981;">Ready</div>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+              The vector engine uses in-memory dense Euclidean normalized float arrays with deterministic Murmur semantic subspace projections. Cosine similarities are computed in sub-millisecond real-time with zero external latency.
+            </p>
           </div>
         </div>
       </div>
