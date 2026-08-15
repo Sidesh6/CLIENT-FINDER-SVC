@@ -456,6 +456,192 @@ def cmd_ab_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dossier(args: argparse.Namespace) -> int:
+    """Generate client intelligence dossier and credibility trust score."""
+    from src.database.connection import SessionLocal
+    from src.database.models import ProjectModel
+    from src.intelligence.dossier import ClientDossierEngine
+    from src.intelligence.schemas import ClientDossierRequest
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Deep Client Intelligence Dossier")
+    print("=" * 70)
+
+    title = args.title or "Target Project"
+    desc = args.desc or ""
+    client_name = args.client or "Client"
+    budget = args.budget
+    source_url = None
+    source = "CLI Manual"
+
+    if args.project_id:
+        with SessionLocal() as session:
+            proj = session.get(ProjectModel, args.project_id)
+            if not proj:
+                print(f"[!] Project #{args.project_id} not found in database.")
+                return 1
+            title = proj.title
+            desc = proj.description or ""
+            client_name = proj.client_name or client_name
+            budget = proj.budget if budget is None else budget
+            source_url = proj.source_url
+            source = proj.source or source
+
+    engine = ClientDossierEngine()
+    req = ClientDossierRequest(
+        client_name=client_name,
+        project_title=title,
+        project_description=desc,
+        source=source,
+        source_url=source_url,
+        claimed_budget=budget,
+    )
+    res = engine.generate_dossier(req)
+
+    print(f"\nClient Name            : {res.client_name}")
+    print(f"Inferred Company Domain: {res.inferred_company_domain or 'Unverified Domain'}")
+    print(f"Overall Trust Score    : {res.overall_trust_score}/100 ({res.trust_grade})")
+    print(f"Detected Tech Stack    : {', '.join(res.detected_tech_stack)}")
+
+    print("\n--- TRUST DIMENSIONS BREAKDOWN ---")
+    print(f"  Domain Credibility   : {res.trust_breakdown.domain_credibility:.1f}/100")
+    print(f"  Hiring History Scale : {res.trust_breakdown.hiring_history_score:.1f}/100")
+    print(f"  Budget Transparency  : {res.trust_breakdown.budget_transparency:.1f}/100")
+    print(f"  Requirement Clarity  : {res.trust_breakdown.requirement_clarity:.1f}/100")
+    print(f"  Payment Security     : {res.trust_breakdown.payment_security_score:.1f}/100")
+
+    if res.positive_signals:
+        print("\n--- POSITIVE CREDIBILITY SIGNALS ---")
+        for s in res.positive_signals:
+            print(f"  [+] {s}")
+
+    if res.caution_warnings:
+        print("\n--- CAUTION & NUANCE WARNINGS ---")
+        for c in res.caution_warnings:
+            print(f"  [!] {c}")
+
+    print("\n--- RECOMMENDED COMMERCIAL POSTURE ---")
+    print(f"  {res.recommended_commercial_posture}")
+    print("-" * 70)
+    return 0
+
+
+def cmd_scam_audit(args: argparse.Namespace) -> int:
+    """Audit opportunity text for fraud patterns and red flags."""
+    from src.intelligence.scam_sentinel import GLOBAL_SCAM_SENTINEL
+    from src.intelligence.schemas import ScamAuditRequest
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Scam & Fraud Risk Sentinel Audit")
+    print("=" * 70)
+
+    req = ScamAuditRequest(
+        project_title=args.title or "Opportunity Description",
+        project_description=args.text,
+        claimed_budget=args.budget,
+    )
+    res = GLOBAL_SCAM_SENTINEL.audit_opportunity(req)
+
+    safety_icon = "[SAFE]" if res.is_safe_to_apply else "[DANGER]"
+    print(f"\nScam Risk Score        : {res.scam_risk_score}/100 ({res.risk_tier.value})")
+    print(
+        f"Application Safety     : {safety_icon} {'Safe to apply' if res.is_safe_to_apply else 'High risk of fraud/exploitation'}"
+    )
+    print(f"Confidence Level       : {res.legitimacy_confidence * 100:.0f}%")
+
+    if res.detected_red_flags:
+        print("\n--- DETECTED RED FLAGS & EVIDENCE ---")
+        for flag in res.detected_red_flags:
+            print(f"  [{flag.severity}] {flag.pattern_type.value}")
+            print(f"      Evidence: {flag.evidence_snippet}")
+            print(f"      Risk    : {flag.risk_explanation}")
+            print(f"      Defense : {flag.defensive_action}")
+    else:
+        print("\n[+] No malicious patterns or fraud indicators detected.")
+
+    print("\n--- DEFENSIVE RECOMMENDATIONS ---")
+    for r in res.defensive_recommendations:
+        print(f"  -> {r}")
+    print("-" * 70)
+    return 0
+
+
+def cmd_feasibility(args: argparse.Namespace) -> int:
+    """Evaluate scope vs budget feasibility."""
+    from src.intelligence.feasibility import GLOBAL_FEASIBILITY_ANALYZER
+    from src.intelligence.schemas import BudgetFeasibilityRequest
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Scope vs. Budget Feasibility Analyzer")
+    print("=" * 70)
+
+    skills = [s.strip() for s in args.skills.split(",")] if args.skills else []
+    req = BudgetFeasibilityRequest(
+        project_title=args.title,
+        project_description=args.desc or "",
+        proposed_budget=args.budget,
+        target_skills=skills,
+    )
+    res = GLOBAL_FEASIBILITY_ANALYZER.evaluate_feasibility(req)
+
+    print(f"\nProject Title          : {args.title}")
+    print(f"Offered Budget         : ${args.budget:,.2f}")
+    print(
+        f"Feasibility Rating     : {res.feasibility_rating.value} (Score: {res.feasibility_score}/100)"
+    )
+    print(
+        f"Estimated Effort       : {res.estimated_engineering_hours_min} - {res.estimated_engineering_hours_max} hours"
+    )
+    print(
+        f"Fair Market Budget     : ${res.estimated_fair_market_budget:,.2f} (@ ${res.estimated_market_rate_hourly:.0f}/hr)"
+    )
+    print(f"Budget Variance        : {res.budget_variance_percent:+.1f}%")
+    print(f"Scope Creep Risk Level : {res.scope_creep_risk_level}")
+    print(f"Recommended Counter    : ${res.recommended_counter_budget:,.2f}")
+
+    print("\n--- SCOPE NEGOTIATION & PHASING ADVICE ---")
+    for s in res.scope_reduction_suggestions:
+        print(f"  -> {s}")
+    print("-" * 70)
+    return 0
+
+
+def cmd_sources(args: argparse.Namespace) -> int:
+    """List all registered collectors and their health metrics."""
+    from src.collectors.registry import DEFAULT_REGISTRY
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Opportunity Collectors Health")
+    print("=" * 70)
+    states = DEFAULT_REGISTRY.get_all_states()
+    for s in states:
+        status_tag = "[ACTIVE]" if s.enabled else "[DISABLED]"
+        circuit_tag = "OPEN" if s.circuit_broken else "CLOSED"
+        print(
+            f"{status_tag:<10} {s.source_name:<25} | Circuit: {circuit_tag:<8} | Runs: {s.success_count + s.failure_count} | Success: {s.success_rate:.1f}%"
+        )
+    print("-" * 70)
+    return 0
+
+
+def cmd_sources_toggle(args: argparse.Namespace) -> int:
+    """Enable or disable a registered collector."""
+    from src.collectors.registry import DEFAULT_REGISTRY
+
+    try:
+        if args.enable:
+            new_state = DEFAULT_REGISTRY.toggle(args.name, enable=True)
+        elif args.disable:
+            new_state = DEFAULT_REGISTRY.toggle(args.name, enable=False)
+        else:
+            new_state = DEFAULT_REGISTRY.toggle(args.name)
+        print(f"[+] Collector '{args.name}' is now {'ENABLED' if new_state else 'DISABLED'}.")
+        return 0
+    except KeyError:
+        print(f"[!] Collector '{args.name}' not found in registry.")
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build root CLI argument parser and subcommands."""
     parser = argparse.ArgumentParser(
@@ -501,9 +687,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_pitch.add_argument(
         "--angle",
-        choices=[a.value for a in PitchAngle],
+        type=str,
         default=PitchAngle.TECHNICAL_EXPERT.value,
-        help="Strategic pitch angle",
+        choices=[a.value for a in PitchAngle],
+        help="Optional pitch angle override",
     )
     p_pitch.add_argument(
         "--tone",
@@ -514,6 +701,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pitch.add_argument(
         "--no-pricing", action="store_true", help="Omit commercial pricing section"
     )
+    p_pitch.add_argument("--copy-only", action="store_true", help="Only output proposal body text")
     p_pitch.set_defaults(func=cmd_pitch)
 
     # 5. Stats Command
@@ -528,25 +716,39 @@ def build_parser() -> argparse.ArgumentParser:
     p_digest.set_defaults(func=cmd_digest)
 
     # 7. Apply Command
-    p_apply = subparsers.add_parser("apply", help="Track a new project application")
-    p_apply.add_argument("--project-id", type=int, required=True, help="Database project ID")
+    p_apply = subparsers.add_parser(
+        "apply", help="Track a new application or update an existing one"
+    )
+    p_apply.add_argument(
+        "--project-id", type=int, required=True, help="Database ID of project applied to"
+    )
     p_apply.add_argument(
         "--status",
-        choices=[s.value for s in ApplicationStatus],
+        type=str,
         default=ApplicationStatus.APPLIED.value,
+        choices=[s.value for s in ApplicationStatus],
+        help="Application status (default: APPLIED)",
     )
-    p_apply.add_argument("--budget", type=float, default=None, help="Proposed budget")
-    p_apply.add_argument("--currency", type=str, default="USD", help="Currency")
+    p_apply.add_argument("--budget", type=float, default=None, help="Proposed commercial budget")
+    p_apply.add_argument("--currency", type=str, default="USD", help="Currency code")
     p_apply.add_argument(
         "--angle", choices=[a.value for a in PitchAngle], default=None, help="Pitch angle"
     )
-    p_apply.add_argument("--notes", type=str, default=None, help="Application notes")
+    p_apply.add_argument("--notes", type=str, default=None, help="Context notes or follow-up logs")
     p_apply.set_defaults(func=cmd_apply)
 
     # 8. Apps Command
-    p_apps = subparsers.add_parser("apps", help="List tracked applications")
-    p_apps.add_argument("--status", choices=[s.value for s in ApplicationStatus], default=None)
-    p_apps.add_argument("--limit", type=int, default=25)
+    p_apps = subparsers.add_parser("apps", help="List tracked applications by funnel status")
+    p_apps.add_argument(
+        "--status",
+        type=str,
+        default=None,
+        choices=[s.value for s in ApplicationStatus],
+        help="Filter by status",
+    )
+    p_apps.add_argument(
+        "--limit", type=int, default=20, help="Max applications to display (default: 20)"
+    )
     p_apps.set_defaults(func=cmd_apps)
 
     # 9. Funnel Command
@@ -555,37 +757,53 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_funnel.set_defaults(func=cmd_funnel)
 
-    # 10. Outreach Sequence Subcommands
-    p_outreach = subparsers.add_parser("outreach", help="Manage automated lead outreach sequences")
-    outreach_subs = p_outreach.add_subparsers(dest="outreach_action", help="Outreach actions")
-
-    p_o_create = outreach_subs.add_parser("create", help="Create new outreach sequence")
-    p_o_create.add_argument("--app-id", type=int, required=True, help="Target application ID")
-    p_o_create.add_argument("--title", type=str, required=True, help="Project title")
-    p_o_create.add_argument("--client", type=str, default="Client", help="Client name")
-    p_o_create.add_argument(
-        "--angle", choices=[a.value for a in PitchAngle], default=PitchAngle.TECHNICAL_EXPERT.value
+    # 10. Sources Command
+    p_sources = subparsers.add_parser(
+        "sources", help="List all registered opportunity collectors and health metrics"
     )
-    p_o_create.add_argument(
-        "--skills", type=str, default="Python, FastAPI", help="Comma-separated skills"
+    p_sources.set_defaults(func=cmd_sources)
+
+    # 11. Sources Toggle Command
+    p_toggle = subparsers.add_parser(
+        "sources-toggle", help="Enable or disable a specific opportunity collector"
     )
-    p_o_create.add_argument("--budget", type=float, default=None, help="Target budget")
-    p_o_create.add_argument(
-        "--no-auto-start", action="store_true", help="Do not execute Step 1 immediately"
+    p_toggle.add_argument(
+        "--name", type=str, required=True, help="Exact name of the collector to toggle"
     )
-    p_o_create.set_defaults(func=cmd_outreach_create)
+    p_toggle.add_argument(
+        "--enable", action="store_true", default=None, help="Explicitly enable the collector"
+    )
+    p_toggle.add_argument(
+        "--disable", action="store_true", default=None, help="Explicitly disable the collector"
+    )
+    p_toggle.set_defaults(func=cmd_sources_toggle)
 
-    p_o_list = outreach_subs.add_parser("list", help="List active outreach sequences")
-    p_o_list.add_argument("--status", choices=[s.value for s in SequenceStatus], default=None)
-    p_o_list.set_defaults(func=cmd_outreach_list)
+    # 12. Outreach Commands
+    p_outreach = subparsers.add_parser(
+        "outreach", help="Manage automated multi-touch outreach cadences"
+    )
+    p_outreach_sub = p_outreach.add_subparsers(dest="outreach_cmd", help="Outreach actions")
 
-    p_o_adv = outreach_subs.add_parser("advance", help="Advance sequence step")
-    p_o_adv.add_argument("--seq-id", type=str, required=True, help="Sequence ID")
-    p_o_adv.set_defaults(func=cmd_outreach_advance)
+    p_outreach_create = p_outreach_sub.add_parser("create", help="Create an outreach cadence")
+    p_outreach_create.add_argument(
+        "--app-id", type=int, required=True, help="Target application ID"
+    )
+    p_outreach_create.add_argument("--title", type=str, required=True, help="Target project title")
+    p_outreach_create.add_argument("--client", type=str, default="Client", help="Client name")
+    p_outreach_create.add_argument("--angle", type=str, default=None, help="Pitch angle override")
+    p_outreach_create.set_defaults(func=cmd_outreach_create)
 
-    # 11. Inbound Reply Classifier Command
+    p_outreach_list = p_outreach_sub.add_parser("list", help="List tracked outreach cadences")
+    p_outreach_list.add_argument("--status", type=str, default=None, help="Filter by status")
+    p_outreach_list.set_defaults(func=cmd_outreach_list)
+
+    p_outreach_advance = p_outreach_sub.add_parser("advance", help="Advance sequence to next step")
+    p_outreach_advance.add_argument("--seq-id", type=str, required=True, help="Sequence ID")
+    p_outreach_advance.set_defaults(func=cmd_outreach_advance)
+
+    # 13. Reply Analyzer Command
     p_reply = subparsers.add_parser(
-        "reply", help="Classify incoming client reply intent and draft response"
+        "reply", help="Classify inbound client message intent and synthesize response"
     )
     p_reply.add_argument("--text", type=str, required=True, help="Raw message received from client")
     p_reply.add_argument("--app-id", type=int, default=None, help="Application ID to update in DB")
@@ -594,11 +812,41 @@ def build_parser() -> argparse.ArgumentParser:
     p_reply.add_argument("--dry-run", action="store_true", help="Do not update database status")
     p_reply.set_defaults(func=cmd_reply_analyze)
 
-    # 12. A/B Stats Command
+    # 14. A/B Stats Command
     p_ab = subparsers.add_parser(
         "ab-stats", help="Display A/B pitch testing metrics and category routing"
     )
     p_ab.set_defaults(func=cmd_ab_stats)
+
+    # 15. Client Dossier Command
+    p_dossier = subparsers.add_parser(
+        "dossier", help="Synthesize deep client background intelligence and trust score"
+    )
+    p_dossier.add_argument("--project-id", type=int, default=None, help="Database ID of project")
+    p_dossier.add_argument("--title", type=str, default=None, help="Project title")
+    p_dossier.add_argument("--client", type=str, default="Client", help="Client name")
+    p_dossier.add_argument("--desc", type=str, default="", help="Project description")
+    p_dossier.add_argument("--budget", type=float, default=None, help="Advertised budget")
+    p_dossier.set_defaults(func=cmd_dossier)
+
+    # 16. Scam Sentinel Command
+    p_scam = subparsers.add_parser(
+        "scam-audit", help="Audit project text for scams, fraud, and unpaid test traps"
+    )
+    p_scam.add_argument("--text", type=str, required=True, help="Project text to audit")
+    p_scam.add_argument("--title", type=str, default=None, help="Optional title")
+    p_scam.add_argument("--budget", type=float, default=None, help="Advertised budget")
+    p_scam.set_defaults(func=cmd_scam_audit)
+
+    # 17. Feasibility Command
+    p_feas = subparsers.add_parser(
+        "feasibility", help="Evaluate scope complexity vs. proposed budget feasibility"
+    )
+    p_feas.add_argument("--title", type=str, required=True, help="Project title")
+    p_feas.add_argument("--budget", type=float, required=True, help="Proposed budget ($)")
+    p_feas.add_argument("--desc", type=str, default="", help="Project requirements / scope")
+    p_feas.add_argument("--skills", type=str, default=None, help="Comma-separated skills")
+    p_feas.set_defaults(func=cmd_feasibility)
 
     return parser
 

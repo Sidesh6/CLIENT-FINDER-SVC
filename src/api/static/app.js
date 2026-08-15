@@ -177,6 +177,50 @@ const DOM = {
   abPitchCardsGrid: document.getElementById("ab-pitch-cards-grid"),
   abCategoryRoutingList: document.getElementById("ab-category-routing-list"),
 
+  // Client Intelligence & Scam Sentinel
+  btnOpenIntel: document.getElementById("btn-open-intel"),
+  btnCloseIntel: document.getElementById("btn-close-intel"),
+  modalIntel: document.getElementById("modal-intel"),
+  tabIntelDossier: document.getElementById("tab-intel-dossier"),
+  tabIntelScam: document.getElementById("tab-intel-scam"),
+  tabIntelFeasibility: document.getElementById("tab-intel-feasibility"),
+  sectionIntelDossier: document.getElementById("section-intel-dossier"),
+  sectionIntelScam: document.getElementById("section-intel-scam"),
+  sectionIntelFeasibility: document.getElementById("section-intel-feasibility"),
+  intelClientName: document.getElementById("intel-client-name"),
+  intelClientBudget: document.getElementById("intel-client-budget"),
+  intelProjectTitle: document.getElementById("intel-project-title"),
+  intelProjectDesc: document.getElementById("intel-project-desc"),
+  btnRunDossier: document.getElementById("btn-run-dossier"),
+  intelDossierOutput: document.getElementById("intel-dossier-output"),
+  dossierScoreBadge: document.getElementById("dossier-score-badge"),
+  dossierGradeBadge: document.getElementById("dossier-grade-badge"),
+  dossierDomainBadge: document.getElementById("dossier-domain-badge"),
+  dossierTechStack: document.getElementById("dossier-tech-stack"),
+  dossierPositives: document.getElementById("dossier-positives"),
+  dossierCautions: document.getElementById("dossier-cautions"),
+  dossierPosture: document.getElementById("dossier-posture"),
+  scamAuditText: document.getElementById("scam-audit-text"),
+  scamProjectTitle: document.getElementById("scam-project-title"),
+  scamProjectBudget: document.getElementById("scam-project-budget"),
+  btnRunScamAudit: document.getElementById("btn-run-scam-audit"),
+  intelScamOutput: document.getElementById("intel-scam-output"),
+  scamScoreBadge: document.getElementById("scam-score-badge"),
+  scamTierBadge: document.getElementById("scam-tier-badge"),
+  scamSafetyBadge: document.getElementById("scam-safety-badge"),
+  scamFlagsList: document.getElementById("scam-flags-list"),
+  scamDefensiveRecs: document.getElementById("scam-defensive-recs"),
+  feasProjectTitle: document.getElementById("feas-project-title"),
+  feasProjectBudget: document.getElementById("feas-project-budget"),
+  feasProjectDesc: document.getElementById("feas-project-desc"),
+  btnRunFeasibility: document.getElementById("btn-run-feasibility"),
+  intelFeasOutput: document.getElementById("intel-feas-output"),
+  feasRatingBadge: document.getElementById("feas-rating-badge"),
+  feasHoursBadge: document.getElementById("feas-hours-badge"),
+  feasMarketBadge: document.getElementById("feas-market-badge"),
+  feasCounterBadge: document.getElementById("feas-counter-badge"),
+  feasSuggestions: document.getElementById("feas-suggestions"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -351,6 +395,16 @@ function initEventListeners() {
   if (DOM.btnAnalyzeInbound) DOM.btnAnalyzeInbound.addEventListener("click", handleAnalyzeInboundReply);
   if (DOM.btnCopyInboundDraft) DOM.btnCopyInboundDraft.addEventListener("click", copyInboundDraft);
   if (DOM.btnRefreshAb) DOM.btnRefreshAb.addEventListener("click", loadAbPitchStats);
+
+  // Client Intelligence & Scam Sentinel
+  if (DOM.btnOpenIntel) DOM.btnOpenIntel.addEventListener("click", openIntelModal);
+  if (DOM.btnCloseIntel) DOM.btnCloseIntel.addEventListener("click", closeIntelModal);
+  if (DOM.tabIntelDossier) DOM.tabIntelDossier.addEventListener("click", () => switchIntelTab("dossier"));
+  if (DOM.tabIntelScam) DOM.tabIntelScam.addEventListener("click", () => switchIntelTab("scam"));
+  if (DOM.tabIntelFeasibility) DOM.tabIntelFeasibility.addEventListener("click", () => switchIntelTab("feasibility"));
+  if (DOM.btnRunDossier) DOM.btnRunDossier.addEventListener("click", handleRunDossier);
+  if (DOM.btnRunScamAudit) DOM.btnRunScamAudit.addEventListener("click", handleRunScamAudit);
+  if (DOM.btnRunFeasibility) DOM.btnRunFeasibility.addEventListener("click", handleRunFeasibility);
 }
 
 // 1. Data Fetching
@@ -1665,5 +1719,161 @@ async function loadAbPitchStats() {
     }
   } catch (err) {
     console.error("Failed to load A/B stats:", err);
+  }
+}
+
+// -------------------------------------------------------------
+// Phase 19: Client Intelligence, Scam Sentinel & Feasibility Handlers
+// -------------------------------------------------------------
+function openIntelModal() {
+  if (DOM.modalIntel) {
+    DOM.modalIntel.style.display = "flex";
+    switchIntelTab("dossier");
+  }
+}
+
+function closeIntelModal() {
+  if (DOM.modalIntel) DOM.modalIntel.style.display = "none";
+}
+
+function switchIntelTab(tab) {
+  if (!DOM.tabIntelDossier || !DOM.tabIntelScam || !DOM.tabIntelFeasibility) return;
+  DOM.tabIntelDossier.className = tab === "dossier" ? "btn btn-sm btn-primary" : "btn btn-sm btn-ghost";
+  DOM.tabIntelScam.className = tab === "scam" ? "btn btn-sm btn-primary" : "btn btn-sm btn-ghost";
+  DOM.tabIntelFeasibility.className = tab === "feasibility" ? "btn btn-sm btn-primary" : "btn btn-sm btn-ghost";
+
+  DOM.sectionIntelDossier.style.display = tab === "dossier" ? "block" : "none";
+  DOM.sectionIntelScam.style.display = tab === "scam" ? "block" : "none";
+  DOM.sectionIntelFeasibility.style.display = tab === "feasibility" ? "block" : "none";
+}
+
+async function handleRunDossier() {
+  const clientName = DOM.intelClientName.value.trim() || "Client";
+  const projectTitle = DOM.intelProjectTitle.value.trim() || "Target Project";
+  const projectDesc = DOM.intelProjectDesc.value.trim();
+  const claimedBudget = parseFloat(DOM.intelClientBudget.value) || null;
+
+  try {
+    const res = await fetch("/api/intelligence/client-dossier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_name: clientName,
+        project_title: projectTitle,
+        project_description: projectDesc,
+        claimed_budget: claimedBudget,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to generate dossier");
+    const data = await res.json();
+
+    DOM.intelDossierOutput.style.display = "block";
+    DOM.dossierScoreBadge.textContent = `${data.overall_trust_score} / 100`;
+    DOM.dossierGradeBadge.textContent = data.trust_grade;
+    DOM.dossierDomainBadge.textContent = data.inferred_company_domain || "Unverified Domain";
+
+    // Tech Stack
+    DOM.dossierTechStack.innerHTML = data.detected_tech_stack.map(
+      (s) => `<span class="badge badge-skill" style="font-size: 11px; padding: 2px 8px;">${escapeHtml(s)}</span>`
+    ).join("");
+
+    // Positives & Cautions
+    DOM.dossierPositives.innerHTML = (data.positive_signals || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("") || "<li>None noted</li>";
+    DOM.dossierCautions.innerHTML = (data.caution_warnings || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("") || "<li>None noted</li>";
+    DOM.dossierPosture.textContent = data.recommended_commercial_posture;
+    showToast("Client Intelligence Dossier generated!");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+async function handleRunScamAudit() {
+  const text = DOM.scamAuditText.value.trim();
+  if (!text) {
+    showToast("Please enter text or message to audit.", "warning");
+    return;
+  }
+  const title = DOM.scamProjectTitle.value.trim() || "Opportunity Text";
+  const budget = parseFloat(DOM.scamProjectBudget.value) || null;
+
+  try {
+    const res = await fetch("/api/intelligence/scam-audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_title: title,
+        project_description: text,
+        claimed_budget: budget,
+      }),
+    });
+    if (!res.ok) throw new Error("Scam audit failed");
+    const data = await res.json();
+
+    DOM.intelScamOutput.style.display = "block";
+    DOM.scamScoreBadge.textContent = `${data.scam_risk_score} / 100`;
+    DOM.scamTierBadge.textContent = data.risk_tier;
+
+    if (data.risk_tier === "CRITICAL" || data.risk_tier === "HIGH") {
+      DOM.scamTierBadge.style.color = "#ef4444";
+      DOM.scamScoreBadge.style.color = "#ef4444";
+      DOM.scamSafetyBadge.innerHTML = "🚨 High Scam Risk";
+      DOM.scamSafetyBadge.style.color = "#ef4444";
+    } else {
+      DOM.scamTierBadge.style.color = "#10b981";
+      DOM.scamScoreBadge.style.color = "#10b981";
+      DOM.scamSafetyBadge.innerHTML = "✅ Safe to Apply";
+      DOM.scamSafetyBadge.style.color = "#10b981";
+    }
+
+    if (data.detected_red_flags && data.detected_red_flags.length > 0) {
+      DOM.scamFlagsList.innerHTML = data.detected_red_flags.map((f) => `
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; padding: 8px 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #ef4444; margin-bottom: 2px;">
+            <span>[${escapeHtml(f.severity)}] ${escapeHtml(f.pattern_type)}</span>
+          </div>
+          <div style="font-size: 11px; margin-bottom: 4px;"><strong>Evidence:</strong> ${escapeHtml(f.evidence_snippet)}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(f.risk_explanation)}</div>
+          <div style="font-size: 11px; color: #f59e0b; margin-top: 4px;"><strong>Defensive Step:</strong> ${escapeHtml(f.defensive_action)}</div>
+        </div>
+      `).join("");
+    } else {
+      DOM.scamFlagsList.innerHTML = `<div style="font-size: 12px; color: #10b981;">No malicious patterns or fraud indicators detected.</div>`;
+    }
+
+    DOM.scamDefensiveRecs.innerHTML = (data.defensive_recommendations || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("");
+    showToast("Scam Sentinel audit complete!");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+async function handleRunFeasibility() {
+  const title = DOM.feasProjectTitle.value.trim() || "Project";
+  const desc = DOM.feasProjectDesc.value.trim();
+  const budget = parseFloat(DOM.feasProjectBudget.value) || 3000.0;
+
+  try {
+    const res = await fetch("/api/intelligence/budget-feasibility", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_title: title,
+        project_description: desc,
+        proposed_budget: budget,
+      }),
+    });
+    if (!res.ok) throw new Error("Feasibility calculation failed");
+    const data = await res.json();
+
+    DOM.intelFeasOutput.style.display = "block";
+    DOM.feasRatingBadge.textContent = data.feasibility_rating;
+    DOM.feasHoursBadge.textContent = `${data.estimated_engineering_hours_min} - ${data.estimated_engineering_hours_max} hrs`;
+    DOM.feasMarketBadge.textContent = `$${data.estimated_fair_market_budget.toLocaleString()}`;
+    DOM.feasCounterBadge.textContent = `$${data.recommended_counter_budget.toLocaleString()}`;
+
+    DOM.feasSuggestions.innerHTML = (data.scope_reduction_suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+    showToast("Scope feasibility evaluated!");
+  } catch (err) {
+    showToast(err.message, "error");
   }
 }

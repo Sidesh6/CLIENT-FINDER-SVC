@@ -19,6 +19,7 @@ from src.api.events import GLOBAL_EVENT_BROADCASTER
 from src.api.routes import (
     analytics,
     applications,
+    client_intel,
     closing,
     collectors,
     contracts,
@@ -100,6 +101,7 @@ app.include_router(closing.router)
 app.include_router(market.router)
 app.include_router(contracts.router)
 app.include_router(outreach.router)
+app.include_router(client_intel.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():

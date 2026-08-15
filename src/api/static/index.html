@@ -52,6 +52,9 @@
         <button id="btn-open-outreach" class="btn btn-ghost">
           <span>🚀 Outreach & A/B</span>
         </button>
+        <button id="btn-open-intel" class="btn btn-ghost">
+          <span>🛡️ Client Intel</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -779,6 +782,186 @@
 
             <h4 style="margin: 14px 0 8px 0; font-size: 13px; color: var(--text-muted);">🎯 Optimal Domain & Category Pitch Routing</h4>
             <div id="ab-category-routing-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client Intelligence, Scam Sentinel & Scope Feasibility Modal -->
+    <div id="modal-intel" class="modal-backdrop" style="display: none;">
+      <div class="modal-card modal-lg" style="max-width: 920px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">🛡️</span>
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">Client Intelligence, Scam Sentinel & Feasibility Studio</h3>
+              <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Background verification, fraud detection, and budget scope reality checks</p>
+            </div>
+          </div>
+          <button id="btn-close-intel" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px 20px;">
+          <!-- Tab Navigation -->
+          <div class="filter-group" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <button id="tab-intel-dossier" class="btn btn-sm btn-primary">👤 Client Dossier</button>
+            <button id="tab-intel-scam" class="btn btn-sm btn-ghost">🚨 Scam Sentinel</button>
+            <button id="tab-intel-feasibility" class="btn btn-sm btn-ghost">⚖️ Scope Feasibility</button>
+          </div>
+
+          <!-- Tab 1: Client Dossier -->
+          <div id="section-intel-dossier">
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div class="form-group">
+                <label style="font-size: 12px;">Client / Company Name</label>
+                <input type="text" id="intel-client-name" class="text-input" placeholder="e.g. Stripe Labs, David">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 12px;">Advertised Budget ($)</label>
+                <input type="number" id="intel-client-budget" class="text-input" placeholder="5000">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Project Title</label>
+              <input type="text" id="intel-project-title" class="text-input" placeholder="FastAPI AI Agent Orchestrator">
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Project Posting Text / Description</label>
+              <textarea id="intel-project-desc" class="text-input textarea-control" rows="3" placeholder="Paste full project opportunity text or job description..."></textarea>
+            </div>
+            <button id="btn-run-dossier" class="btn btn-primary btn-block">🔍 Generate Client Intelligence Dossier</button>
+
+            <!-- Dossier Output -->
+            <div id="intel-dossier-output" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+              <div style="display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Trust Score</div>
+                  <div id="dossier-score-badge" style="font-size: 18px; font-weight: 800; color: #10b981;">88.5 / 100</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Trust Grade</div>
+                  <div id="dossier-grade-badge" style="font-size: 14px; font-weight: 700; color: #3b82f6;">EXCELLENT</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Inferred Domain</div>
+                  <div id="dossier-domain-badge" style="font-size: 13px; font-weight: 600; color: #f59e0b;">stripe.com</div>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: 600;">Detected Tech Footprints:</label>
+                <div id="dossier-tech-stack" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;"></div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 6px; padding: 10px;">
+                  <div style="font-size: 12px; font-weight: 700; color: #10b981; margin-bottom: 4px;">✅ Verified Signals</div>
+                  <ul id="dossier-positives" style="margin: 0; padding-left: 16px; font-size: 11px; color: var(--text-color);"></ul>
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 10px;">
+                  <div style="font-size: 12px; font-weight: 700; color: #f59e0b; margin-bottom: 4px;">⚠️ Caution & Nuance</div>
+                  <ul id="dossier-cautions" style="margin: 0; padding-left: 16px; font-size: 11px; color: var(--text-color);"></ul>
+                </div>
+              </div>
+
+              <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; padding: 10px;">
+                <div style="font-size: 12px; font-weight: 700; color: #3b82f6; margin-bottom: 2px;">🎯 Recommended Commercial Posture</div>
+                <p id="dossier-posture" style="margin: 0; font-size: 12px; color: var(--text-color);"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Scam Sentinel -->
+          <div id="section-intel-scam" style="display: none;">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Project Description or Message to Audit</label>
+              <textarea id="scam-audit-text" class="text-input textarea-control" rows="4" placeholder="Paste full project text, client direct message, or email inquiry..."></textarea>
+            </div>
+            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div class="form-group">
+                <label style="font-size: 12px;">Project Title</label>
+                <input type="text" id="scam-project-title" class="text-input" placeholder="Optional Title">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 12px;">Offered Budget ($)</label>
+                <input type="number" id="scam-project-budget" class="text-input" placeholder="Optional Budget">
+              </div>
+            </div>
+            <button id="btn-run-scam-audit" class="btn btn-primary btn-block">🚨 Audit for Fraud & Scams</button>
+
+            <!-- Scam Output -->
+            <div id="intel-scam-output" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+              <div style="display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Scam Risk Score</div>
+                  <div id="scam-score-badge" style="font-size: 18px; font-weight: 800; color: #10b981;">0.0 / 100</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Risk Tier</div>
+                  <div id="scam-tier-badge" style="font-size: 14px; font-weight: 700; color: #10b981;">LOW</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Safety Status</div>
+                  <div id="scam-safety-badge" style="font-size: 13px; font-weight: 700; color: #10b981;">✅ Safe to Apply</div>
+                </div>
+              </div>
+
+              <div id="scam-flags-container" style="margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: 600;">Detected Red Flags & Evidence:</label>
+                <div id="scam-flags-list" style="margin-top: 6px; display: flex; flex-direction: column; gap: 8px;"></div>
+              </div>
+
+              <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 6px; padding: 10px;">
+                <div style="font-size: 12px; font-weight: 700; color: #8b5cf6; margin-bottom: 4px;">🛡️ Defensive Recommendations</div>
+                <ul id="scam-defensive-recs" style="margin: 0; padding-left: 16px; font-size: 11px;"></ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Scope Feasibility -->
+          <div id="section-intel-feasibility" style="display: none;">
+            <div class="form-row" style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
+              <div class="form-group">
+                <label style="font-size: 12px;">Project Title</label>
+                <input type="text" id="feas-project-title" class="text-input" placeholder="e.g. Fullstack AI Knowledge Engine">
+              </div>
+              <div class="form-group">
+                <label style="font-size: 12px;">Offered Budget ($)</label>
+                <input type="number" id="feas-project-budget" class="text-input" placeholder="3000">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px;">Project Scope / Requirements</label>
+              <textarea id="feas-project-desc" class="text-input textarea-control" rows="3" placeholder="Describe required features, frontend, APIs, database, and integrations..."></textarea>
+            </div>
+            <button id="btn-run-feasibility" class="btn btn-primary btn-block">⚖️ Evaluate Scope Feasibility & Fair Pricing</button>
+
+            <!-- Feasibility Output -->
+            <div id="intel-feas-output" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+              <div style="display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Feasibility Rating</div>
+                  <div id="feas-rating-badge" style="font-size: 14px; font-weight: 800; color: #10b981;">REALISTIC</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Estimated Hours</div>
+                  <div id="feas-hours-badge" style="font-size: 14px; font-weight: 700; color: #3b82f6;">45 - 85 hrs</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Fair Market Value</div>
+                  <div id="feas-market-badge" style="font-size: 14px; font-weight: 700; color: #f59e0b;">$6,175.00</div>
+                </div>
+                <div class="kpi-card" style="padding: 10px 14px; min-width: 140px;">
+                  <div class="kpi-label">Counter-Budget Anchor</div>
+                  <div id="feas-counter-badge" style="font-size: 14px; font-weight: 800; color: #8b5cf6;">$6,000.00</div>
+                </div>
+              </div>
+
+              <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 10px;">
+                <div style="font-size: 12px; font-weight: 700; color: #f59e0b; margin-bottom: 4px;">💡 Scope Negotiation & Phasing Advice</div>
+                <ul id="feas-suggestions" style="margin: 0; padding-left: 16px; font-size: 11px;"></ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
