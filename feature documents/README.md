@@ -1,12 +1,12 @@
-# CLIENT FINDER SVC — Feature & Architecture Documentation Index
+# CLIENT FINDER SVC — Complete Architecture & Milestone Catalog
 
-This directory contains the complete technical specifications, architectural diagrams, component breakdowns, and verification guides for every feature milestone of **CLIENT FINDER SVC**.
+This catalog indexes the complete architectural blueprints, technical specifications, and verification guides for every feature milestone of **CLIENT FINDER SVC**.
 
 ---
 
-## 📚 Complete Feature Milestone Catalog
+## 📚 Complete Feature Milestone Catalog (All 22 Phases)
 
-| # | Milestone & Feature Area | Specification Document | Key Capabilities & Components |
+| # | Milestone & Feature Area | Specification Document | Key Capabilities & Architecture |
 | :-: | :--- | :--- | :--- |
 | **01** | **HTTP Infrastructure & Hacker News Ingestion** | [`EXPLANATION_OF_THE_FEATURE.md`](file:///c:/PRIVATE%20PROJECTS/CLIENT-FINDER-SVC/feature%20documents/EXPLANATION_OF_THE_FEATURE.md) | Exponential backoff, rate limiting, Algolia API parsing, HTML sanitization |
 | **02** | **Multi-Source Registry & Pipeline Architecture** | [`EXPLANATION_OF_MULTI_SOURCE_REGISTRY_PIPELINE_INTEGRATION_AND_ARCHITECTURE.md`](file:///c:/PRIVATE%20PROJECTS/CLIENT-FINDER-SVC/feature%20documents/EXPLANATION_OF_MULTI_SOURCE_REGISTRY_PIPELINE_INTEGRATION_AND_ARCHITECTURE.md) | `CollectorRegistry`, Circuit Breaker pattern, Health metrics telemetry |
@@ -28,3 +28,4 @@ This directory contains the complete technical specifications, architectural dia
 | **18** | **AI Client Dossier & Scam Risk Sentinel** | [`EXPLANATION_OF_CLIENT_DOSSIER_AND_SCAM_SENTINEL.md`](file:///c:/PRIVATE%20PROJECTS/CLIENT-FINDER-SVC/feature%20documents/EXPLANATION_OF_CLIENT_DOSSIER_AND_SCAM_SENTINEL.md) | Client background dossiers, trust scoring, scam/fraud sentinel, budget feasibility analyzer |
 | **19** | **Dense Semantic Vector Search & Hybrid RAG** | [`EXPLANATION_OF_SEMANTIC_VECTOR_SEARCH_AND_PORTFOLIO_RAG.md`](file:///c:/PRIVATE%20PROJECTS/CLIENT-FINDER-SVC/feature%20documents/EXPLANATION_OF_SEMANTIC_VECTOR_SEARCH_AND_PORTFOLIO_RAG.md) | 384-D dense embeddings, in-memory cosine KNN store, hybrid BM25 + dense search, semantic portfolio RAG |
 | **20** | **Multi-Tenant SaaS, Team RBAC & User Auth** | [`EXPLANATION_OF_MULTI_TENANT_RBAC_AND_AUTH.md`](file:///c:/PRIVATE%20PROJECTS/CLIENT-FINDER-SVC/feature%20documents/EXPLANATION_OF_MULTI_TENANT_RBAC_AND_AUTH.md) | Multi-tenant workspaces, 4-tier plan quotas, PBKDF2/JWT auth, RBAC permissions, API key metering |
+| **21/22**| **Production Containerization, Docker & CI/CD** | [`EXPLANATION_OF_PRODUCTION_CONTAINERIZATION_AND_CICD.md`](file:///c:/PRIVATE%20PROJECTS/CLIENT-FINDER-SVC/feature%20documents/EXPLANATION_OF_PRODUCTION_CONTAINERIZATION_AND_CICD.md) | Multi-stage Docker, Docker Compose orchestration, Alembic DB migrations, Kubernetes probes, GitHub CI/CD |
