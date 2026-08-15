@@ -2860,3 +2860,213 @@ async function loadForecast() {
   }
 }
 
+/* ==========================================================================
+   Phase 25: AI LegalTech Studio & Contract Risk Analyzer
+   ========================================================================== */
+
+document.getElementById("btn-open-contracts")?.addEventListener("click", () => {
+  const modal = document.getElementById("modal-contracts");
+  if (modal) {
+    modal.style.display = "flex";
+    loadContractsList();
+  }
+});
+
+document.getElementById("btn-close-modal-contracts")?.addEventListener("click", () => {
+  const modal = document.getElementById("modal-contracts");
+  if (modal) modal.style.display = "none";
+});
+
+window.switchContractsSubtab = function(tabName) {
+  const subList = document.getElementById("subtab-contracts-list");
+  const subGen = document.getElementById("subtab-contracts-generate");
+  const subAudit = document.getElementById("subtab-contracts-audit");
+
+  const btnList = document.getElementById("tab-btn-contracts-list");
+  const btnGen = document.getElementById("tab-btn-contracts-generate");
+  const btnAudit = document.getElementById("tab-btn-contracts-audit");
+
+  if (subList) subList.style.display = tabName === 'list' ? 'block' : 'none';
+  if (subGen) subGen.style.display = tabName === 'generate' ? 'block' : 'none';
+  if (subAudit) subAudit.style.display = tabName === 'audit' ? 'block' : 'none';
+
+  if (btnList) btnList.className = tabName === 'list' ? 'btn btn-primary' : 'btn btn-ghost';
+  if (btnGen) btnGen.className = tabName === 'generate' ? 'btn btn-primary' : 'btn btn-ghost';
+  if (btnAudit) btnAudit.className = tabName === 'audit' ? 'btn btn-primary' : 'btn btn-ghost';
+
+  if (tabName === 'list') loadContractsList();
+};
+
+async function loadContractsList() {
+  const container = document.getElementById("contracts-register-container");
+  if (!container) return;
+  container.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;">⏳ Loading contracts...</div>`;
+
+  try {
+    const res = await fetch("/api/contracts");
+    if (!res.ok) throw new Error("Failed to fetch contracts");
+    const contracts = await res.json();
+
+    if (!contracts || contracts.length === 0) {
+      container.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;">No stored contracts found. Use the generator tab to create one!</div>`;
+      return;
+    }
+
+    let html = "";
+    contracts.forEach((c) => {
+      const statusBg = c.status === "EXECUTED" ? "rgba(16, 185, 129, 0.15)" : c.status === "PENDING_SIGNATURE" ? "rgba(245, 158, 11, 0.15)" : "rgba(107, 114, 128, 0.15)";
+      const statusColor = c.status === "EXECUTED" ? "#10b981" : c.status === "PENDING_SIGNATURE" ? "#f59e0b" : "#9ca3af";
+
+      html += `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-weight: 800; font-size: 14px; color: #a78bfa;">${escapeHtml(c.contract_number)}</span>
+              <strong style="font-size: 14px;">${escapeHtml(c.title)}</strong>
+              <span style="padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; background: ${statusBg}; color: ${statusColor};">${c.status}</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted);">Effective: ${c.effective_date}</div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+            <span>Client: <strong style="color:var(--text-primary);">${escapeHtml(c.client_name)}</strong></span> &nbsp;·&nbsp;
+            <span>Developer: <strong style="color:var(--text-primary);">${escapeHtml(c.developer_name)}</strong></span> &nbsp;·&nbsp;
+            <span>Signatures: <strong>${c.signatures.length}</strong> / 2</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost" style="font-size: 11px; padding: 4px 10px;" onclick="viewContractContent('${c.id}')">📄 View Text</button>
+            ${c.status !== "EXECUTED" ? `<button class="btn btn-primary" style="font-size: 11px; padding: 4px 10px;" onclick="promptSignContract('${c.id}')">✍️ Sign Document</button>` : `<span style="font-size: 11px; color: #10b981; align-self: center;">✅ Fully Executed</span>`}
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<div style="padding:16px;color:#ef4444;text-align:center;">Error: ${err.message}</div>`;
+  }
+}
+
+window.viewContractContent = async function(cId) {
+  try {
+    const res = await fetch(`/api/contracts/${cId}`);
+    if (!res.ok) throw new Error("Contract not found");
+    const data = await res.json();
+    alert(`📜 ${data.contract_number} (${data.title})\n\n` + data.content_markdown);
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+};
+
+window.promptSignContract = async function(cId) {
+  const signerName = prompt("Enter your full legal name to execute e-signature:");
+  if (!signerName) return;
+  const signerEmail = prompt("Enter your email address:");
+  if (!signerEmail) return;
+
+  try {
+    const res = await fetch(`/api/contracts/${cId}/sign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signer_name: signerName, signer_email: signerEmail }),
+    });
+    if (!res.ok) throw new Error("Failed to sign contract");
+    showToast(`✍️ Signature recorded for ${signerName}`);
+    loadContractsList();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+};
+
+document.getElementById("btn-submit-gen-contract")?.addEventListener("click", async () => {
+  const cType = document.getElementById("gen-contract-type")?.value || "MSA";
+  const clientName = document.getElementById("gen-client-name")?.value?.trim();
+  const projectTitle = document.getElementById("gen-project-title")?.value?.trim();
+  const paymentTerms = parseInt(document.getElementById("gen-payment-terms")?.value || "14");
+  const liabilityCap = parseFloat(document.getElementById("gen-liability-cap")?.value || "10000");
+  const jurisdiction = document.getElementById("gen-jurisdiction")?.value?.trim() || "Delaware, USA";
+  const retainIp = document.getElementById("gen-retain-ip")?.checked ?? true;
+
+  if (!clientName || !projectTitle) {
+    showToast("Please provide client name and project title.", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/contracts/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contract_type: cType,
+        client_name: clientName,
+        project_title: projectTitle,
+        payment_terms_days: paymentTerms,
+        liability_cap_usd: liabilityCap,
+        governing_state_country: jurisdiction,
+        retain_ip_until_paid: retainIp,
+      }),
+    });
+    if (!res.ok) throw new Error("Generation failed");
+    const data = await res.json();
+    const preview = document.getElementById("gen-contract-preview");
+    if (preview) preview.value = data.content_markdown;
+    showToast(`⚡ Generated ${data.contract_number} for ${clientName}`);
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+});
+
+document.getElementById("btn-submit-audit-contract")?.addEventListener("click", async () => {
+  const text = document.getElementById("audit-contract-text")?.value?.trim();
+  if (!text || text.length < 20) {
+    showToast("Please paste at least 20 characters of contract text to audit.", "error");
+    return;
+  }
+
+  const panel = document.getElementById("audit-results-panel");
+  if (panel) panel.style.display = "block";
+
+  try {
+    const res = await fetch("/api/contracts/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contract_title: "Client Contract Audit", contract_text: text }),
+    });
+    if (!res.ok) throw new Error("Audit request failed");
+    const data = await res.json();
+
+    const scoreEl = document.getElementById("audit-score-val");
+    if (scoreEl) {
+      scoreEl.innerText = `${data.overall_risk_score} / 100`;
+      scoreEl.style.color = data.overall_risk_score >= 60 ? "#ef4444" : data.overall_risk_score >= 30 ? "#f59e0b" : "#10b981";
+    }
+
+    const badgeEl = document.getElementById("audit-recommendation-badge");
+    if (badgeEl) badgeEl.innerText = data.recommendation;
+
+    const listEl = document.getElementById("audit-findings-list");
+    if (listEl) {
+      let html = "";
+      (data.findings || []).forEach((f) => {
+        const color = f.severity === "CRITICAL" ? "#ef4444" : f.severity === "HIGH" ? "#f97316" : f.severity === "MEDIUM" ? "#f59e0b" : "#10b981";
+        html += `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-left: 4px solid ${color}; border-radius: 6px; padding: 10px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <strong style="font-size: 13px; color: ${color};">${escapeHtml(f.clause_title)}</strong>
+              <span style="font-size: 10px; font-weight: 700; color: ${color}; uppercase;">${f.severity} RISK</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;"><em>"${escapeHtml(f.flagged_text)}"</em></div>
+            <div style="font-size: 12px; margin-bottom: 6px;">${escapeHtml(f.explanation)}</div>
+            <div style="font-size: 11px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 6px 10px; border-radius: 4px; color: #10b981;">
+              💡 <strong>Suggested Revision:</strong> ${escapeHtml(f.suggested_revision)}
+            </div>
+          </div>
+        `;
+      });
+      listEl.innerHTML = html;
+    }
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+});
+
+

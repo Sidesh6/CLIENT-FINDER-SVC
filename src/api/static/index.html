@@ -67,6 +67,9 @@
         <button id="btn-open-crm" class="btn btn-ghost">
           <span>🔄 CRM Sync</span>
         </button>
+        <button id="btn-open-contracts" class="btn btn-ghost">
+          <span>📜 Contracts</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -1487,6 +1490,111 @@
           <div id="section-crm-logs" style="display: none;">
             <div id="crm-logs-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 25: AI Contract Generator & Legal Risk Analyzer Modal -->
+    <div id="modal-contracts" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 950px; width: 95%;">
+        <div class="modal-header">
+          <h3 style="display: flex; align-items: center; gap: 8px;">
+            <span>📜 AI LegalTech Studio & Contract Analyzer</span>
+          </h3>
+          <button id="btn-close-modal-contracts" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 20px;">
+          <!-- Navigation Tabs -->
+          <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+            <button id="tab-btn-contracts-list" class="btn btn-primary" onclick="switchContractsSubtab('list')">📋 Executed Contracts</button>
+            <button id="tab-btn-contracts-generate" class="btn btn-ghost" onclick="switchContractsSubtab('generate')">✍️ Generate MSA/SOW/NDA</button>
+            <button id="tab-btn-contracts-audit" class="btn btn-ghost" onclick="switchContractsSubtab('audit')">🛡️ Audit Client Contract Risks</button>
+          </div>
+
+          <!-- Subtab 1: Contracts Register -->
+          <div id="subtab-contracts-list">
+            <div id="contracts-register-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+          </div>
+
+          <!-- Subtab 2: Contract Generator -->
+          <div id="subtab-contracts-generate" style="display: none;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <h4 style="margin-top: 0;">Contract Parameters</h4>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted);">Agreement Type</label>
+                    <select id="gen-contract-type" class="select-control" style="width: 100%;">
+                      <option value="MSA">Master Services Agreement (MSA)</option>
+                      <option value="SOW">Statement of Work (SOW)</option>
+                      <option value="NDA">Non-Disclosure Agreement (NDA)</option>
+                      <option value="CONTRACTOR_AGREEMENT">Independent Contractor Agreement</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted);">Client Company / Individual Name</label>
+                    <input type="text" id="gen-client-name" class="text-input" placeholder="e.g. Acme Corp">
+                  </div>
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted);">Project / Deliverable Title</label>
+                    <input type="text" id="gen-project-title" class="text-input" placeholder="e.g. Fullstack REST API & Frontend">
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                      <label style="font-size: 12px; color: var(--text-muted);">Payment Terms (Days)</label>
+                      <input type="number" id="gen-payment-terms" class="text-input" value="14" min="1" max="90">
+                    </div>
+                    <div>
+                      <label style="font-size: 12px; color: var(--text-muted);">Liability Cap ($)</label>
+                      <input type="number" id="gen-liability-cap" class="text-input" value="10000" min="1000">
+                    </div>
+                  </div>
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted);">Governing Law Jurisdiction</label>
+                    <input type="text" id="gen-jurisdiction" class="text-input" value="Delaware, USA">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+                    <input type="checkbox" id="gen-retain-ip" checked>
+                    <label for="gen-retain-ip" style="font-size: 12px;">Retain IP ownership until full invoice settlement</label>
+                  </div>
+                  <button id="btn-submit-gen-contract" class="btn btn-primary" style="margin-top: 10px;">⚡ Generate Protective Agreement</button>
+                </div>
+              </div>
+
+              <div>
+                <h4 style="margin-top: 0;">Generated Contract Preview</h4>
+                <textarea id="gen-contract-preview" class="text-input" style="width: 100%; height: 320px; font-family: monospace; font-size: 12px; resize: vertical;" readonly placeholder="Generated legal markdown will appear here..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 3: Contract Risk Auditor -->
+          <div id="subtab-contracts-audit" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <label style="font-size: 12px; color: var(--text-muted); font-weight: bold;">Paste Client Contract Text to Audit</label>
+                <textarea id="audit-contract-text" class="text-input" style="width: 100%; height: 120px; font-size: 12px; font-family: monospace;" placeholder="Paste raw contract clauses, work-for-hire provisions, liability terms, or indemnification text here..."></textarea>
+                <button id="btn-submit-audit-contract" class="btn btn-primary" style="margin-top: 10px;">🔍 Audit Contract for Legal Traps</button>
+              </div>
+
+              <div id="audit-results-panel" style="display: none; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <div>
+                    <h4 id="audit-contract-title" style="margin: 0;">Audit Findings</h4>
+                    <span id="audit-recommendation-badge" style="font-size: 13px; font-weight: bold; margin-top: 4px; display: inline-block;"></span>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 11px; color: var(--text-muted);">Overall Risk Score</div>
+                    <div id="audit-score-val" style="font-size: 24px; font-weight: 800; color: #ef4444;">0 / 100</div>
+                  </div>
+                </div>
+
+                <div id="audit-findings-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

@@ -1088,6 +1088,80 @@ def cmd_invoice_create(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_contract_list(args: argparse.Namespace) -> int:
+    """List all legal contracts in the registry."""
+    from src.contracts.registry import GLOBAL_CONTRACT_REGISTRY
+
+    tenant_id = args.tenant or "default_tenant"
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Legal Contract Register ({tenant_id})")
+    print("=" * 70)
+
+    contracts = GLOBAL_CONTRACT_REGISTRY.list_contracts(tenant_id)
+    if not contracts:
+        print("  No contracts found.")
+    else:
+        for c in contracts:
+            print(
+                f"  [{c.status.value:<17}] {c.contract_number:<9} | {c.title[:32]:<34} | "
+                f"Sigs: {len(c.signatures)}/2 | Eff: {c.effective_date}"
+            )
+    print("-" * 70)
+    return 0
+
+
+def cmd_contract_generate(args: argparse.Namespace) -> int:
+    """Generate a protective legal contract."""
+    from src.contracts.registry import GLOBAL_CONTRACT_REGISTRY
+    from src.contracts.schemas import ContractType, GenerateContractRequest
+
+    tenant_id = args.tenant or "default_tenant"
+    req = GenerateContractRequest(
+        contract_type=ContractType(args.type),
+        client_name=args.client,
+        project_title=args.title,
+        payment_terms_days=args.terms,
+    )
+    contract = GLOBAL_CONTRACT_REGISTRY.create_contract(tenant_id, req)
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Contract Generated ({contract.contract_number})")
+    print("=" * 70)
+    print(f"\n  Type           : {contract.contract_type.value}")
+    print(f"  Title          : {contract.title}")
+    print(f"  Client         : {contract.client_name}")
+    print(f"  Effective Date : {contract.effective_date}")
+    print("\n" + contract.content_markdown[:300] + "\n...")
+    print("-" * 70)
+    return 0
+
+
+def cmd_contract_audit(args: argparse.Namespace) -> int:
+    """Audit raw legal text for clause risks and traps."""
+    from src.contracts.analyzer import GLOBAL_LEGAL_ANALYZER
+    from src.contracts.schemas import AuditContractRequest
+
+    text = args.text
+    if not text:
+        print("[!] Error: --text argument is required for contract audit.")
+        return 1
+
+    res = GLOBAL_LEGAL_ANALYZER.audit_contract(AuditContractRequest(contract_title="CLI Audit", contract_text=text))
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Legal Risk Audit")
+    print("=" * 70)
+    print(f"\n  Overall Risk Score : {res.overall_risk_score} / 100")
+    print(f"  Recommendation     : {res.recommendation}")
+    print(f"  Critical Risks     : {res.critical_count} | High Risks: {res.high_count} | Medium Risks: {res.medium_count}")
+    print("\n  Risk Findings:")
+    for f in res.findings:
+        print(f"   -> [{f.severity:<8}] {f.clause_title}")
+        print(f"      Explanation: {f.explanation}")
+        print(f"      Revision   : {f.suggested_revision}")
+    print("-" * 70)
+    return 0
+
+
+
 
 
 def cmd_sources(args: argparse.Namespace) -> int:
@@ -1487,6 +1561,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_inv_create.add_argument("--due-days", type=int, default=30, help="Payment term in days (default: 30)")
     p_inv_create.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
     p_inv_create.set_defaults(func=cmd_invoice_create)
+
+    # 35. Contract List Command
+    p_ctr_list = subparsers.add_parser("contract-list", help="List all stored legal agreements")
+    p_ctr_list.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_ctr_list.set_defaults(func=cmd_contract_list)
+
+    # 36. Contract Generate Command
+    p_ctr_gen = subparsers.add_parser("contract-generate", help="Generate a protective legal contract (MSA, SOW, NDA)")
+    p_ctr_gen.add_argument("--type", type=str, default="MSA", choices=["MSA", "SOW", "NDA", "CONTRACTOR_AGREEMENT"], help="Agreement type")
+    p_ctr_gen.add_argument("--client", type=str, required=True, help="Client company or individual name")
+    p_ctr_gen.add_argument("--title", type=str, required=True, help="Project title")
+    p_ctr_gen.add_argument("--terms", type=int, default=14, help="Payment terms in days")
+    p_ctr_gen.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_ctr_gen.set_defaults(func=cmd_contract_generate)
+
+    # 37. Contract Audit Command
+    p_ctr_audit = subparsers.add_parser("contract-audit", help="Audit raw contract text for legal traps and risks")
+    p_ctr_audit.add_argument("--text", type=str, required=True, help="Raw contract text to audit")
+    p_ctr_audit.set_defaults(func=cmd_contract_audit)
 
     return parser
 
