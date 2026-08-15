@@ -61,6 +61,9 @@
         <button id="btn-open-workspace" class="btn btn-ghost">
           <span>🏢 Workspace & Team</span>
         </button>
+        <button id="btn-open-finance" class="btn btn-ghost">
+          <span>💰 Revenue</span>
+        </button>
         <button id="btn-open-crm" class="btn btn-ghost">
           <span>🔄 CRM Sync</span>
         </button>
@@ -1214,6 +1217,141 @@
 
             <!-- API Keys List -->
             <div id="ws-apikeys-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 💰 Revenue Intelligence & Financial Dashboard Modal -->
+    <div id="modal-finance" class="modal-backdrop" style="display: none;">
+      <div class="modal-card modal-lg" style="max-width: 1020px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">💰</span>
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">Revenue Intelligence & Financial Dashboard</h3>
+              <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Invoices, payments, expenses, AI forecast & tax reserve</p>
+            </div>
+          </div>
+          <button id="btn-close-finance" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px 20px;">
+          <!-- Tab Navigation -->
+          <div class="filter-group" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <button id="tab-fin-summary" class="btn btn-sm btn-primary">📊 Summary</button>
+            <button id="tab-fin-invoices" class="btn btn-sm btn-ghost">🧾 Invoices</button>
+            <button id="tab-fin-expenses" class="btn btn-sm btn-ghost">💳 Expenses</button>
+            <button id="tab-fin-forecast" class="btn btn-sm btn-ghost">🔮 AI Forecast</button>
+          </div>
+
+          <!-- Tab 1: Financial Summary -->
+          <div id="section-fin-summary">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
+              <div class="kpi-card" style="padding: 14px 16px; text-align: center;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Gross Billed (YTD)</div>
+                <div id="fin-kpi-billed" style="font-size: 22px; font-weight: 800; color: #a78bfa;">$0</div>
+              </div>
+              <div class="kpi-card" style="padding: 14px 16px; text-align: center;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Gross Collected</div>
+                <div id="fin-kpi-collected" style="font-size: 22px; font-weight: 800; color: #10b981;">$0</div>
+              </div>
+              <div class="kpi-card" style="padding: 14px 16px; text-align: center;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Outstanding AR</div>
+                <div id="fin-kpi-ar" style="font-size: 22px; font-weight: 800; color: #f59e0b;">$0</div>
+              </div>
+              <div class="kpi-card" style="padding: 14px 16px; text-align: center;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Net Profit</div>
+                <div id="fin-kpi-profit" style="font-size: 22px; font-weight: 800; color: #34d399;">$0</div>
+              </div>
+              <div class="kpi-card" style="padding: 14px 16px; text-align: center;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Tax Reserve (28%)</div>
+                <div id="fin-kpi-tax" style="font-size: 22px; font-weight: 800; color: #f87171;">$0</div>
+              </div>
+            </div>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--text-muted);">
+              <div id="fin-summary-detail" style="display: flex; gap: 16px; flex-wrap: wrap;"></div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Invoices -->
+          <div id="section-fin-invoices" style="display: none;">
+            <!-- Create Invoice Form -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+              <div style="font-weight: 700; font-size: 13px; margin-bottom: 10px; color: var(--text-main);">➕ Create New Invoice</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <div>
+                  <label style="font-size: 11px;">Client Name</label>
+                  <input type="text" id="inv-client-name" class="text-input" placeholder="Acme Corp">
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Service Description</label>
+                  <input type="text" id="inv-service-desc" class="text-input" placeholder="FastAPI Development">
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Unit Price (USD)</label>
+                  <input type="number" id="inv-unit-price" class="text-input" placeholder="5000">
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 11px;">Tax Rate %</label>
+                  <input type="number" id="inv-tax-rate" class="text-input" placeholder="10" value="10">
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Payment Terms (days)</label>
+                  <input type="number" id="inv-due-days" class="text-input" placeholder="30" value="30">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                  <button id="btn-create-invoice" class="btn btn-primary" style="width: 100%; height: 38px;">🧾 Issue Invoice</button>
+                </div>
+              </div>
+            </div>
+            <!-- Invoice List -->
+            <div id="fin-invoices-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <!-- Tab 3: Expenses -->
+          <div id="section-fin-expenses" style="display: none;">
+            <!-- Add Expense Form -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+              <div style="font-weight: 700; font-size: 13px; margin-bottom: 10px; color: var(--text-main);">➕ Log Business Expense</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 11px;">Description</label>
+                  <input type="text" id="exp-description" class="text-input" placeholder="GitHub Copilot">
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Category</label>
+                  <select id="exp-category" class="text-input">
+                    <option value="SOFTWARE">Software</option>
+                    <option value="HARDWARE">Hardware</option>
+                    <option value="MARKETING">Marketing</option>
+                    <option value="EDUCATION">Education</option>
+                    <option value="TRAVEL">Travel</option>
+                    <option value="INSURANCE">Insurance</option>
+                    <option value="LEGAL">Legal</option>
+                    <option value="MISC">Miscellaneous</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Amount (USD)</label>
+                  <input type="number" id="exp-amount" class="text-input" placeholder="19.99">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                  <button id="btn-log-expense" class="btn btn-primary" style="width: 100%; height: 38px;">💳 Log Expense</button>
+                </div>
+              </div>
+            </div>
+            <!-- Expenses List -->
+            <div id="fin-expenses-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <!-- Tab 4: AI Forecast -->
+          <div id="section-fin-forecast" style="display: none;">
+            <div id="fin-forecast-content" style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px;">Loading AI Revenue Forecast...</div>
+            </div>
           </div>
         </div>
       </div>

@@ -286,6 +286,38 @@ const DOM = {
   btnCopySecretKey: document.getElementById("btn-copy-secret-key"),
   wsApikeysList: document.getElementById("ws-apikeys-list"),
 
+  // Revenue Intelligence & Financial Dashboard
+  btnOpenFinance: document.getElementById("btn-open-finance"),
+  modalFinance: document.getElementById("modal-finance"),
+  btnCloseFinance: document.getElementById("btn-close-finance"),
+  tabFinSummary: document.getElementById("tab-fin-summary"),
+  tabFinInvoices: document.getElementById("tab-fin-invoices"),
+  tabFinExpenses: document.getElementById("tab-fin-expenses"),
+  tabFinForecast: document.getElementById("tab-fin-forecast"),
+  sectionFinSummary: document.getElementById("section-fin-summary"),
+  sectionFinInvoices: document.getElementById("section-fin-invoices"),
+  sectionFinExpenses: document.getElementById("section-fin-expenses"),
+  sectionFinForecast: document.getElementById("section-fin-forecast"),
+  finKpiBilled: document.getElementById("fin-kpi-billed"),
+  finKpiCollected: document.getElementById("fin-kpi-collected"),
+  finKpiAr: document.getElementById("fin-kpi-ar"),
+  finKpiProfit: document.getElementById("fin-kpi-profit"),
+  finKpiTax: document.getElementById("fin-kpi-tax"),
+  finSummaryDetail: document.getElementById("fin-summary-detail"),
+  finInvoicesList: document.getElementById("fin-invoices-list"),
+  invClientName: document.getElementById("inv-client-name"),
+  invServiceDesc: document.getElementById("inv-service-desc"),
+  invUnitPrice: document.getElementById("inv-unit-price"),
+  invTaxRate: document.getElementById("inv-tax-rate"),
+  invDueDays: document.getElementById("inv-due-days"),
+  btnCreateInvoice: document.getElementById("btn-create-invoice"),
+  finExpensesList: document.getElementById("fin-expenses-list"),
+  expDescription: document.getElementById("exp-description"),
+  expCategory: document.getElementById("exp-category"),
+  expAmount: document.getElementById("exp-amount"),
+  btnLogExpense: document.getElementById("btn-log-expense"),
+  finForecastContent: document.getElementById("fin-forecast-content"),
+
   // Enterprise CRM Sync & Integrations
   btnOpenCrm: document.getElementById("btn-open-crm"),
   modalCrm: document.getElementById("modal-crm"),
@@ -527,6 +559,16 @@ function initEventListeners() {
   }
   if (DOM.btnSubmitCreateKey) DOM.btnSubmitCreateKey.addEventListener("click", handleSubmitCreateKey);
   if (DOM.btnCopySecretKey) DOM.btnCopySecretKey.addEventListener("click", copyRawApiKey);
+
+  // Revenue Intelligence & Financial Dashboard
+  if (DOM.btnOpenFinance) DOM.btnOpenFinance.addEventListener("click", openFinanceModal);
+  if (DOM.btnCloseFinance) DOM.btnCloseFinance.addEventListener("click", closeFinanceModal);
+  if (DOM.tabFinSummary) DOM.tabFinSummary.addEventListener("click", () => switchFinTab("summary"));
+  if (DOM.tabFinInvoices) DOM.tabFinInvoices.addEventListener("click", () => switchFinTab("invoices"));
+  if (DOM.tabFinExpenses) DOM.tabFinExpenses.addEventListener("click", () => switchFinTab("expenses"));
+  if (DOM.tabFinForecast) DOM.tabFinForecast.addEventListener("click", () => switchFinTab("forecast"));
+  if (DOM.btnCreateInvoice) DOM.btnCreateInvoice.addEventListener("click", handleCreateInvoice);
+  if (DOM.btnLogExpense) DOM.btnLogExpense.addEventListener("click", handleLogExpense);
 
   // Enterprise CRM Sync
   if (DOM.btnOpenCrm) DOM.btnOpenCrm.addEventListener("click", openCrmModal);
@@ -2605,3 +2647,216 @@ async function loadCrmLogs() {
     console.error("Failed to load CRM logs:", err);
   }
 }
+
+// ----------------------------------------------------
+// 15. Revenue Intelligence & Financial Dashboard
+// ----------------------------------------------------
+
+const STATUS_COLORS = {
+  DRAFT: "#94a3b8",
+  SENT: "#60a5fa",
+  VIEWED: "#a78bfa",
+  PARTIALLY_PAID: "#f59e0b",
+  PAID: "#10b981",
+  OVERDUE: "#ef4444",
+  DISPUTED: "#f97316",
+  CANCELLED: "#6b7280",
+};
+
+function openFinanceModal() {
+  if (DOM.modalFinance) {
+    DOM.modalFinance.style.display = "flex";
+    loadFinanceSummary();
+    loadInvoices();
+  }
+}
+
+function closeFinanceModal() {
+  if (DOM.modalFinance) DOM.modalFinance.style.display = "none";
+}
+
+function switchFinTab(tab) {
+  const tabs = [
+    { btn: DOM.tabFinSummary, sec: DOM.sectionFinSummary, id: "summary" },
+    { btn: DOM.tabFinInvoices, sec: DOM.sectionFinInvoices, id: "invoices" },
+    { btn: DOM.tabFinExpenses, sec: DOM.sectionFinExpenses, id: "expenses" },
+    { btn: DOM.tabFinForecast, sec: DOM.sectionFinForecast, id: "forecast" },
+  ];
+  tabs.forEach((t) => {
+    if (!t.btn || !t.sec) return;
+    t.btn.className = t.id === tab ? "btn btn-sm btn-primary" : "btn btn-sm btn-ghost";
+    t.sec.style.display = t.id === tab ? "block" : "none";
+  });
+  if (tab === "expenses") loadExpenses();
+  if (tab === "forecast") loadForecast();
+}
+
+async function loadFinanceSummary() {
+  try {
+    const res = await fetch("/api/finance/summary");
+    if (!res.ok) return;
+    const data = await res.json();
+    const fmt = (v) => `$${(+v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (DOM.finKpiBilled) DOM.finKpiBilled.textContent = fmt(data.gross_billed);
+    if (DOM.finKpiCollected) DOM.finKpiCollected.textContent = fmt(data.gross_collected);
+    if (DOM.finKpiAr) DOM.finKpiAr.textContent = fmt(data.outstanding_ar);
+    if (DOM.finKpiProfit) DOM.finKpiProfit.textContent = fmt(data.net_profit);
+    if (DOM.finKpiTax) DOM.finKpiTax.textContent = fmt(data.tax_reserve_suggested);
+    if (DOM.finSummaryDetail) {
+      DOM.finSummaryDetail.innerHTML = `
+        <span>📋 Invoices Issued: <strong>${data.invoices_issued}</strong></span>
+        <span>✅ Invoices Paid: <strong>${data.invoices_paid}</strong></span>
+        <span>💸 Total Expenses: <strong>${fmt(data.total_expenses)}</strong></span>
+        <span>📈 Effective Tax Rate: <strong>${data.effective_tax_rate_pct}%</strong></span>
+      `;
+    }
+  } catch (err) {
+    console.error("Failed to load financial summary:", err);
+  }
+}
+
+async function loadInvoices() {
+  try {
+    const res = await fetch("/api/finance/invoices");
+    if (!res.ok) return;
+    const invoices = await res.json();
+    if (!DOM.finInvoicesList) return;
+    if (invoices.length === 0) {
+      DOM.finInvoicesList.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">No invoices yet. Create your first invoice above.</div>`;
+      return;
+    }
+    DOM.finInvoicesList.innerHTML = invoices.map((inv) => {
+      const color = STATUS_COLORS[inv.status] || "#94a3b8";
+      const total = (inv.subtotal * (1 - inv.discount_pct / 100) * (1 + inv.tax_rate_pct / 100)).toFixed(2);
+      return `
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 12px; color: var(--text-main);">${escapeHtml(inv.client_name)} &nbsp;<code style="font-size: 10px; color: #8b5cf6;">${inv.invoice_number}</code></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Due: ${inv.due_date}</div>
+          </div>
+          <div style="font-weight: 800; font-size: 14px; color: #a78bfa;">$${(+total).toLocaleString()}</div>
+          <span style="background: ${color}22; color: ${color}; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid ${color}44;">${inv.status}</span>
+        </div>`;
+    }).join("");
+  } catch (err) {
+    console.error("Failed to load invoices:", err);
+  }
+}
+
+async function handleCreateInvoice() {
+  const clientName = DOM.invClientName?.value?.trim();
+  const serviceDesc = DOM.invServiceDesc?.value?.trim();
+  const unitPrice = parseFloat(DOM.invUnitPrice?.value || "0");
+  if (!clientName || !serviceDesc || !unitPrice) {
+    showToast("Please fill in client name, service, and price.", "error");
+    return;
+  }
+  try {
+    const res = await fetch("/api/finance/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_name: clientName,
+        line_items: [{ description: serviceDesc, quantity: 1, unit_price: unitPrice }],
+        tax_rate_pct: parseFloat(DOM.invTaxRate?.value || "10"),
+        due_days: parseInt(DOM.invDueDays?.value || "30"),
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to create invoice");
+    showToast(`✅ Invoice issued to ${clientName}!`);
+    if (DOM.invClientName) DOM.invClientName.value = "";
+    if (DOM.invServiceDesc) DOM.invServiceDesc.value = "";
+    if (DOM.invUnitPrice) DOM.invUnitPrice.value = "";
+    loadInvoices();
+    loadFinanceSummary();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+async function loadExpenses() {
+  try {
+    const res = await fetch("/api/finance/expenses");
+    if (!res.ok) return;
+    const expenses = await res.json();
+    if (!DOM.finExpensesList) return;
+    if (expenses.length === 0) {
+      DOM.finExpensesList.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">No expenses logged yet.</div>`;
+      return;
+    }
+    DOM.finExpensesList.innerHTML = expenses.map((e) => `
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-weight: 700; font-size: 12px; color: var(--text-main);">${escapeHtml(e.description)}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${e.vendor || "—"} · ${e.expense_date}</div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span style="background: rgba(139,92,246,0.15); color: #a78bfa; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px;">${e.category}</span>
+          <span style="font-weight: 800; font-size: 14px; color: #f87171;">-$${(+e.amount).toLocaleString()}</span>
+        </div>
+      </div>`).join("");
+  } catch (err) {
+    console.error("Failed to load expenses:", err);
+  }
+}
+
+async function handleLogExpense() {
+  const desc = DOM.expDescription?.value?.trim();
+  const amount = parseFloat(DOM.expAmount?.value || "0");
+  if (!desc || !amount) {
+    showToast("Please fill in description and amount.", "error");
+    return;
+  }
+  try {
+    const res = await fetch("/api/finance/expenses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: desc,
+        category: DOM.expCategory?.value || "MISC",
+        amount: amount,
+        is_tax_deductible: true,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to log expense");
+    showToast(`💳 Expense logged: ${desc}`);
+    if (DOM.expDescription) DOM.expDescription.value = "";
+    if (DOM.expAmount) DOM.expAmount.value = "";
+    loadExpenses();
+    loadFinanceSummary();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+async function loadForecast() {
+  if (!DOM.finForecastContent) return;
+  DOM.finForecastContent.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">⏳ Generating AI forecast...</div>`;
+  try {
+    const res = await fetch("/api/finance/forecast");
+    if (!res.ok) throw new Error("Forecast unavailable");
+    const data = await res.json();
+    const fmt = (v) => `$${(+v || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    DOM.finForecastContent.innerHTML = `
+      <div style="display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 14px;">
+        ${(data.months || []).map((m) => `
+          <div class="kpi-card" style="padding: 14px 16px; text-align: center;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">${m.month_label} <span style="font-size: 9px;">(${m.confidence_pct}% confidence)</span></div>
+            <div style="font-size: 18px; font-weight: 800; color: #10b981;">${fmt(m.expected_revenue)}</div>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Conservative: ${fmt(m.conservative_revenue)} &nbsp;·&nbsp; Optimistic: ${fmt(m.optimistic_revenue)}</div>
+          </div>`).join("")}
+      </div>
+      <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 12px;">
+        <div style="display: flex; gap: 18px; margin-bottom: 8px; flex-wrap: wrap;">
+          <span>📊 90-Day Expected: <strong style="color:#10b981">${fmt(data.total_expected)}</strong></span>
+          <span>🔻 Conservative: <strong style="color:#f87171">${fmt(data.total_conservative)}</strong></span>
+          <span>🚀 Optimistic: <strong style="color:#a78bfa">${fmt(data.total_optimistic)}</strong></span>
+          <span>💼 Pipeline Value: <strong style="color:#60a5fa">${fmt(data.pipeline_value)}</strong></span>
+        </div>
+        ${data.cash_flow_alert ? `<div style="margin-top:8px;padding:8px 12px;border-radius:6px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);font-size:11px;color:#f87171;">${escapeHtml(data.cash_flow_alert)}</div>` : ""}
+      </div>`;
+  } catch (err) {
+    DOM.finForecastContent.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);">Unable to load forecast. ${err.message}</div>`;
+  }
+}
+

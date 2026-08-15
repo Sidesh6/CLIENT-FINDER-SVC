@@ -1018,6 +1018,78 @@ def cmd_crm_sync(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_finance_summary(args: argparse.Namespace) -> int:
+    """Print revenue intelligence KPIs and tax reserve estimate."""
+    from src.finance.ledger import GLOBAL_LEDGER
+
+    tenant_id = args.tenant or "default_tenant"
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Revenue Intelligence ({tenant_id})")
+    print("=" * 70)
+
+    snap = GLOBAL_LEDGER.get_revenue_snapshot(tenant_id)
+    print(f"\n  Gross Billed    (YTD) : ${snap.gross_billed:>12,.2f}")
+    print(f"  Gross Collected (YTD) : ${snap.gross_collected:>12,.2f}")
+    print(f"  Outstanding AR        : ${snap.outstanding_ar:>12,.2f}")
+    print(f"  Total Expenses        : ${snap.total_expenses:>12,.2f}")
+    print(f"  Net Profit            : ${snap.net_profit:>12,.2f}")
+    print(f"  Tax Reserve (28%)     : ${snap.tax_reserve_suggested:>12,.2f}")
+    print(f"\n  Invoices Issued  : {snap.invoices_issued}")
+    print(f"  Invoices Paid    : {snap.invoices_paid}")
+    print("-" * 70)
+    return 0
+
+
+def cmd_invoice_list(args: argparse.Namespace) -> int:
+    """List all invoices with status and amounts."""
+    from src.finance.ledger import GLOBAL_LEDGER
+
+    tenant_id = args.tenant or "default_tenant"
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Invoice Register ({tenant_id})")
+    print("=" * 70)
+
+    invoices = GLOBAL_LEDGER.list_invoices(tenant_id)
+    if not invoices:
+        print("  No invoices found.")
+    else:
+        for inv in invoices:
+            amt = inv.taxable_amount * (1 + inv.tax_rate_pct / 100)
+            print(
+                f"  [{inv.status:<14}] {inv.invoice_number:<10} | {inv.client_name[:28]:<30} | "
+                f"${amt:>8,.2f} | Due: {inv.due_date}"
+            )
+    print("-" * 70)
+    return 0
+
+
+def cmd_invoice_create(args: argparse.Namespace) -> int:
+    """Create a new invoice from CLI arguments."""
+    from src.finance.ledger import GLOBAL_LEDGER
+    from src.finance.schemas import CreateInvoiceRequest, InvoiceLineItem
+
+    tenant_id = args.tenant or "default_tenant"
+    req = CreateInvoiceRequest(
+        client_name=args.client,
+        line_items=[InvoiceLineItem(description=args.description, quantity=1, unit_price=args.amount)],
+        tax_rate_pct=args.tax_rate,
+        due_days=args.due_days,
+    )
+    inv = GLOBAL_LEDGER.create_invoice(tenant_id, req)
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Invoice Created")
+    print("=" * 70)
+    print(f"\n  Invoice Number : {inv.invoice_number}")
+    print(f"  Client         : {inv.client_name}")
+    print(f"  Total Amount   : ${inv.total_amount:,.2f}")
+    print(f"  Status         : {inv.status.value}")
+    print(f"  Due Date       : {inv.due_date}")
+    print("-" * 70)
+    return 0
+
+
+
+
 def cmd_sources(args: argparse.Namespace) -> int:
     """List all registered collectors and their health metrics."""
     from src.collectors.registry import DEFAULT_REGISTRY
@@ -1393,6 +1465,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_crm_sync.add_argument("--dry-run", action="store_true", help="Simulate sync without writes")
     p_crm_sync.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
     p_crm_sync.set_defaults(func=cmd_crm_sync)
+
+    # 32. Finance Summary Command
+    p_fin_summary = subparsers.add_parser(
+        "finance-summary", help="Print YTD revenue KPIs, net profit, and tax reserve estimate"
+    )
+    p_fin_summary.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_fin_summary.set_defaults(func=cmd_finance_summary)
+
+    # 33. Invoice List Command
+    p_inv_list = subparsers.add_parser("invoice-list", help="List all invoices with status and amounts")
+    p_inv_list.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_inv_list.set_defaults(func=cmd_invoice_list)
+
+    # 34. Invoice Create Command
+    p_inv_create = subparsers.add_parser("invoice-create", help="Issue a new freelance invoice")
+    p_inv_create.add_argument("--client", type=str, required=True, help="Client company or individual name")
+    p_inv_create.add_argument("--description", type=str, required=True, help="Service or project description")
+    p_inv_create.add_argument("--amount", type=float, required=True, help="Total invoice amount in USD")
+    p_inv_create.add_argument("--tax-rate", type=float, default=10.0, help="Tax rate percentage (default: 10)")
+    p_inv_create.add_argument("--due-days", type=int, default=30, help="Payment term in days (default: 30)")
+    p_inv_create.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_inv_create.set_defaults(func=cmd_invoice_create)
 
     return parser
 
