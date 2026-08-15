@@ -286,6 +286,24 @@ const DOM = {
   btnCopySecretKey: document.getElementById("btn-copy-secret-key"),
   wsApikeysList: document.getElementById("ws-apikeys-list"),
 
+  // Enterprise CRM Sync & Integrations
+  btnOpenCrm: document.getElementById("btn-open-crm"),
+  modalCrm: document.getElementById("modal-crm"),
+  btnCloseCrm: document.getElementById("btn-close-crm"),
+  tabCrmProviders: document.getElementById("tab-crm-providers"),
+  tabCrmSync: document.getElementById("tab-crm-sync"),
+  tabCrmLogs: document.getElementById("tab-crm-logs"),
+  sectionCrmProviders: document.getElementById("section-crm-providers"),
+  sectionCrmSync: document.getElementById("section-crm-sync"),
+  sectionCrmLogs: document.getElementById("section-crm-logs"),
+  crmSyncProvider: document.getElementById("crm-sync-provider"),
+  crmSyncDirection: document.getElementById("crm-sync-direction"),
+  btnTriggerCrmSync: document.getElementById("btn-trigger-crm-sync"),
+  crmSyncOutput: document.getElementById("crm-sync-output"),
+  crmSyncSummaryBanner: document.getElementById("crm-sync-summary-banner"),
+  crmSyncRecordsList: document.getElementById("crm-sync-records-list"),
+  crmLogsList: document.getElementById("crm-logs-list"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -509,6 +527,14 @@ function initEventListeners() {
   }
   if (DOM.btnSubmitCreateKey) DOM.btnSubmitCreateKey.addEventListener("click", handleSubmitCreateKey);
   if (DOM.btnCopySecretKey) DOM.btnCopySecretKey.addEventListener("click", copyRawApiKey);
+
+  // Enterprise CRM Sync
+  if (DOM.btnOpenCrm) DOM.btnOpenCrm.addEventListener("click", openCrmModal);
+  if (DOM.btnCloseCrm) DOM.btnCloseCrm.addEventListener("click", closeCrmModal);
+  if (DOM.tabCrmProviders) DOM.tabCrmProviders.addEventListener("click", () => switchCrmTab("providers"));
+  if (DOM.tabCrmSync) DOM.tabCrmSync.addEventListener("click", () => switchCrmTab("sync"));
+  if (DOM.tabCrmLogs) DOM.tabCrmLogs.addEventListener("click", () => switchCrmTab("logs"));
+  if (DOM.btnTriggerCrmSync) DOM.btnTriggerCrmSync.addEventListener("click", handleExecuteCrmSync);
 }
 
 // 1. Data Fetching
@@ -2426,5 +2452,156 @@ async function handleRevokeApiKey(keyId) {
     loadApiKeys();
   } catch (err) {
     showToast(err.message, "error");
+  }
+}
+
+// ----------------------------------------------------
+// 14. Enterprise Multi-CRM Sync & Pipeline Studio
+// ----------------------------------------------------
+
+function openCrmModal() {
+  if (DOM.modalCrm) {
+    DOM.modalCrm.style.display = "flex";
+    loadCrmLogs();
+  }
+}
+
+function closeCrmModal() {
+  if (DOM.modalCrm) {
+    DOM.modalCrm.style.display = "none";
+  }
+}
+
+function switchCrmTab(tab) {
+  const tabs = [
+    { btn: DOM.tabCrmProviders, sec: DOM.sectionCrmProviders, id: "providers" },
+    { btn: DOM.tabCrmSync, sec: DOM.sectionCrmSync, id: "sync" },
+    { btn: DOM.tabCrmLogs, sec: DOM.sectionCrmLogs, id: "logs" },
+  ];
+
+  tabs.forEach((t) => {
+    if (!t.btn || !t.sec) return;
+    if (t.id === tab) {
+      t.btn.className = "btn btn-sm btn-primary";
+      t.sec.style.display = "block";
+    } else {
+      t.btn.className = "btn btn-sm btn-ghost";
+      t.sec.style.display = "none";
+    }
+  });
+}
+
+async function handleTestCRMConnection(provider) {
+  try {
+    showToast(`Testing ${provider} connection...`, "info");
+    const res = await fetch(`/api/crm/connectors/${provider}/test`, { method: "POST" });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`✅ ${provider}: ${data.message}`);
+    } else {
+      showToast(`❌ ${provider}: ${data.message}`, "error");
+    }
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+function handleOpenCRMSync(provider) {
+  switchCrmTab("sync");
+  if (DOM.crmSyncProvider) DOM.crmSyncProvider.value = provider;
+}
+
+async function handleExecuteCrmSync() {
+  const provider = DOM.crmSyncProvider ? DOM.crmSyncProvider.value : "HUBSPOT";
+  const direction = DOM.crmSyncDirection ? DOM.crmSyncDirection.value : "PUSH_TO_CRM";
+
+  if (DOM.btnTriggerCrmSync) {
+    DOM.btnTriggerCrmSync.disabled = true;
+    DOM.btnTriggerCrmSync.textContent = "⏳ Synchronizing Pipeline Deals...";
+  }
+
+  try {
+    const res = await fetch("/api/crm/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: provider,
+        direction: direction,
+        dry_run: false,
+      }),
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail || "CRM Sync failed");
+    }
+    const data = await res.json();
+
+    if (DOM.crmSyncOutput) DOM.crmSyncOutput.style.display = "block";
+    if (DOM.crmSyncSummaryBanner) {
+      DOM.crmSyncSummaryBanner.textContent = `✅ Processed ${data.records_processed} records (${data.records_created} created, ${data.records_updated} updated) in ${data.duration_ms}ms to ${data.provider}`;
+    }
+
+    if (DOM.crmSyncRecordsList) {
+      DOM.crmSyncRecordsList.innerHTML = (data.record_results || [])
+        .map(
+          (r) => `
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="font-size: 12px; color: var(--text-main);">${escapeHtml(r.project_title)}</strong>
+            <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(r.details)}</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <code style="font-size: 10px; color: #8b5cf6;">${escapeHtml(r.crm_record_id)}</code>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700; font-size: 10px;">
+              ${r.action}
+            </span>
+          </div>
+        </div>
+      `
+        )
+        .join("");
+    }
+
+    showToast(`Successfully synchronized to ${provider}!`);
+    loadCrmLogs();
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    if (DOM.btnTriggerCrmSync) {
+      DOM.btnTriggerCrmSync.disabled = false;
+      DOM.btnTriggerCrmSync.textContent = "🚀 Execute Sync Now";
+    }
+  }
+}
+
+async function loadCrmLogs() {
+  try {
+    const res = await fetch("/api/crm/logs");
+    if (!res.ok) return;
+    const logs = await res.json();
+
+    if (DOM.crmLogsList) {
+      if (logs && logs.length > 0) {
+        DOM.crmLogsList.innerHTML = logs
+          .map(
+            (l) => `
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 12px; color: var(--text-main);">${escapeHtml(l.message)}</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">Provider: ${l.provider} | Log ID: ${l.id}</div>
+            </div>
+            <span class="badge" style="background: ${l.status === "SUCCESS" ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)"}; color: ${l.status === "SUCCESS" ? "#10b981" : "#ef4444"}; font-weight: 700;">
+              ${l.status}
+            </span>
+          </div>
+        `
+          )
+          .join("");
+      } else {
+        DOM.crmLogsList.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">No CRM sync operations logged yet.</div>`;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load CRM logs:", err);
   }
 }

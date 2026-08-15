@@ -61,6 +61,9 @@
         <button id="btn-open-workspace" class="btn btn-ghost">
           <span>🏢 Workspace & Team</span>
         </button>
+        <button id="btn-open-crm" class="btn btn-ghost">
+          <span>🔄 CRM Sync</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -1211,6 +1214,140 @@
 
             <!-- API Keys List -->
             <div id="ws-apikeys-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enterprise Multi-CRM Two-Way Sync Studio Modal -->
+    <div id="modal-crm" class="modal-backdrop" style="display: none;">
+      <div class="modal-card modal-lg" style="max-width: 960px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">🔄</span>
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">Enterprise CRM Sync & Deal Pipeline Orchestrator</h3>
+              <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Bi-directional sync with HubSpot, Notion, Airtable, and Linear</p>
+            </div>
+          </div>
+          <button id="btn-close-crm" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px 20px;">
+          <!-- Tab Navigation -->
+          <div class="filter-group" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <button id="tab-crm-providers" class="btn btn-sm btn-primary">🔌 Connected Platforms</button>
+            <button id="tab-crm-sync" class="btn btn-sm btn-ghost">⚡ Two-Way Sync Trigger</button>
+            <button id="tab-crm-logs" class="btn btn-sm btn-ghost">📋 Sync Audit Logs</button>
+          </div>
+
+          <!-- Tab 1: Connected Platforms -->
+          <div id="section-crm-providers">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 16px;">
+              <!-- HubSpot Card -->
+              <div class="kpi-card" style="padding: 14px 16px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🟠</span>
+                    <strong style="font-size: 14px;">HubSpot Deals</strong>
+                  </div>
+                  <span id="crm-badge-hubspot" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">CONNECTED</span>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Sync discovered deals to HubSpot sales pipelines and company records.</p>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-ghost" onclick="handleTestCRMConnection('HUBSPOT')">🧪 Test</button>
+                  <button class="btn btn-sm btn-primary" onclick="handleOpenCRMSync('HUBSPOT')">⚡ Sync</button>
+                </div>
+              </div>
+
+              <!-- Notion Card -->
+              <div class="kpi-card" style="padding: 14px 16px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">⬛</span>
+                    <strong style="font-size: 14px;">Notion Database</strong>
+                  </div>
+                  <span id="crm-badge-notion" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">CONNECTED</span>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Create structured Notion database pages with multi-select tags and rich-text scopes.</p>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-ghost" onclick="handleTestCRMConnection('NOTION')">🧪 Test</button>
+                  <button class="btn btn-sm btn-primary" onclick="handleOpenCRMSync('NOTION')">⚡ Sync</button>
+                </div>
+              </div>
+
+              <!-- Airtable Card -->
+              <div class="kpi-card" style="padding: 14px 16px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🟡</span>
+                    <strong style="font-size: 14px;">Airtable Base</strong>
+                  </div>
+                  <span id="crm-badge-airtable" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">CONNECTED</span>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Populate Airtable kanban and grid tables with scores, budgets, and links.</p>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-ghost" onclick="handleTestCRMConnection('AIRTABLE')">🧪 Test</button>
+                  <button class="btn btn-sm btn-primary" onclick="handleOpenCRMSync('AIRTABLE')">⚡ Sync</button>
+                </div>
+              </div>
+
+              <!-- Linear Card -->
+              <div class="kpi-card" style="padding: 14px 16px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🟣</span>
+                    <strong style="font-size: 14px;">Linear Tasks</strong>
+                  </div>
+                  <span id="crm-badge-linear" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">CONNECTED</span>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Turn won contracts into actionable engineering task tickets and milestones.</p>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-ghost" onclick="handleTestCRMConnection('LINEAR')">🧪 Test</button>
+                  <button class="btn btn-sm btn-primary" onclick="handleOpenCRMSync('LINEAR')">⚡ Sync</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Sync Trigger -->
+          <div id="section-crm-sync" style="display: none;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                <div>
+                  <label style="font-size: 11px;">Target Platform</label>
+                  <select id="crm-sync-provider" class="text-input">
+                    <option value="HUBSPOT">HubSpot Deals</option>
+                    <option value="NOTION">Notion Database</option>
+                    <option value="AIRTABLE">Airtable Base</option>
+                    <option value="LINEAR">Linear Tasks</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Direction</label>
+                  <select id="crm-sync-direction" class="text-input">
+                    <option value="PUSH_TO_CRM">Push to CRM (Upload)</option>
+                    <option value="BI_DIRECTIONAL">Two-Way Bi-directional</option>
+                    <option value="PULL_FROM_CRM">Pull from CRM</option>
+                  </select>
+                </div>
+                <div style="display: flex; align-items: flex-end; gap: 8px;">
+                  <button id="btn-trigger-crm-sync" class="btn btn-primary" style="width: 100%; height: 38px;">🚀 Execute Sync Now</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sync Results Output Box -->
+            <div id="crm-sync-output" style="display: none;">
+              <h4 style="font-size: 13px; margin: 0 0 8px 0; color: var(--text-muted);">Sync Execution Results</h4>
+              <div id="crm-sync-summary-banner" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 12px; font-weight: 700; color: #10b981;"></div>
+              <div id="crm-sync-records-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Sync Logs -->
+          <div id="section-crm-logs" style="display: none;">
+            <div id="crm-logs-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
         </div>
       </div>

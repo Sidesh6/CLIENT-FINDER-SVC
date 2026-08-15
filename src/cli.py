@@ -923,6 +923,101 @@ def cmd_health_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_crm_list(args: argparse.Namespace) -> int:
+    """List configured CRM integrations for the workspace."""
+    from src.crm.syncer import GLOBAL_CRM_SYNCER
+
+    tenant_id = args.tenant or "default_tenant"
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Enterprise CRM Integrations ({tenant_id})")
+    print("=" * 70)
+
+    configs = GLOBAL_CRM_SYNCER.list_configs(tenant_id)
+    for c in configs:
+        status_str = "[ENABLED]" if c.is_enabled else "[DISABLED]"
+        print(
+            f"  {status_str:<10} {c.provider.value:<16} | Direction: {c.default_direction.value:<14} | DB/Base: {c.base_or_db_id or 'N/A'}"
+        )
+    print("-" * 70)
+    return 0
+
+
+def cmd_crm_test(args: argparse.Namespace) -> int:
+    """Test authentication and connectivity for a CRM provider."""
+    from src.crm.schemas import CRMProvider
+    from src.crm.syncer import GLOBAL_CRM_SYNCER
+
+    tenant_id = args.tenant or "default_tenant"
+    try:
+        provider = CRMProvider(args.provider.upper())
+    except ValueError:
+        print(
+            f"[!] Invalid CRM provider '{args.provider}'. Choices: {[p.value for p in CRMProvider]}"
+        )
+        return 1
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Testing {provider.value} Integration ({tenant_id})")
+    print("=" * 70)
+
+    success, message = GLOBAL_CRM_SYNCER.test_connection(tenant_id, provider)
+    status_badge = "[SUCCESS]" if success else "[ERROR]"
+    print(f"\n{status_badge} {message}\n")
+    print("-" * 70)
+    return 0 if success else 1
+
+
+def cmd_crm_sync(args: argparse.Namespace) -> int:
+    """Execute on-demand CRM pipeline synchronization."""
+    from src.crm.schemas import CRMProvider, CRMSyncRequest, SyncDirection
+    from src.crm.syncer import GLOBAL_CRM_SYNCER
+
+    tenant_id = args.tenant or "default_tenant"
+    try:
+        provider = CRMProvider(args.provider.upper())
+    except ValueError:
+        print(
+            f"[!] Invalid CRM provider '{args.provider}'. Choices: {[p.value for p in CRMProvider]}"
+        )
+        return 1
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — CRM Synchronization ({provider.value})")
+    print("=" * 70)
+
+    direction = SyncDirection.PUSH_TO_CRM
+    if args.direction:
+        try:
+            direction = SyncDirection(args.direction.upper())
+        except ValueError:
+            pass
+
+    req = CRMSyncRequest(
+        provider=provider,
+        direction=direction,
+        dry_run=args.dry_run,
+    )
+
+    try:
+        res = GLOBAL_CRM_SYNCER.sync_opportunities(tenant_id, req)
+        mode_str = "[DRY-RUN] " if res.is_dry_run else ""
+        print(
+            f"\n[SUCCESS] {mode_str}Processed {res.records_processed} records in {res.duration_ms}ms:"
+        )
+        print(f"          Created : {res.records_created}")
+        print(f"          Updated : {res.records_updated}")
+        print(f"          Skipped : {res.records_skipped}")
+        print(f"          Failed  : {res.records_failed}\n")
+
+        for r in res.record_results[:5]:
+            print(f"  -> [{r.action:<12}] {r.project_title[:40]:<42} | CRM ID: {r.crm_record_id}")
+        print("-" * 70)
+        return 0
+    except Exception as err:
+        print(f"\n[!] Sync Error: {err}")
+        return 1
+
+
 def cmd_sources(args: argparse.Namespace) -> int:
     """List all registered collectors and their health metrics."""
     from src.collectors.registry import DEFAULT_REGISTRY
@@ -1259,6 +1354,45 @@ def build_parser() -> argparse.ArgumentParser:
         "health-check", help="Run comprehensive production subsystem health probe"
     )
     p_hcheck.set_defaults(func=cmd_health_check)
+
+    # 29. CRM List Command
+    p_crm_list = subparsers.add_parser("crm-list", help="List all configured CRM integrations")
+    p_crm_list.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_crm_list.set_defaults(func=cmd_crm_list)
+
+    # 30. CRM Test Command
+    p_crm_test = subparsers.add_parser(
+        "crm-test", help="Test connectivity for a CRM provider (HUBSPOT, NOTION, AIRTABLE, LINEAR)"
+    )
+    p_crm_test.add_argument(
+        "--provider",
+        type=str,
+        required=True,
+        choices=["HUBSPOT", "NOTION", "AIRTABLE", "LINEAR"],
+        help="CRM platform to test",
+    )
+    p_crm_test.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_crm_test.set_defaults(func=cmd_crm_test)
+
+    # 31. CRM Sync Command
+    p_crm_sync = subparsers.add_parser("crm-sync", help="Synchronize opportunities to external CRM")
+    p_crm_sync.add_argument(
+        "--provider",
+        type=str,
+        default="HUBSPOT",
+        choices=["HUBSPOT", "NOTION", "AIRTABLE", "LINEAR"],
+        help="Target CRM platform",
+    )
+    p_crm_sync.add_argument(
+        "--direction",
+        type=str,
+        default="PUSH_TO_CRM",
+        choices=["PUSH_TO_CRM", "PULL_FROM_CRM", "BI_DIRECTIONAL"],
+        help="Sync direction",
+    )
+    p_crm_sync.add_argument("--dry-run", action="store_true", help="Simulate sync without writes")
+    p_crm_sync.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_crm_sync.set_defaults(func=cmd_crm_sync)
 
     return parser
 
