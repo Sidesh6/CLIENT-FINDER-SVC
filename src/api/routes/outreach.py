@@ -46,16 +46,12 @@ def list_outreach_sequences(
     status: SequenceStatus | None = Query(
         default=None, description="Filter by sequence lifecycle status"
     ),
-    application_id: int | None = Query(
-        default=None, description="Filter by target application ID"
-    ),
+    application_id: int | None = Query(default=None, description="Filter by target application ID"),
 ) -> list[OutreachSequenceResult]:
     """
     List tracked outreach sequences and upcoming steps.
     """
-    return GLOBAL_OUTREACH_ENGINE.list_sequences(
-        status=status, application_id=application_id
-    )
+    return GLOBAL_OUTREACH_ENGINE.list_sequences(status=status, application_id=application_id)
 
 
 @router.get("/sequences/{sequence_id}", response_model=OutreachSequenceResult)
@@ -65,9 +61,7 @@ def get_outreach_sequence(sequence_id: str) -> OutreachSequenceResult:
     """
     seq = GLOBAL_OUTREACH_ENGINE.get_sequence(sequence_id)
     if not seq:
-        raise HTTPException(
-            status_code=404, detail=f"Sequence '{sequence_id}' not found."
-        )
+        raise HTTPException(status_code=404, detail=f"Sequence '{sequence_id}' not found.")
     return seq
 
 
@@ -81,7 +75,7 @@ def advance_outreach_sequence(sequence_id: str) -> OutreachSequenceResult:
     except KeyError:
         raise HTTPException(
             status_code=404, detail=f"Sequence '{sequence_id}' not found."
-        )
+        ) from None
 
 
 @router.post("/sequences/{sequence_id}/pause", response_model=OutreachSequenceResult)
@@ -94,7 +88,7 @@ def pause_outreach_sequence(sequence_id: str) -> OutreachSequenceResult:
     except KeyError:
         raise HTTPException(
             status_code=404, detail=f"Sequence '{sequence_id}' not found."
-        )
+        ) from None
 
 
 @router.post("/sequences/{sequence_id}/resume", response_model=OutreachSequenceResult)
@@ -107,15 +101,13 @@ def resume_outreach_sequence(sequence_id: str) -> OutreachSequenceResult:
     except KeyError:
         raise HTTPException(
             status_code=404, detail=f"Sequence '{sequence_id}' not found."
-        )
+        ) from None
 
 
 @router.post("/sequences/{sequence_id}/cancel", response_model=OutreachSequenceResult)
 def cancel_outreach_sequence(
     sequence_id: str,
-    reason: str = Query(
-        default="Manual cancellation", description="Cancellation reason"
-    ),
+    reason: str = Query(default="Manual cancellation", description="Cancellation reason"),
 ) -> OutreachSequenceResult:
     """
     Cancel an outreach sequence.
@@ -125,7 +117,7 @@ def cancel_outreach_sequence(
     except KeyError:
         raise HTTPException(
             status_code=404, detail=f"Sequence '{sequence_id}' not found."
-        )
+        ) from None
 
 
 @router.post("/inbound/analyze", response_model=InboundReplyAnalysisResult)
@@ -165,9 +157,7 @@ def record_ab_pitch_event(payload: RecordEventPayload) -> dict[str, str]:
 
 @router.get("/experiments/recommend-pitch")
 def recommend_optimal_pitch(
-    category: str = Query(
-        default="General", description="Project category or domain"
-    ),
+    category: str = Query(default="General", description="Project category or domain"),
 ) -> dict[str, str]:
     """
     Recommend the statistically optimal proposal pitch angle for a given project category.

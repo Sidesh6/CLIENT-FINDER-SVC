@@ -2,13 +2,14 @@
 Unit Tests for Phase 16 Autonomous Outreach Sequences, Inbound Intent Classifier, and A/B Pitch Experimentation.
 """
 
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.database.connection import SessionLocal, init_db
 from src.database.models import ApplicationModel, ApplicationStatus, ProjectModel
-from src.models.profile import get_default_profile
 from src.outreach.experiments import ProposalExperimenter
 from src.outreach.inbound import InboundReplyClassifier
 from src.outreach.schemas import (
@@ -23,8 +24,6 @@ from src.outreach.sequences import OutreachSequenceEngine
 from src.proposal.schemas import PitchAngle
 
 
-import uuid
-
 @pytest.fixture(autouse=True)
 def setup_test_database():
     """Initialize fresh database before each test run."""
@@ -36,6 +35,7 @@ def setup_test_database():
         title = f"FastAPI AI Agent Orchestrator {uid}"
         desc = "Build scalable background agent workflow engine in Python."
         from src.database.models import compute_content_hash, compute_url_hash
+
         proj = ProjectModel(
             external_id=f"test_outreach_proj_{uid}",
             title=title,
@@ -169,7 +169,10 @@ class TestInboundReplyClassifier:
         assert res.confidence >= 0.85
         assert res.sentiment_score > 0.5
         assert res.recommended_funnel_status == "INTERVIEW"
-        assert "Thursday" in res.suggested_response_draft or "calendar" in res.suggested_response_draft.lower()
+        assert (
+            "Thursday" in res.suggested_response_draft
+            or "calendar" in res.suggested_response_draft.lower()
+        )
 
     def test_classify_rate_pushback_intent(self):
         classifier = InboundReplyClassifier()
@@ -183,7 +186,10 @@ class TestInboundReplyClassifier:
         assert res.classified_intent == IntentType.RATE_PUSHBACK
         assert "BUDGET_TOO_HIGH" in res.detected_objections
         assert res.recommended_funnel_status == "NEGOTIATION"
-        assert "Phase 1" in res.suggested_response_draft or "milestone" in res.suggested_response_draft.lower()
+        assert (
+            "Phase 1" in res.suggested_response_draft
+            or "milestone" in res.suggested_response_draft.lower()
+        )
 
     def test_classify_scope_question_intent(self):
         classifier = InboundReplyClassifier()
@@ -231,12 +237,8 @@ class TestProposalExperimenter:
                 pitch_angle=PitchAngle.VALUE_ROI, event_type="IMPRESSION", category="AI"
             )
         for _ in range(4):
-            exp.record_event(
-                pitch_angle=PitchAngle.VALUE_ROI, event_type="REPLY", category="AI"
-            )
-        exp.record_event(
-            pitch_angle=PitchAngle.VALUE_ROI, event_type="WIN", category="AI"
-        )
+            exp.record_event(pitch_angle=PitchAngle.VALUE_ROI, event_type="REPLY", category="AI")
+        exp.record_event(pitch_angle=PitchAngle.VALUE_ROI, event_type="WIN", category="AI")
 
         metrics = exp.get_pitch_metrics()
         roi_metric = next(m for m in metrics if m.pitch_angle == PitchAngle.VALUE_ROI)

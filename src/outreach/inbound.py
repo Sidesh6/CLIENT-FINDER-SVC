@@ -3,12 +3,9 @@ Inbound Reply Parser & Intent Classifier.
 Analyzes incoming client communications, detects commercial intent/objections, automates funnel state transitions, and drafts replies.
 """
 
-from datetime import UTC, datetime
 import logging
-import re
 
-from src.database.connection import SessionLocal
-from src.database.models import ApplicationModel, ApplicationStatus
+from src.database.models import ApplicationStatus
 from src.models.profile import UserProfile, get_default_profile
 from src.outreach.schemas import (
     InboundReplyAnalysisResult,
@@ -93,6 +90,7 @@ class InboundReplyClassifier:
             k in lower_text
             for k in [
                 "out of the office",
+                "out of office",
                 "automatic reply",
                 "auto-reply",
                 "on vacation",
@@ -115,11 +113,13 @@ class InboundReplyClassifier:
                 "not interested",
                 "already hired",
                 "position filled",
+                "filled the position",
+                "filled the role",
                 "went with another",
                 "no longer looking",
                 "decline",
                 "not a good fit",
-                "filled the role",
+                "passed on",
             ]
         ):
             objections.append("ROLE_FILLED_OR_UNAVAILABLE")
@@ -142,8 +142,10 @@ class InboundReplyClassifier:
                 "cheaper",
                 "discount",
                 "lower your rate",
+                "lower rate",
                 "fixed price instead",
                 "tight budget",
+                "budget is tight",
             ]
         ):
             objections.append("BUDGET_TOO_HIGH")
@@ -161,16 +163,23 @@ class InboundReplyClassifier:
             k in lower_text
             for k in [
                 "schedule a call",
+                "schedule a zoom",
+                "zoom call",
+                "zoom",
                 "hop on a call",
                 "jump on zoom",
                 "google meet",
                 "calendly",
                 "interview",
                 "free to chat",
+                "available for a quick",
+                "available for a call",
                 "phone number",
                 "when are you available",
                 "book a time",
                 "let's talk",
+                "let's connect",
+                "free for a call",
             ]
         ):
             key_points.append("Client invited to a technical discovery or interview call.")
@@ -314,7 +323,7 @@ class InboundReplyClassifier:
                 f"Best regards,\n{dev_name}"
             )
         if intent == IntentType.OUT_OF_OFFICE:
-            return f"(Autoreply received - no immediate response required. Resume sequence upon return.)"
+            return "(Autoreply received - no immediate response required. Resume sequence upon return.)"
 
         # Default / Positive Interest
         return (
@@ -326,11 +335,14 @@ class InboundReplyClassifier:
 
     def _apply_db_transition(self, app_id: int, rec_status: str, notes: str) -> bool:
         """Apply status transition in the database and auto-cancel pending sequences."""
+        from src.tracking.schemas import ApplicationStatusUpdate
+
         tracker = ApplicationTracker()
         try:
             # Map string to ApplicationStatus enum
             status_enum = ApplicationStatus(rec_status)
-            app = tracker.transition_status(app_id=app_id, new_status=status_enum, notes=notes)
+            update_payload = ApplicationStatusUpdate(status=status_enum, notes=notes)
+            app = tracker.transition_status(app_id=app_id, status_update=update_payload, force=True)
             if app:
                 # Cancel pending sequences
                 GLOBAL_OUTREACH_ENGINE.handle_application_status_change(

@@ -343,8 +343,10 @@ def cmd_outreach_create(args: argparse.Namespace) -> int:
     print(f"    Next Step          : Step {seq.current_step_index} / {seq.total_steps}")
     print("\n--- CADENCE TIMELINE ---")
     for step in seq.steps:
-        status_icon = "✅" if step.status.value == "EXECUTED" else "⏳"
-        print(f"  [{status_icon}] Step {step.step_index}: {step.step_type.value} (+{step.delay_days}d)")
+        status_icon = "[X]" if step.status.value == "EXECUTED" else "[ ]"
+        print(
+            f"  {status_icon} Step {step.step_index}: {step.step_type.value} (+{step.delay_days}d)"
+        )
         print(f"      Subject: {step.subject}")
     print("-" * 70)
     return 0
@@ -364,9 +366,15 @@ def cmd_outreach_list(args: argparse.Namespace) -> int:
         return 0
 
     for s in seqs:
-        print(f"Sequence ID: {s.sequence_id} | Status: {s.status.value} | Step: {s.current_step_index}/{s.total_steps}")
-        print(f"  App ID: {s.application_id} | Project: {s.project_title} | Client: {s.client_name}")
-        print(f"  Pitch: {s.pitch_angle.value} | Updated: {s.updated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        print(
+            f"Sequence ID: {s.sequence_id} | Status: {s.status.value} | Step: {s.current_step_index}/{s.total_steps}"
+        )
+        print(
+            f"  App ID: {s.application_id} | Project: {s.project_title} | Client: {s.client_name}"
+        )
+        print(
+            f"  Pitch: {s.pitch_angle.value} | Updated: {s.updated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+        )
         print("-" * 70)
     return 0
 
@@ -375,7 +383,9 @@ def cmd_outreach_advance(args: argparse.Namespace) -> int:
     """Advance an outreach sequence to its next step."""
     try:
         seq = GLOBAL_OUTREACH_ENGINE.advance_step(args.seq_id)
-        print(f"[+] Advanced sequence {seq.sequence_id} to Step {seq.current_step_index}/{seq.total_steps} (Status: {seq.status.value})")
+        print(
+            f"[+] Advanced sequence {seq.sequence_id} to Step {seq.current_step_index}/{seq.total_steps} (Status: {seq.status.value})"
+        )
         return 0
     except KeyError:
         print(f"[!] Sequence with ID '{args.seq_id}' not found.")
@@ -397,7 +407,9 @@ def cmd_reply_analyze(args: argparse.Namespace) -> int:
     )
     result = classifier.analyze_reply(req=req, update_db=not args.dry_run)
 
-    print(f"\n[+] Classified Intent    : {result.classified_intent.value} (Confidence: {result.confidence:.2f})")
+    print(
+        f"\n[+] Classified Intent    : {result.classified_intent.value} (Confidence: {result.confidence:.2f})"
+    )
     print(f"    Sentiment Score      : {result.sentiment_score:+.2f}")
     print(f"    Recommended Status   : {result.recommended_funnel_status}")
     print(f"    Database Updated     : {result.application_status_updated}")
@@ -426,16 +438,20 @@ def cmd_ab_stats(args: argparse.Namespace) -> int:
     print(f"Best Win-Rate Pitch     : {summary.best_performing_win_pitch.value}")
 
     print("\n--- PITCH ANGLE STATISTICAL CONVERSION MATRIX ---")
-    print(f"{'Pitch Angle':<25} | {'Sent':<5} | {'Reply %':<8} | {'Win %':<6} | {'Score':<6} | {'95% CI':<14} | {'Sig?'}")
+    print(
+        f"{'Pitch Angle':<25} | {'Sent':<5} | {'Reply %':<8} | {'Win %':<6} | {'Score':<6} | {'95% CI':<14} | {'Sig?'}"
+    )
     print("-" * 80)
     for m in summary.pitch_metrics:
         ci_str = f"[{m.confidence_interval_low:.1f}%, {m.confidence_interval_high:.1f}%]"
-        sig_str = "⭐ Yes" if m.is_statistically_significant else "No"
-        print(f"{m.pitch_angle.value:<25} | {m.impressions_sent:<5} | {m.reply_rate_percent:<7.1f}% | {m.win_rate_percent:<5.1f}% | {m.conversion_score:<6.1f} | {ci_str:<14} | {sig_str}")
+        sig_str = "[YES]" if m.is_statistically_significant else "No"
+        print(
+            f"{m.pitch_angle.value:<25} | {m.impressions_sent:<5} | {m.reply_rate_percent:<7.1f}% | {m.win_rate_percent:<5.1f}% | {m.conversion_score:<6.1f} | {ci_str:<14} | {sig_str}"
+        )
 
     print("\n--- CATEGORY-SPECIFIC OPTIMAL ROUTING ---")
     for cat, angle in summary.category_recommendations.items():
-        print(f"  🎯 {cat:<28} ➔ {angle.value}")
+        print(f"  [>] {cat:<28} -> {angle.value}")
     print("-" * 70)
     return 0
 
@@ -547,10 +563,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_o_create.add_argument("--app-id", type=int, required=True, help="Target application ID")
     p_o_create.add_argument("--title", type=str, required=True, help="Project title")
     p_o_create.add_argument("--client", type=str, default="Client", help="Client name")
-    p_o_create.add_argument("--angle", choices=[a.value for a in PitchAngle], default=PitchAngle.TECHNICAL_EXPERT.value)
-    p_o_create.add_argument("--skills", type=str, default="Python, FastAPI", help="Comma-separated skills")
+    p_o_create.add_argument(
+        "--angle", choices=[a.value for a in PitchAngle], default=PitchAngle.TECHNICAL_EXPERT.value
+    )
+    p_o_create.add_argument(
+        "--skills", type=str, default="Python, FastAPI", help="Comma-separated skills"
+    )
     p_o_create.add_argument("--budget", type=float, default=None, help="Target budget")
-    p_o_create.add_argument("--no-auto-start", action="store_true", help="Do not execute Step 1 immediately")
+    p_o_create.add_argument(
+        "--no-auto-start", action="store_true", help="Do not execute Step 1 immediately"
+    )
     p_o_create.set_defaults(func=cmd_outreach_create)
 
     p_o_list = outreach_subs.add_parser("list", help="List active outreach sequences")
@@ -562,7 +584,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_o_adv.set_defaults(func=cmd_outreach_advance)
 
     # 11. Inbound Reply Classifier Command
-    p_reply = subparsers.add_parser("reply", help="Classify incoming client reply intent and draft response")
+    p_reply = subparsers.add_parser(
+        "reply", help="Classify incoming client reply intent and draft response"
+    )
     p_reply.add_argument("--text", type=str, required=True, help="Raw message received from client")
     p_reply.add_argument("--app-id", type=int, default=None, help="Application ID to update in DB")
     p_reply.add_argument("--title", type=str, default=None, help="Project title")
@@ -571,7 +595,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_reply.set_defaults(func=cmd_reply_analyze)
 
     # 12. A/B Stats Command
-    p_ab = subparsers.add_parser("ab-stats", help="Display A/B pitch testing metrics and category routing")
+    p_ab = subparsers.add_parser(
+        "ab-stats", help="Display A/B pitch testing metrics and category routing"
+    )
     p_ab.set_defaults(func=cmd_ab_stats)
 
     return parser

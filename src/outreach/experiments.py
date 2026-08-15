@@ -3,7 +3,6 @@ Dynamic A/B Proposal Pitch Experimenter & Multi-Armed Bandit Conversion Optimize
 Evaluates statistical conversion rates, confidence intervals, and category-specific optimal pitch angles.
 """
 
-from datetime import UTC, datetime
 import logging
 import math
 import random
@@ -85,7 +84,12 @@ class ProposalExperimenter:
         elif norm_type in ("WIN", "WON"):
             self._category_counts[cat_key][pitch_angle]["wins"] += 1
 
-        logger.info("Recorded AB experiment event '%s' for angle %s (Category: %s)", norm_type, pitch_angle.value, cat_key)
+        logger.info(
+            "Recorded AB experiment event '%s' for angle %s (Category: %s)",
+            norm_type,
+            pitch_angle.value,
+            cat_key,
+        )
 
     def get_pitch_metrics(self) -> list[ABTestPitchMetric]:
         """
@@ -142,9 +146,7 @@ class ProposalExperimenter:
         total_impressions = sum(m.impressions_sent for m in metrics)
         total_replies = sum(m.replies_received for m in metrics)
         overall_reply_rate = (
-            round((total_replies / total_impressions * 100.0), 1)
-            if total_impressions > 0
-            else 0.0
+            round((total_replies / total_impressions * 100.0), 1) if total_impressions > 0 else 0.0
         )
 
         best_pitch = metrics[0].pitch_angle if metrics else PitchAngle.TECHNICAL_EXPERT
@@ -185,7 +187,7 @@ class ProposalExperimenter:
         angles = list(PitchAngle)
         # Exploration branch
         if random.random() < epsilon:
-            return random.choice(angles)
+            return PitchAngle(random.choice(angles))
 
         # Category mapping override if category recognized
         summary = self.get_summary()

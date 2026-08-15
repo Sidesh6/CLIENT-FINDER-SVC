@@ -3,9 +3,9 @@ Outreach Sequence Engine.
 Orchestrates multi-touch client outreach schedules, step synthesis, cadence progression, and auto-cancellation.
 """
 
-from datetime import UTC, datetime, timedelta
 import logging
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from src.models.profile import UserProfile, get_default_profile
 from src.outreach.schemas import (
