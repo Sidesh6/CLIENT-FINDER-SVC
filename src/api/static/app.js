@@ -251,6 +251,41 @@ const DOM = {
   vecStatMem: document.getElementById("vec-stat-mem"),
   vecStatReady: document.getElementById("vec-stat-ready"),
 
+  // Multi-Tenant Workspace & Team RBAC
+  btnOpenWorkspace: document.getElementById("btn-open-workspace"),
+  modalWorkspace: document.getElementById("modal-workspace"),
+  btnCloseWorkspace: document.getElementById("btn-close-workspace"),
+  tabWsOverview: document.getElementById("tab-ws-overview"),
+  tabWsTeam: document.getElementById("tab-ws-team"),
+  tabWsApikeys: document.getElementById("tab-ws-apikeys"),
+  sectionWsOverview: document.getElementById("section-ws-overview"),
+  sectionWsTeam: document.getElementById("section-ws-team"),
+  sectionWsApikeys: document.getElementById("section-ws-apikeys"),
+  wsNameDisplay: document.getElementById("ws-name-display"),
+  wsPlanBadge: document.getElementById("ws-plan-badge"),
+  wsIdDisplay: document.getElementById("ws-id-display"),
+  wsRateLimitBadge: document.getElementById("ws-rate-limit-badge"),
+  wsSeatsBadge: document.getElementById("ws-seats-badge"),
+  wsMonthlyReqsBadge: document.getElementById("ws-monthly-reqs-badge"),
+  wsQuotaPctBadge: document.getElementById("ws-quota-pct-badge"),
+  wsCurrentUserEmail: document.getElementById("ws-current-user-email"),
+  wsCurrentUserRole: document.getElementById("ws-current-user-role"),
+  btnShowInviteForm: document.getElementById("btn-show-invite-form"),
+  wsInviteContainer: document.getElementById("ws-invite-container"),
+  inviteEmail: document.getElementById("invite-email"),
+  inviteName: document.getElementById("invite-name"),
+  inviteRole: document.getElementById("invite-role"),
+  btnSubmitInvite: document.getElementById("btn-submit-invite"),
+  wsMembersList: document.getElementById("ws-members-list"),
+  btnShowCreateKey: document.getElementById("btn-show-create-key"),
+  wsCreateKeyContainer: document.getElementById("ws-create-key-container"),
+  newKeyName: document.getElementById("new-key-name"),
+  btnSubmitCreateKey: document.getElementById("btn-submit-create-key"),
+  wsNewKeyReveal: document.getElementById("ws-new-key-reveal"),
+  rawSecretKeyDisplay: document.getElementById("raw-secret-key-display"),
+  btnCopySecretKey: document.getElementById("btn-copy-secret-key"),
+  wsApikeysList: document.getElementById("ws-apikeys-list"),
+
   // Profile Drawer
   btnOpenProfile: document.getElementById("btn-open-profile"),
   profileDrawer: document.getElementById("profile-drawer"),
@@ -452,6 +487,28 @@ function initEventListeners() {
   if (DOM.btnTriggerReindex) DOM.btnTriggerReindex.addEventListener("click", handleTriggerReindex);
   if (DOM.btnRunPortfolioRag) DOM.btnRunPortfolioRag.addEventListener("click", handleRunPortfolioRag);
   if (DOM.btnCopyRagProof) DOM.btnCopyRagProof.addEventListener("click", copyRagProof);
+
+  // Multi-Tenant Workspace & Team RBAC
+  if (DOM.btnOpenWorkspace) DOM.btnOpenWorkspace.addEventListener("click", openWorkspaceModal);
+  if (DOM.btnCloseWorkspace) DOM.btnCloseWorkspace.addEventListener("click", closeWorkspaceModal);
+  if (DOM.tabWsOverview) DOM.tabWsOverview.addEventListener("click", () => switchWorkspaceTab("overview"));
+  if (DOM.tabWsTeam) DOM.tabWsTeam.addEventListener("click", () => switchWorkspaceTab("team"));
+  if (DOM.tabWsApikeys) DOM.tabWsApikeys.addEventListener("click", () => switchWorkspaceTab("apikeys"));
+  if (DOM.btnShowInviteForm) {
+    DOM.btnShowInviteForm.addEventListener("click", () => {
+      DOM.wsInviteContainer.style.display =
+        DOM.wsInviteContainer.style.display === "none" ? "block" : "none";
+    });
+  }
+  if (DOM.btnSubmitInvite) DOM.btnSubmitInvite.addEventListener("click", handleSubmitInvite);
+  if (DOM.btnShowCreateKey) {
+    DOM.btnShowCreateKey.addEventListener("click", () => {
+      DOM.wsCreateKeyContainer.style.display =
+        DOM.wsCreateKeyContainer.style.display === "none" ? "block" : "none";
+    });
+  }
+  if (DOM.btnSubmitCreateKey) DOM.btnSubmitCreateKey.addEventListener("click", handleSubmitCreateKey);
+  if (DOM.btnCopySecretKey) DOM.btnCopySecretKey.addEventListener("click", copyRawApiKey);
 }
 
 // 1. Data Fetching
@@ -2146,4 +2203,228 @@ function copyRagProof() {
   if (!DOM.ragProofParagraph || !DOM.ragProofParagraph.value) return;
   navigator.clipboard.writeText(DOM.ragProofParagraph.value);
   showToast("Portfolio proof snippet copied to clipboard!");
+}
+
+// ----------------------------------------------------
+// 13. Multi-Tenant SaaS Workspace & Team RBAC Studio
+// ----------------------------------------------------
+
+function openWorkspaceModal() {
+  if (DOM.modalWorkspace) {
+    DOM.modalWorkspace.style.display = "flex";
+    loadWorkspaceDetails();
+    loadWorkspaceQuota();
+    loadApiKeys();
+  }
+}
+
+function closeWorkspaceModal() {
+  if (DOM.modalWorkspace) {
+    DOM.modalWorkspace.style.display = "none";
+  }
+}
+
+function switchWorkspaceTab(tab) {
+  const tabs = [
+    { btn: DOM.tabWsOverview, sec: DOM.sectionWsOverview, id: "overview" },
+    { btn: DOM.tabWsTeam, sec: DOM.sectionWsTeam, id: "team" },
+    { btn: DOM.tabWsApikeys, sec: DOM.sectionWsApikeys, id: "apikeys" },
+  ];
+
+  tabs.forEach((t) => {
+    if (!t.btn || !t.sec) return;
+    if (t.id === tab) {
+      t.btn.className = "btn btn-sm btn-primary";
+      t.sec.style.display = "block";
+    } else {
+      t.btn.className = "btn btn-sm btn-ghost";
+      t.sec.style.display = "none";
+    }
+  });
+}
+
+async function loadWorkspaceDetails() {
+  try {
+    const res = await fetch("/api/tenants/current");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (DOM.wsNameDisplay) DOM.wsNameDisplay.textContent = data.name;
+    if (DOM.wsPlanBadge) DOM.wsPlanBadge.textContent = `${data.plan_tier} TIER`;
+    if (DOM.wsIdDisplay) DOM.wsIdDisplay.textContent = `ID: ${data.tenant_id}`;
+    if (DOM.wsRateLimitBadge) DOM.wsRateLimitBadge.textContent = `${data.rate_limit_per_minute} req/min`;
+    if (DOM.wsSeatsBadge) DOM.wsSeatsBadge.textContent = `${data.seats_used} / ${data.max_seats}`;
+
+    if (DOM.wsMembersList) {
+      DOM.wsMembersList.innerHTML = (data.members || [])
+        .map(
+          (m) => `
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">${escapeHtml(m.full_name)}</div>
+            <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(m.email)}</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="badge" style="background: ${m.role === "ADMIN" ? "rgba(139, 92, 246, 0.2)" : "rgba(59, 130, 246, 0.2)"}; color: ${m.role === "ADMIN" ? "#8b5cf6" : "#3b82f6"}; font-weight: 700;">
+              ${m.role}
+            </span>
+            <span class="badge" style="background: ${m.is_active ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"}; color: ${m.is_active ? "#10b981" : "#ef4444"}; font-size: 10px;">
+              ${m.is_active ? "ACTIVE" : "INACTIVE"}
+            </span>
+          </div>
+        </div>
+      `
+        )
+        .join("");
+    }
+  } catch (err) {
+    console.error("Failed to load workspace details:", err);
+  }
+}
+
+async function loadWorkspaceQuota() {
+  try {
+    const res = await fetch("/api/tenants/quota");
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (DOM.wsMonthlyReqsBadge) {
+      DOM.wsMonthlyReqsBadge.textContent = `${data.requests_this_month.toLocaleString()} / ${data.monthly_quota_limit.toLocaleString()}`;
+    }
+    if (DOM.wsQuotaPctBadge) {
+      DOM.wsQuotaPctBadge.textContent = `${data.quota_percent_consumed}%`;
+      DOM.wsQuotaPctBadge.style.color = data.quota_percent_consumed > 80 ? "#ef4444" : "#10b981";
+    }
+  } catch (err) {
+    console.error("Failed to load workspace quota:", err);
+  }
+}
+
+async function handleSubmitInvite() {
+  const email = DOM.inviteEmail ? DOM.inviteEmail.value.trim() : "";
+  const name = DOM.inviteName ? DOM.inviteName.value.trim() : "";
+  const role = DOM.inviteRole ? DOM.inviteRole.value : "MEMBER";
+
+  if (!email) {
+    showToast("Please enter member email", "info");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/tenants/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email,
+        full_name: name || "Team Member",
+        role: role,
+      }),
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail || "Failed to invite member");
+    }
+    showToast(`Invited ${email} as ${role}!`);
+    if (DOM.inviteEmail) DOM.inviteEmail.value = "";
+    if (DOM.inviteName) DOM.inviteName.value = "";
+    if (DOM.wsInviteContainer) DOM.wsInviteContainer.style.display = "none";
+    loadWorkspaceDetails();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+async function loadApiKeys() {
+  try {
+    const res = await fetch("/api/apikeys");
+    if (!res.ok) return;
+    const keys = await res.json();
+
+    if (DOM.wsApikeysList) {
+      if (keys && keys.length > 0) {
+        DOM.wsApikeysList.innerHTML = keys
+          .map(
+            (k) => `
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">${escapeHtml(k.name)}</div>
+              <div style="display: flex; gap: 8px; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                <code>${escapeHtml(k.key_prefix)}...</code>
+                <span>Used: ${k.usage_count} times</span>
+                <span>Rate: ${k.rate_limit_per_minute}/min</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="badge" style="background: ${k.is_active ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)"}; color: ${k.is_active ? "#10b981" : "#ef4444"}; font-weight: 700;">
+                ${k.is_active ? "ACTIVE" : "REVOKED"}
+              </span>
+              ${
+                k.is_active
+                  ? `<button class="btn btn-sm btn-ghost" onclick="handleRevokeApiKey('${k.id}')" style="color: #ef4444;">Revoke</button>`
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      } else {
+        DOM.wsApikeysList.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px;">No API keys issued yet. Click "Issue New Key" above.</div>`;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load API keys:", err);
+  }
+}
+
+async function handleSubmitCreateKey() {
+  const name = DOM.newKeyName ? DOM.newKeyName.value.trim() : "";
+  if (!name) {
+    showToast("Please enter a name for the API key", "info");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/apikeys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name,
+        scopes: ["read", "write"],
+      }),
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail || "Failed to create API key");
+    }
+    const data = await res.json();
+
+    if (DOM.wsNewKeyReveal) DOM.wsNewKeyReveal.style.display = "block";
+    if (DOM.rawSecretKeyDisplay) DOM.rawSecretKeyDisplay.value = data.raw_secret_key;
+    if (DOM.newKeyName) DOM.newKeyName.value = "";
+    if (DOM.wsCreateKeyContainer) DOM.wsCreateKeyContainer.style.display = "none";
+
+    showToast("API Key generated successfully!");
+    loadApiKeys();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+function copyRawApiKey() {
+  if (!DOM.rawSecretKeyDisplay || !DOM.rawSecretKeyDisplay.value) return;
+  navigator.clipboard.writeText(DOM.rawSecretKeyDisplay.value);
+  showToast("Plaintext API key copied to clipboard!");
+}
+
+async function handleRevokeApiKey(keyId) {
+  if (!confirm("Are you sure you want to revoke this API key?")) return;
+  try {
+    const res = await fetch(`/api/apikeys/${keyId}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Failed to revoke API key");
+    showToast("API key revoked.");
+    loadApiKeys();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 }

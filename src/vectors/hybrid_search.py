@@ -79,7 +79,8 @@ class HybridSearchEngine:
                 HybridSearchResultItem(
                     project_id=meta.get("project_id", doc_id),
                     title=meta.get("title", doc_id),
-                    description=target_doc.text[:280] + ("..." if len(target_doc.text) > 280 else ""),
+                    description=target_doc.text[:280]
+                    + ("..." if len(target_doc.text) > 280 else ""),
                     hybrid_score=round(fused, 4),
                     semantic_similarity=round(dense_sim, 4),
                     lexical_score=round(lex_score, 4),

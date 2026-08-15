@@ -720,6 +720,159 @@ def cmd_vectors_reindex(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_auth_register(args: argparse.Namespace) -> int:
+    """Register a new SaaS user and initialize dedicated workspace."""
+    from src.auth.security import create_access_token
+    from src.auth.store import GLOBAL_TENANT_STORE
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — SaaS User & Workspace Registration")
+    print("=" * 70)
+
+    try:
+        user, tenant = GLOBAL_TENANT_STORE.register_user(
+            email=args.email,
+            password=args.password,
+            full_name=args.name,
+            workspace_name=args.workspace or "",
+        )
+        token = create_access_token(user.user_id, tenant.tenant_id, user.role)
+        print(f"\n[SUCCESS] Registered User '{user.full_name}' ({user.email})")
+        print(f"          Workspace : '{tenant.name}' (ID: {tenant.tenant_id})")
+        print(f"          Plan Tier : {tenant.plan_tier.value}")
+        print(f"          Role      : {user.role.value}")
+        print(f"          JWT Token : {token[:32]}...\n")
+        print("-" * 70)
+        return 0
+    except ValueError as err:
+        print(f"\n[!] Registration Error: {err}")
+        return 1
+
+
+def cmd_auth_login(args: argparse.Namespace) -> int:
+    """Authenticate with email/password and obtain signed JWT access token."""
+    from src.auth.security import create_access_token
+    from src.auth.store import GLOBAL_TENANT_STORE
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — User Authentication ({args.email})")
+    print("=" * 70)
+
+    user = GLOBAL_TENANT_STORE.authenticate(args.email, args.password)
+    if not user:
+        print("\n[!] Error: Invalid email or password credentials.")
+        return 1
+
+    token = create_access_token(user.user_id, user.tenant_id, user.role)
+    print(f"\n[SUCCESS] Authenticated as '{user.full_name}' ({user.role.value})")
+    print(f"          Workspace ID: {user.tenant_id}")
+    print(f"          Bearer Token: {token}\n")
+    print("-" * 70)
+    return 0
+
+
+def cmd_apikey_create(args: argparse.Namespace) -> int:
+    """Generate a new programmatic API key for the default or specified workspace."""
+    from src.auth.store import GLOBAL_TENANT_STORE
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Issue Programmatic API Key ('{args.name}')")
+    print("=" * 70)
+
+    tenant_id = args.tenant or "default_tenant"
+    user_id = "default_admin"
+
+    try:
+        created = GLOBAL_TENANT_STORE.create_api_key(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            name=args.name,
+            scopes=["read", "write"],
+        )
+        print("\n[SUCCESS] API Key Issued Successfully!")
+        print(f"          Key ID      : {created.api_key.id}")
+        print(f"          Name        : {created.api_key.name}")
+        print(f"          Prefix      : {created.api_key.key_prefix}...")
+        print(f"          Throughput  : {created.api_key.rate_limit_per_minute} req/min")
+        print(f"          Secret Token: {created.raw_secret_key}")
+        print("          (Save this secret key now. It will not be shown again!)\n")
+        print("-" * 70)
+        return 0
+    except KeyError as err:
+        print(f"\n[!] Error: {err}")
+        return 1
+
+
+def cmd_apikey_list(args: argparse.Namespace) -> int:
+    """List active and revoked API keys for the workspace."""
+    from src.auth.store import GLOBAL_TENANT_STORE
+
+    tenant_id = args.tenant or "default_tenant"
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Workspace API Keys (Tenant: {tenant_id})")
+    print("=" * 70)
+
+    keys = GLOBAL_TENANT_STORE.list_api_keys(tenant_id)
+    print(f"\n[+] Found {len(keys)} API Key(s):\n")
+    for k in keys:
+        status_str = "[ACTIVE]" if k.is_active else "[REVOKED]"
+        print(
+            f"  {status_str:<10} {k.name:<30} | {k.key_prefix}... | Used: {k.usage_count}x | Rate: {k.rate_limit_per_minute}/min"
+        )
+    print("-" * 70)
+    return 0
+
+
+def cmd_team_list(args: argparse.Namespace) -> int:
+    """List team members and RBAC roles in the workspace."""
+    from src.auth.store import GLOBAL_TENANT_STORE
+
+    tenant_id = args.tenant or "default_tenant"
+    tenant = GLOBAL_TENANT_STORE.get_tenant_by_id(tenant_id)
+    if not tenant:
+        print(f"[!] Workspace '{tenant_id}' not found.")
+        return 1
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Team Roster & RBAC ({tenant.name})")
+    print("=" * 70)
+    print(f"Plan: {tenant.plan_tier.value} | Seats: {tenant.seats_used}/{tenant.max_seats}\n")
+
+    for m in tenant.members:
+        status_str = "[ACTIVE]" if m.is_active else "[INACTIVE]"
+        print(f"  {status_str:<10} {m.full_name:<25} ({m.email:<30}) | Role: {m.role.value}")
+    print("-" * 70)
+    return 0
+
+
+def cmd_team_invite(args: argparse.Namespace) -> int:
+    """Invite a new member to the workspace."""
+    from src.auth.schemas import UserRole
+    from src.auth.store import GLOBAL_TENANT_STORE
+
+    tenant_id = args.tenant or "default_tenant"
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Invite Team Member ({args.email})")
+    print("=" * 70)
+
+    try:
+        role = UserRole(args.role) if args.role else UserRole.MEMBER
+        member = GLOBAL_TENANT_STORE.invite_member(
+            tenant_id=tenant_id,
+            email=args.email,
+            full_name=args.name or "Team Member",
+            role=role,
+        )
+        print(
+            f"\n[SUCCESS] Successfully invited {member.full_name} ({member.email}) as {member.role.value} to workspace {tenant_id}."
+        )
+        print("-" * 70)
+        return 0
+    except (ValueError, KeyError) as err:
+        print(f"\n[!] Invite Error: {err}")
+        return 1
+
+
 def cmd_sources(args: argparse.Namespace) -> int:
     """List all registered collectors and their health metrics."""
     from src.collectors.registry import DEFAULT_REGISTRY
@@ -994,6 +1147,62 @@ def build_parser() -> argparse.ArgumentParser:
         "vectors-reindex", help="Rebuild the in-memory dense vector store from SQL database"
     )
     p_reidx.set_defaults(func=cmd_vectors_reindex)
+
+    # 22. Auth Registration Command
+    p_auth_reg = subparsers.add_parser(
+        "auth-register", help="Register a new user account and dedicated workspace"
+    )
+    p_auth_reg.add_argument("--email", type=str, required=True, help="User email address")
+    p_auth_reg.add_argument("--password", type=str, required=True, help="User password")
+    p_auth_reg.add_argument("--name", type=str, required=True, help="Full name")
+    p_auth_reg.add_argument("--workspace", type=str, default="", help="Workspace organization name")
+    p_auth_reg.set_defaults(func=cmd_auth_register)
+
+    # 23. Auth Login Command
+    p_auth_log = subparsers.add_parser(
+        "auth-login", help="Authenticate with email/password and obtain JWT token"
+    )
+    p_auth_log.add_argument("--email", type=str, required=True, help="User email address")
+    p_auth_log.add_argument("--password", type=str, required=True, help="User password")
+    p_auth_log.set_defaults(func=cmd_auth_login)
+
+    # 24. API Key Create Command
+    p_key_create = subparsers.add_parser(
+        "apikey-create", help="Generate a new programmatic API key"
+    )
+    p_key_create.add_argument("--name", type=str, required=True, help="API key descriptive name")
+    p_key_create.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_key_create.set_defaults(func=cmd_apikey_create)
+
+    # 25. API Key List Command
+    p_key_list = subparsers.add_parser(
+        "apikey-list", help="List active and revoked API keys for the workspace"
+    )
+    p_key_list.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_key_list.set_defaults(func=cmd_apikey_list)
+
+    # 26. Team List Command
+    p_team_list = subparsers.add_parser(
+        "team-list", help="List team members and RBAC roles in workspace"
+    )
+    p_team_list.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_team_list.set_defaults(func=cmd_team_list)
+
+    # 27. Team Invite Command
+    p_team_inv = subparsers.add_parser(
+        "team-invite", help="Invite a new team member with specific RBAC role"
+    )
+    p_team_inv.add_argument("--email", type=str, required=True, help="Member email address")
+    p_team_inv.add_argument("--name", type=str, default="Team Member", help="Member full name")
+    p_team_inv.add_argument(
+        "--role",
+        type=str,
+        default="MEMBER",
+        choices=["ADMIN", "MEMBER", "READONLY"],
+        help="Assigned RBAC role",
+    )
+    p_team_inv.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_team_inv.set_defaults(func=cmd_team_invite)
 
     return parser
 

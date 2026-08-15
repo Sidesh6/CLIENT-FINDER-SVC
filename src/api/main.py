@@ -18,7 +18,9 @@ from fastapi.staticfiles import StaticFiles
 from src.api.events import GLOBAL_EVENT_BROADCASTER
 from src.api.routes import (
     analytics,
+    apikeys,
     applications,
+    auth,
     client_intel,
     closing,
     collectors,
@@ -36,6 +38,7 @@ from src.api.routes import (
     proposals,
     scheduler,
     search,
+    tenants,
     vectors,
 )
 from src.database.connection import init_db
@@ -104,6 +107,9 @@ app.include_router(contracts.router)
 app.include_router(outreach.router)
 app.include_router(client_intel.router)
 app.include_router(vectors.router)
+app.include_router(auth.router)
+app.include_router(tenants.router)
+app.include_router(apikeys.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():

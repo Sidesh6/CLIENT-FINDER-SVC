@@ -58,6 +58,9 @@
         <button id="btn-open-vectors" class="btn btn-ghost">
           <span>🔮 Semantic RAG</span>
         </button>
+        <button id="btn-open-workspace" class="btn btn-ghost">
+          <span>🏢 Workspace & Team</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -1077,6 +1080,137 @@
             <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
               The vector engine uses in-memory dense Euclidean normalized float arrays with deterministic Murmur semantic subspace projections. Cosine similarities are computed in sub-millisecond real-time with zero external latency.
             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Tenant Workspace & Team RBAC Studio Modal -->
+    <div id="modal-workspace" class="modal-backdrop" style="display: none;">
+      <div class="modal-card modal-lg" style="max-width: 960px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">🏢</span>
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">SaaS Workspace, Team RBAC & API Keys Studio</h3>
+              <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Multi-tenant organization management, team seat quotas, role policies, and API keys</p>
+            </div>
+          </div>
+          <button id="btn-close-workspace" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px 20px;">
+          <!-- Tab Navigation -->
+          <div class="filter-group" style="margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <button id="tab-ws-overview" class="btn btn-sm btn-primary">📊 Workspace & Quotas</button>
+            <button id="tab-ws-team" class="btn btn-sm btn-ghost">👥 Team Members & Roles</button>
+            <button id="tab-ws-apikeys" class="btn btn-sm btn-ghost">🔑 Programmatic API Keys</button>
+          </div>
+
+          <!-- Tab 1: Workspace Overview & Quota Metering -->
+          <div id="section-ws-overview">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px 18px;">
+              <div>
+                <h4 id="ws-name-display" style="margin: 0 0 4px 0; font-size: 16px; color: var(--text-main);">Default Developer Workspace</h4>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <span id="ws-plan-badge" class="badge" style="background: rgba(139, 92, 246, 0.2); color: #8b5cf6; font-weight: 700;">PRO TIER</span>
+                  <span id="ws-id-display" style="font-size: 11px; color: var(--text-muted);">ID: default_tenant</span>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Throughput Limit</div>
+                <div id="ws-rate-limit-badge" style="font-size: 14px; font-weight: 700; color: #10b981;">600 req/min</div>
+              </div>
+            </div>
+
+            <!-- Quota Telemetry Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Team Seats Used</div>
+                <div id="ws-seats-badge" style="font-size: 20px; font-weight: 800; color: #3b82f6;">1 / 10</div>
+              </div>
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Monthly Requests Used</div>
+                <div id="ws-monthly-reqs-badge" style="font-size: 20px; font-weight: 800; color: #8b5cf6;">0 / 25,000</div>
+              </div>
+              <div class="kpi-card" style="padding: 12px 16px;">
+                <div class="kpi-label">Quota Consumed</div>
+                <div id="ws-quota-pct-badge" style="font-size: 20px; font-weight: 800; color: #10b981;">0.0%</div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label style="font-size: 12px; font-weight: 600;">Active User Account</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="ws-current-user-email" class="text-input" readonly value="admin@clientfinder.local" style="flex: 2;">
+                <span id="ws-current-user-role" class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-weight: 700; padding: 6px 12px;">ROLE: ADMIN</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Team Members & RBAC Roles -->
+          <div id="section-ws-team" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h4 style="margin: 0; font-size: 13px; color: var(--text-muted);">Workspace Team Roster</h4>
+              <button id="btn-show-invite-form" class="btn btn-sm btn-primary">➕ Invite Member</button>
+            </div>
+
+            <!-- Invite Form (Collapsible) -->
+            <div id="ws-invite-container" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+              <div style="display: grid; grid-template-columns: 2fr 2fr 1.5fr 1fr; gap: 8px; align-items: end;">
+                <div>
+                  <label style="font-size: 11px;">Member Email</label>
+                  <input type="email" id="invite-email" class="text-input" placeholder="colleague@agency.com">
+                </div>
+                <div>
+                  <label style="font-size: 11px;">Full Name</label>
+                  <input type="text" id="invite-name" class="text-input" placeholder="Alex Morgan">
+                </div>
+                <div>
+                  <label style="font-size: 11px;">RBAC Role</label>
+                  <select id="invite-role" class="text-input">
+                    <option value="MEMBER">MEMBER (Standard)</option>
+                    <option value="ADMIN">ADMIN (Workspace Mgr)</option>
+                    <option value="READONLY">READONLY (Observer)</option>
+                  </select>
+                </div>
+                <button id="btn-submit-invite" class="btn btn-primary btn-sm" style="height: 38px;">Invite</button>
+              </div>
+            </div>
+
+            <!-- Members List -->
+            <div id="ws-members-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <!-- Tab 3: Programmatic API Keys -->
+          <div id="section-ws-apikeys" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h4 style="margin: 0; font-size: 13px; color: var(--text-muted);">Programmatic API Keys</h4>
+              <button id="btn-show-create-key" class="btn btn-sm btn-primary">🔑 Issue New Key</button>
+            </div>
+
+            <!-- Create Key Form (Collapsible) -->
+            <div id="ws-create-key-container" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+              <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 2;">
+                  <label style="font-size: 11px;">Key Name / Description</label>
+                  <input type="text" id="new-key-name" class="text-input" placeholder="e.g. Production Lead Webhook Integration">
+                </div>
+                <button id="btn-submit-create-key" class="btn btn-primary btn-sm" style="height: 38px;">Generate Key</button>
+              </div>
+            </div>
+
+            <!-- Newly Created Key Token Display Modal -->
+            <div id="ws-new-key-reveal" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+              <div style="font-size: 12px; font-weight: 700; color: #10b981; margin-bottom: 4px;">✅ API Key Issued (Save Now — Not Shown Again)</div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="raw-secret-key-display" class="text-input" readonly style="font-family: 'JetBrains Mono', monospace; font-size: 11px; background: rgba(0,0,0,0.5);">
+                <button id="btn-copy-secret-key" class="btn btn-sm btn-ghost">📋 Copy</button>
+              </div>
+            </div>
+
+            <!-- API Keys List -->
+            <div id="ws-apikeys-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
         </div>
       </div>
