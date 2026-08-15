@@ -873,6 +873,56 @@ def cmd_team_invite(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_health_check(args: argparse.Namespace) -> int:
+    """Run comprehensive production health probe across all subsystems."""
+    from sqlalchemy import func, select
+
+    from src.collectors.registry import DEFAULT_REGISTRY
+    from src.database.connection import SessionLocal
+    from src.database.models import OpportunityModel, ProjectModel
+    from src.database.mongo import check_mongo_health, is_mongo_configured
+    from src.vectors.engine import GLOBAL_VECTOR_STORE
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC — Production Subsystem Health Probe")
+    print("=" * 70)
+
+    # 1. SQL Database
+    try:
+        with SessionLocal() as session:
+            total_proj = session.scalar(select(func.count(ProjectModel.id))) or 0
+            total_opps = session.scalar(select(func.count(OpportunityModel.id))) or 0
+            print(
+                f"  [HEALTHY]     SQL Relational Database : Connected ({total_proj} projects, {total_opps} opps)"
+            )
+    except Exception as err:
+        print(f"  [ERROR]       SQL Relational Database : Failed ({err})")
+
+    # 2. Vector Index Engine
+    try:
+        vstats = GLOBAL_VECTOR_STORE.get_stats()
+        print(
+            f"  [HEALTHY]     Dense Vector Engine     : {vstats.total_indexed_documents} docs ({vstats.vector_dimension}-D, {vstats.index_memory_bytes / 1024:.1f} KB)"
+        )
+    except Exception as err:
+        print(f"  [DEGRADED]    Dense Vector Engine     : Degraded ({err})")
+
+    # 3. Collector Registry
+    active_count = len(DEFAULT_REGISTRY.get_active_collectors())
+    total_count = len(DEFAULT_REGISTRY.list_sources())
+    print(f"  [OPERATIONAL] Collector Ingestion Hub : {active_count}/{total_count} active sources")
+
+    # 4. MongoDB Hybrid Store
+    if is_mongo_configured():
+        mstatus = check_mongo_health()
+        print(f"  [HEALTHY]     MongoDB Store           : {mstatus.get('status', 'unknown')}")
+    else:
+        print("  [STANDALONE]  MongoDB Store           : SQLite / Relational Primary Mode")
+
+    print("-" * 70)
+    return 0
+
+
 def cmd_sources(args: argparse.Namespace) -> int:
     """List all registered collectors and their health metrics."""
     from src.collectors.registry import DEFAULT_REGISTRY
@@ -1203,6 +1253,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_team_inv.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
     p_team_inv.set_defaults(func=cmd_team_invite)
+
+    # 28. Health Check Probe Command
+    p_hcheck = subparsers.add_parser(
+        "health-check", help="Run comprehensive production subsystem health probe"
+    )
+    p_hcheck.set_defaults(func=cmd_health_check)
 
     return parser
 

@@ -1,0 +1,121 @@
+version: "3.8"
+
+services:
+  # ============================================================================
+  # 1. FastAPI REST API & Glassmorphic Web Dashboard
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: client-finder-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql+psycopg2://clientfinder:SecureDbPass123!@postgres:5432/clientfinder_db
+      - MONGO_URI=mongodb://mongo:27017/clientfinder_raw
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=dev_jwt_secret_key_clientfinder_service_12345
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================================
+  # 2. Autonomous Ingestion Worker & Pipeline Scheduler Daemon
+  # ============================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: client-finder-worker
+    restart: unless-stopped
+    command: ["python", "src/cli.py", "run-scheduler"]
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql+psycopg2://clientfinder:SecureDbPass123!@postgres:5432/clientfinder_db
+      - MONGO_URI=mongodb://mongo:27017/clientfinder_raw
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+  # ============================================================================
+  # 3. PostgreSQL 16 Database
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: client-finder-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=clientfinder
+      - POSTGRES_PASSWORD=SecureDbPass123!
+      - POSTGRES_DB=clientfinder_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clientfinder -d clientfinder_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # 4. Redis 7 Cache & Rate Limiting Broker
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: client-finder-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ============================================================================
+  # 5. MongoDB 7 Hybrid Fallback Store
+  # ============================================================================
+  mongo:
+    image: mongo:7.0
+    container_name: client-finder-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mongo_data:
+    driver: local

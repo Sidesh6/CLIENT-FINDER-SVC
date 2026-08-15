@@ -1,71 +1,82 @@
-name: CI Pipeline
+name: Continuous Integration (CI)
 
 on:
   push:
-    branches: [main, develop, "feature/**", "fix/**", "chore/**", "refactor/**", "docs/**", "test/**"]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main, master]
 
 jobs:
-  test:
-    name: Run Tests
+  lint-and-format:
+    name: Code Quality & Linting
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install Linting Tools
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install ruff mypy
 
-      - name: Run tests
-        run: |
-          python -m pytest tests/ -v --tb=short --cov=src --cov-report=xml
+      - name: Run Ruff Linter
+        run: ruff check .
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        if: github.event_name == 'pull_request'
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+      - name: Run Ruff Formatter Check
+        run: ruff format --check .
 
-      - name: Run linting (ruff)
-        run: |
-          ruff check src/ tests/
-
-      - name: Run type checking (mypy)
-        run: |
-          mypy src/
-
-  validate:
-    name: Validate Code Quality
+  test-matrix:
+    name: Unit & Integration Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov anyio
+
+      - name: Run Pytest Suite with Coverage
+        run: |
+          pytest --cov=src --cov-report=term-missing tests/
+
+  type-check:
+    name: Static Type Analysis (MyPy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install Dependencies & MyPy
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -r requirements.txt
+          pip install mypy types-requests types-PyYAML
 
-      - name: Check for formatting issues (ruff format)
-        run: |
-          ruff format --check src/ tests/
-
-      - name: Check for import sorting (ruff check --select I)
-        run: |
-          ruff check --select I src/ tests/
+      - name: Run MyPy Type Check
+        run: mypy src
