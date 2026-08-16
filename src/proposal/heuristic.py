@@ -94,6 +94,12 @@ class HeuristicProposalGenerator:
             return f"Past Case Studies & Technical Approach: {clean_title}"
         elif angle == PitchAngle.CONSULTATIVE_ADVISOR:
             return f"Architectural Approach & Discovery for {clean_title}"
+        elif angle == PitchAngle.DIRECT_FOUNDER_PITCH:
+            return f"Helping you build & ship {clean_title} ({primary_tech} Freelance Lead)"
+        elif angle == PitchAngle.FIXED_MILESTONE_QUOTE:
+            return f"Milestone Scope & Fixed-Price Proposal: {clean_title}"
+        elif angle == PitchAngle.FRACTIONAL_ADVISOR:
+            return f"Senior Fractional Technical Partner for {clean_title}"
         return f"Senior {primary_tech} Specialist for {clean_title}"
 
     def _generate_hook(
@@ -119,6 +125,21 @@ class HeuristicProposalGenerator:
             return (
                 f"I have previously built and deployed similar production systems powered by {tech_list}, "
                 f"making this engagement a direct match for my technical background."
+            )
+        elif angle == PitchAngle.DIRECT_FOUNDER_PITCH:
+            return (
+                f"Saw your request regarding '{title[:50]}'. I'm a senior freelance engineer specializing in {tech_list}, "
+                f"and I've helped founders rapidly architect and ship scalable solutions for this exact problem."
+            )
+        elif angle == PitchAngle.FIXED_MILESTONE_QUOTE:
+            return (
+                f"To give you certainty on cost and deliverables for '{title[:50]}', I've outlined a structured, "
+                f"3-phase milestone delivery roadmap using {tech_list}."
+            )
+        elif angle == PitchAngle.FRACTIONAL_ADVISOR:
+            return (
+                f"I partner with startups as a fractional technical lead, helping you architect, code, and deploy "
+                f"'{title[:50]}' on {tech_list} without the overhead of full-time hiring."
             )
         else:  # CONSULTATIVE_ADVISOR
             return (
@@ -150,6 +171,25 @@ class HeuristicProposalGenerator:
             return (
                 f"Over the past several years, I have architected distributed systems and AI integrations in {tech_list}. "
                 f"My previous implementations maintain 99.9% uptime and handle high-throughput workloads with zero data loss."
+            )
+        elif angle == PitchAngle.DIRECT_FOUNDER_PITCH:
+            return (
+                f"Here is how I can help you ship this without friction:\n"
+                f"1. **Zero Ramp-Up**: I take your specs and deliver clean, tested code in {tech_list} immediately.\n"
+                f"2. **Daily Async Updates**: Transparent progress via GitHub PRs and Loom video demos.\n"
+                f"3. **Production Handover**: Complete documentation, CI/CD pipeline, and Docker containerization included."
+            )
+        elif angle == PitchAngle.FIXED_MILESTONE_QUOTE:
+            return (
+                f"### Proposed Delivery Milestones:\n"
+                f"• **Milestone 1 (Architecture & Core Schema)**: Data models, API contracts, environment setup (Sprint 1).\n"
+                f"• **Milestone 2 (Feature Implementation & Integration)**: Core business logic, integrations, and {tech_list} pipeline (Sprint 2).\n"
+                f"• **Milestone 3 (QA, Hardening & Handover)**: Automated tests, Dockerization, staging validation & sign-off (Sprint 3)."
+            )
+        elif angle == PitchAngle.FRACTIONAL_ADVISOR:
+            return (
+                f"I work on flexible weekly sprint blocks or a monthly retainer. You get dedicated senior engineering hours, "
+                f"architecture advisory, code reviews, and hands-on implementation across {tech_list} with guaranteed turnaround times."
             )
         else:
             return (
@@ -198,7 +238,14 @@ class HeuristicProposalGenerator:
             return "I am available to start immediately this week. When is a good time for a brief 10-minute kickoff chat?"
         elif angle == PitchAngle.CONSULTATIVE_ADVISOR:
             return "Would you be open to a complimentary 15-minute architecture brainstorm call to align on scope?"
+        elif angle == PitchAngle.DIRECT_FOUNDER_PITCH:
+            return "Are you available for a quick 15-minute call this Tuesday or Wednesday to discuss the scope? Or let me know if you prefer async over email/Telegram."
+        elif angle == PitchAngle.FIXED_MILESTONE_QUOTE:
+            return "Let's hop on a brief 15-minute scope review call so I can finalize the milestone quotes and start on Milestone 1."
+        elif angle == PitchAngle.FRACTIONAL_ADVISOR:
+            return "Let's schedule a 15-minute discovery chat to discuss your roadmap and determine if a fractional sprint model fits."
         return "Let me know if you'd like to review live demo references or discuss milestones in a quick 15-minute call."
+
 
     def _assemble_full_proposal(
         self,

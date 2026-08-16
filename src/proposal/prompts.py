@@ -66,7 +66,29 @@ Focus on:
 - Proposing 2 architectural options (e.g., Quick MVP vs. Scalable Distributed).
 - Offering a complimentary 15-minute technical discovery session.
 """,
+    PitchAngle.DIRECT_FOUNDER_PITCH: """
+Position yourself as a direct freelance execution partner for founders and business owners.
+Focus on:
+- 3 short, high-impact paragraphs addressing the exact bottleneck or feature needed.
+- Proposing immediate start, daily async Loom/PR updates, and production handover.
+- Call to action inviting a 15-minute scope review or async chat.
+""",
+    PitchAngle.FIXED_MILESTONE_QUOTE: """
+Position yourself with a clear, low-risk 3-phase milestone fixed-price proposal.
+Focus on:
+- Breaking down the project into Milestone 1 (Core schema & setup), Milestone 2 (Features & integration), Milestone 3 (Testing & handover).
+- Providing clear deliverable criteria for each milestone.
+- Emphasizing fixed scope and transparent pricing.
+""",
+    PitchAngle.FRACTIONAL_ADVISOR: """
+Position yourself as a fractional technical lead or recurring sprint partner.
+Focus on:
+- Weekly sprint blocks or monthly retainer for ongoing development and architectural guidance.
+- Guaranteed weekly availability and rapid response turnaround.
+- Flexible scaling up or down as product needs evolve.
+""",
 }
+
 
 
 def build_proposal_prompt(

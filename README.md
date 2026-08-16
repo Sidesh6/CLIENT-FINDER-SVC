@@ -25,6 +25,14 @@ Current components:
 - Database model
 - Testing
 
+## Freelance Client Lead Mode
+
+The default collection run targets prospective clients, not ordinary employment
+listings. It searches public discussion data for explicit requests for freelance
+web development, AI automation, Python/FastAPI, and design work, and rejects
+freelancer self-promotion and standard job ads. Traditional job-board collectors
+remain available in the Sources panel but are disabled by default.
+
 ## Technology Stack
 
 - Python

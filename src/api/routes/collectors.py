@@ -165,7 +165,7 @@ def trigger_collector(
     collector_name: Annotated[
         str,
         Query(
-            description="Name of collector ('Hacker News', 'RemoteOK', 'WeWorkRemotely', or 'all')"
+            description="Name of collector (use 'Client Leads' for freelance buyers, or 'all')"
         ),
     ] = "Hacker News",
     limit: Annotated[int, Query(ge=1, le=50, description="Max opportunities per source")] = 10,

@@ -1275,6 +1275,71 @@ def cmd_sources_toggle(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_freelance_clients(args: argparse.Namespace) -> int:
+    """List and export direct freelance clients, founders, and contract gigs."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from src.intelligence.client_contact import GLOBAL_CONTACT_EXTRACTOR
+    from src.processors.freelance_classifier import GLOBAL_FREELANCE_CLASSIFIER
+
+    init_db()
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC -- Direct Freelance Client Opportunities")
+    print("=" * 70)
+
+    with SessionLocal() as session:
+        query = (
+            select(ProjectModel)
+            .options(selectinload(ProjectModel.opportunity))
+            .order_by(ProjectModel.score.desc().nullslast(), ProjectModel.created_at.desc())
+        )
+        if args.min_score:
+            query = query.where(ProjectModel.score >= args.min_score)
+
+        projects = session.scalars(query).all()
+        direct_clients = []
+        for p in projects:
+            cls_res = GLOBAL_FREELANCE_CLASSIFIER.classify({
+                "title": p.title,
+                "description": p.description,
+                "source": p.source,
+                "is_direct_client": p.source in ("Client Leads", "Upwork", "Hacker News"),
+            })
+            if cls_res.is_direct_client:
+                contact = GLOBAL_CONTACT_EXTRACTOR.extract(p.description, default_url=p.source_url)
+                direct_clients.append((p, cls_res, contact))
+
+        if not direct_clients:
+            print("[!] No direct freelance clients found matching criteria.")
+            return 0
+
+        print(f"[+] Found {len(direct_clients)} Direct Freelance Client(s):\n")
+        limit = args.limit or 20
+        for idx, (p, cls_res, contact) in enumerate(direct_clients[:limit], 1):
+            score_display = f"{p.score:.1f}/100" if p.score else "N/A"
+            budget_display = f"${p.budget:,.0f} {p.currency or 'USD'}" if p.budget else "Unstated / Milestone"
+            contact_str = contact.primary_action_url or p.source_url
+            channels = []
+            if contact.emails:
+                channels.append(f"Email: {', '.join(contact.emails)}")
+            if contact.calendly_links:
+                channels.append(f"Calendly: {', '.join(contact.calendly_links)}")
+            if contact.telegram_handles:
+                channels.append(f"Telegram: {', '.join(contact.telegram_handles)}")
+
+            channel_info = " | ".join(channels) if channels else "Direct Source Link"
+
+            print(f"[{idx}] {p.title}")
+            print(f"    Client Type : {cls_res.client_type.value} ({cls_res.engagement_type.value})")
+            print(f"    Source      : {p.source} | Score: {score_display} | Budget: {budget_display}")
+            print(f"    Reach Out   : {channel_info}")
+            print(f"    Action URL  : {contact_str}")
+            print("-" * 70)
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build root CLI argument parser and subcommands."""
     parser = argparse.ArgumentParser(
@@ -1283,11 +1348,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
+    # Freelance Clients Command
+    p_freelance = subparsers.add_parser(
+        "freelance-clients", help="List direct freelance clients and founder gigs (excluding employee jobs)"
+    )
+    p_freelance.add_argument("--min-score", type=float, default=None, help="Filter by minimum score")
+    p_freelance.add_argument("--limit", type=int, default=20, help="Max clients to display")
+    p_freelance.set_defaults(func=cmd_freelance_clients)
+
     # 1. Harvest Command
     p_harvest = subparsers.add_parser("harvest", help="Run immediate lead harvesting cycle")
     p_harvest.add_argument(
         "--limit", type=int, default=10, help="Max leads to fetch per collector (default: 10)"
     )
+
     p_harvest.add_argument(
         "--min-score", type=float, default=75.0, help="Min score for alert dispatch (default: 75.0)"
     )

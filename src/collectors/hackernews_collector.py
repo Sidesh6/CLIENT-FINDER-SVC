@@ -92,8 +92,13 @@ class HackerNewsCollector(BaseCollector):
             else "https://news.ycombinator.com"
         )
 
+        upper_text = clean_text.upper()
+        # Strictly reject other freelancers looking for work
+        if "SEEKING WORK" in upper_text:
+            return None
+
         lines = [line.strip() for line in clean_text.split("\n") if line.strip()]
-        first_line = lines[0] if lines else "HN Project Opportunity"
+        first_line = lines[0] if lines else "HN Direct Client Opportunity"
         title = first_line[:100]
 
         return {
@@ -104,13 +109,14 @@ class HackerNewsCollector(BaseCollector):
             "client_name": author,
             "budget": None,
             "currency": None,
-            "project_type": "Freelance / Contract",
+            "project_type": "Direct Freelance Client",
             "skills": [],
+            "is_direct_client": True,
         }
 
     def collect(self) -> list[dict[str, Any]]:
         """
-        Collect project opportunities from Hacker News.
+        Collect direct freelance client opportunities from Hacker News.
 
         Returns:
             List of raw project dictionaries.
@@ -132,7 +138,7 @@ class HackerNewsCollector(BaseCollector):
                     if parsed:
                         projects.append(parsed)
                 logger.info(
-                    "Collected %d projects from custom HN query '%s'",
+                    "Collected %d direct client projects from custom HN query '%s'",
                     len(projects),
                     self.search_query,
                 )
@@ -150,27 +156,28 @@ class HackerNewsCollector(BaseCollector):
                 hits = data.get("hits", [])
                 for hit in hits:
                     comment_text = hit.get("comment_text") or hit.get("text") or ""
-                    # Filter for clients looking to hire freelancers
                     upper_text = comment_text.upper()
+                    # Strictly target clients seeking freelancers and exclude freelancers seeking work
                     if (
-                        "SEEKING FREELANCER" in upper_text
-                        or "LOOKING FOR FREELANCER" in upper_text
-                        or "HIRING" in upper_text
+                        ("SEEKING FREELANCER" in upper_text or "LOOKING FOR FREELANCER" in upper_text)
+                        and "SEEKING WORK" not in upper_text
                     ):
                         parsed = self._parse_comment(hit)
                         if parsed:
                             projects.append(parsed)
 
-            # Mode 3: If not enough results from monthly thread, supplement with recent freelance comments
+            # Mode 3: Supplement with recent direct client comments
             if len(projects) < self.max_projects:
                 needed = self.max_projects - len(projects)
                 params = {
                     "tags": "comment",
                     "query": "SEEKING FREELANCER",
-                    "hitsPerPage": needed,
+                    "hitsPerPage": needed * 2,
                 }
                 data = self.http_client.get_json(self.ALGOLIA_SEARCH_URL, params=params)
                 for hit in data.get("hits", []):
+                    if len(projects) >= self.max_projects:
+                        break
                     parsed = self._parse_comment(hit)
                     if parsed and not any(
                         p["source_url"] == parsed["source_url"] for p in projects
@@ -180,5 +187,6 @@ class HackerNewsCollector(BaseCollector):
         except (HttpClientError, Exception) as exc:
             logger.error("Error during Hacker News collection: %s", exc)
 
-        logger.info("Successfully collected %d total opportunities from Hacker News", len(projects))
+        logger.info("Successfully collected %d total direct client opportunities from Hacker News", len(projects))
         return projects[: self.max_projects]
+

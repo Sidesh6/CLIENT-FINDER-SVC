@@ -36,6 +36,11 @@ class ProjectResponse(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     score_breakdown: OpportunityScoreBreakdown | None = None
     extracted_requirements: dict[str, Any] | None = None
+    is_direct_client: bool = True
+    client_type: str = "DIRECT_FOUNDER"
+    engagement_type: str = "FIXED_MILESTONE"
+    contact_details: dict[str, Any] | None = None
+
 
 
 class ProjectListResponse(BaseModel):

@@ -17,11 +17,14 @@ from src.database.connection import SessionLocal
 from src.database.models import ProjectModel
 from src.scoring.schemas import OpportunityScoreBreakdown
 
+from src.intelligence.client_contact import GLOBAL_CONTACT_EXTRACTOR
+from src.processors.freelance_classifier import GLOBAL_FREELANCE_CLASSIFIER
+
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 
 def model_to_project_response(pm: ProjectModel) -> ProjectResponse:
-    """Helper converting ORM ProjectModel to API ProjectResponse schema."""
+    """Helper converting ORM ProjectModel to API ProjectResponse schema with freelance client metadata."""
     meta: dict[str, Any] = pm.raw_data if isinstance(pm.raw_data, dict) else {}
     breakdown = None
     if pm.opportunity:
@@ -37,6 +40,16 @@ def model_to_project_response(pm: ProjectModel) -> ProjectResponse:
             win_probability=opp.win_probability or 0.0,
             explanation=opp.explanation or "",
         )
+
+    # Classify freelance client status & extract decision maker contact
+    classification = GLOBAL_FREELANCE_CLASSIFIER.classify({
+        "title": pm.title,
+        "description": pm.description,
+        "source": pm.source,
+        "is_direct_client": pm.source in ("Client Leads", "Upwork", "Hacker News"),
+    })
+    contact = GLOBAL_CONTACT_EXTRACTOR.extract(pm.description, default_url=pm.source_url)
+
     return ProjectResponse(
         id=pm.id,
         title=pm.title,
@@ -53,6 +66,10 @@ def model_to_project_response(pm: ProjectModel) -> ProjectResponse:
         created_at=pm.created_at,
         score_breakdown=breakdown,
         extracted_requirements=meta,
+        is_direct_client=classification.is_direct_client,
+        client_type=classification.client_type.value,
+        engagement_type=classification.engagement_type.value,
+        contact_details=contact.to_dict(),
     )
 
 
@@ -63,9 +80,11 @@ def list_projects(
     min_score: float | None = Query(None, description="Filter by minimum overall score (0-100)"),
     status: str | None = Query(None, description="Filter by workflow status"),
     skill: str | None = Query(None, description="Filter by required skill"),
+    direct_client_only: bool = Query(False, description="Filter for direct freelance clients and founders only"),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> ProjectListResponse:
+
     """
     List opportunities with advanced multi-facet filtering and pagination.
     """
@@ -107,7 +126,10 @@ def list_projects(
                 continue
             if skill and not any(skill.lower() in s.lower() for s in item.skills):
                 continue
+            if direct_client_only and not item.is_direct_client:
+                continue
             items.append(item)
+
 
         pages = max(1, (total + limit - 1) // limit)
 

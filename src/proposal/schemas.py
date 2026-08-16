@@ -19,6 +19,10 @@ class PitchAngle(StrEnum):
     VALUE_ROI = "VALUE_ROI"  # Business outcomes, revenue generation, operational efficiency
     PORTFOLIO_PROOF = "PORTFOLIO_PROOF"  # Case studies, proven track record, reference links
     CONSULTATIVE_ADVISOR = "CONSULTATIVE_ADVISOR"  # Discovery questions, architectural options
+    DIRECT_FOUNDER_PITCH = "DIRECT_FOUNDER_PITCH"  # High-impact 3-paragraph cold founder pitch
+    FIXED_MILESTONE_QUOTE = "FIXED_MILESTONE_QUOTE"  # Phased delivery roadmap with milestone quotes
+    FRACTIONAL_ADVISOR = "FRACTIONAL_ADVISOR"  # Fractional lead & weekly sprint retainer
+
 
 
 class ProposalTone(StrEnum):

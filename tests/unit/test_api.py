@@ -205,7 +205,9 @@ class TestCollectorsEndpoints:
         assert response.status_code == 200
         items = response.json()
         assert len(items) >= 1
-        assert items[0]["name"] == "Hacker News"
+        collector_names = [i["name"] for i in items]
+        assert "Hacker News" in collector_names
+
 
     @patch("src.collectors.hackernews_collector.HackerNewsCollector.collect")
     def test_trigger_collector(self, mock_collect):

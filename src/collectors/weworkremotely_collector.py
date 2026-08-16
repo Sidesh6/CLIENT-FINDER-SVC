@@ -29,8 +29,9 @@ class WeWorkRemotelyCollector(BaseCollector):
         http_client: HttpClient | None = None,
         feed_url: str | None = None,
         max_projects: int = 30,
+        source_name: str = "WeWorkRemotely",
     ):
-        super().__init__("WeWorkRemotely")
+        super().__init__(source_name)
         self.http_client = http_client or HttpClient(
             timeout=15.0,
             default_headers={

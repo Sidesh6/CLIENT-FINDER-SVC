@@ -673,7 +673,9 @@ function renderOpportunities(projects) {
       else if (score >= 60) badgeClass = "score-med";
 
       const budgetDisplay = p.budget ? `${p.currency} ${p.budget.toLocaleString()}` : "Budget Unstated";
-      const postedTime = p.posted_at ? new Date(p.posted_at).toLocaleDateString() : "Recent";
+      const postedAt = p.published_at || p.posted_at;
+      const postedTime = postedAt ? new Date(postedAt).toLocaleDateString() : "Recent";
+      const description = p.description || "No job description was provided by this source.";
       const skillsHtml = (p.skills || [])
         .slice(0, 5)
         .map((s) => `<span class="skill-tag">${escapeHtml(s)}</span>`)
@@ -684,6 +686,21 @@ function renderOpportunities(projects) {
         <div class="opp-card-top">
           <span class="source-badge">🔗 ${escapeHtml(p.source)}</span>
           <div class="score-badge ${badgeClass}">${score.toFixed(1)} Match</div>
+        </div>
+        <h3 class="opp-title"><a href="${escapeHtml(p.source_url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.title)}</a></h3>
+        <div class="opp-meta">
+          <span class="meta-item">${budgetDisplay}</span>
+          <span class="meta-item">${postedTime}</span>
+          ${p.client_name ? `<span class="meta-item">${escapeHtml(p.client_name)}</span>` : ""}
+        </div>
+        <p class="opp-desc">${escapeHtml(description)}</p>
+        <div class="skills-wrap">${skillsHtml}</div>
+        <div class="opp-card-footer">
+          <span class="status-text">${escapeHtml(p.status || "NEW")}</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-primary" onclick="openProposalModal(${p.id})">Craft Proposal</button>
+            <a href="${escapeHtml(p.source_url || "#")}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost">Source</a>
+          </div>
         </div>
       </article>
     `;
@@ -699,6 +716,8 @@ async function fetchApplications() {
       <p>Loading application pipeline...</p>
     </div>
   `;
+
+  /* Legacy, incomplete renderer retained below for source history.
 
         <h3 class="opp-title">
           <a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.title)}</a>
@@ -732,28 +751,49 @@ async function fetchApplications() {
     `;
     })
     .join("");
+  */
+
+  try {
+    const res = await fetch("/api/applications?limit=50");
+    if (!res.ok) throw new Error(`Could not load applications (${res.status})`);
+    const applications = await res.json();
+    STATE.applications = applications;
+    DOM.appsCount.textContent = applications.length;
+    DOM.applicationsContainer.innerHTML = applications.length
+      ? applications.map((a) => `
+          <article class="opp-card">
+            <div class="opp-card-top"><span class="source-badge">${escapeHtml(a.status)}</span><div class="score-badge score-med">${Number(a.overall_score || 0).toFixed(1)} Match</div></div>
+            <h4 class="app-title">${escapeHtml(a.project_title || `Project Opportunity #${a.project_id}`)}</h4>
+            <div class="opp-meta"><span class="meta-item">Applied ${new Date(a.applied_at).toLocaleDateString()}</span><span class="meta-item">${a.proposed_budget ? `${escapeHtml(a.currency)} ${Number(a.proposed_budget).toLocaleString()}` : "Budget Unstated"}</span></div>
+            ${a.project_url ? `<a href="${escapeHtml(a.project_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost">View source</a>` : ""}
+          </article>`).join("")
+      : `<div class="empty-state"><h3>No applications yet</h3><p>Create a proposal from a live opportunity to begin tracking it.</p></div>`;
+  } catch (err) {
+    DOM.applicationsContainer.innerHTML = `<div class="empty-state"><p>Failed to load applications.</p></div>`;
+  }
 }
 
 // 2. Multi-Source Collector Actions
 async function triggerLiveHarvest() {
   const chosenSource = DOM.selectHarvestSource ? DOM.selectHarvestSource.value : "all";
   DOM.btnTriggerCollector.disabled = true;
-  DOM.btnTriggerCollector.innerHTML = `< span >⏳ Harvesting...</span > `;
-  showToast(`Harvesting live opportunities from ${ chosenSource }...`, "info");
+  DOM.btnTriggerCollector.innerHTML = `<span>⏳ Harvesting...</span>`;
+  showToast(`Harvesting live opportunities from ${chosenSource}...`, "info");
 
   try {
-    const res = await fetch(`/ api / collectors / collect ? collector_name = ${ encodeURIComponent(chosenSource) }& limit=10`, {
+    const res = await fetch(`/api/collectors/collect?collector_name=${encodeURIComponent(chosenSource)}&limit=10`, {
       method: "POST",
     });
+    if (!res.ok) throw new Error(`Harvest failed (${res.status})`);
     const data = await res.json();
-    showToast(data.message || `Discovered ${ data.collected_count } opportunities!`, "success");
+    showToast(data.message || `Discovered ${data.collected_count} opportunities!`, "success");
     fetchOpportunities();
     loadStats();
   } catch (err) {
     showToast("Error triggering feed harvester", "info");
   } finally {
     DOM.btnTriggerCollector.disabled = false;
-    DOM.btnTriggerCollector.innerHTML = `< span class="btn-icon" >⚡</span > <span>Harvest Leads</span>`;
+    DOM.btnTriggerCollector.innerHTML = `<span class="btn-icon">⚡</span> <span>Harvest Leads</span>`;
   }
 }
 
@@ -769,7 +809,7 @@ function closeSourcesModal() {
 
 async function loadSourcesHealth() {
   if (!DOM.sourcesListContainer) return;
-  DOM.sourcesListContainer.innerHTML = `< div class="loading-state" ><div class="spinner"></div><p>Loading source health...</p></div > `;
+  DOM.sourcesListContainer.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading source health...</p></div>`;
 
   try {
     const res = await fetch("/api/collectors/health");
@@ -778,7 +818,7 @@ async function loadSourcesHealth() {
     DOM.sourcesListContainer.innerHTML = sources
       .map(
         (s) => `
-    < div class="source-item-card" >
+    <div class="source-item-card">
         <div>
           <div class="source-name-header">
             <span>${escapeHtml(s.source_name)}</span>
@@ -796,26 +836,25 @@ async function loadSourcesHealth() {
           <button class="btn btn-sm ${s.enabled ? "btn-secondary" : "btn-primary"}" onclick="toggleSource('${escapeHtml(s.source_name)}')">
             ${s.enabled ? "Disable" : "Enable"}
           </button>
-        </div >
-      </div >
+        </div>
+      </div>
     `
       )
       .join("");
   } catch (err) {
-    DOM.sourcesListContainer.innerHTML = `< p style = "color: var(--accent-rose);" > Failed to load sources health.</p > `;
+    DOM.sourcesListContainer.innerHTML = `<p style="color: var(--accent-rose);">Failed to load sources health.</p>`;
   }
 }
 
 window.toggleSource = async function (sourceName) {
   try {
-    const res = await fetch(`/ api / collectors / ${ encodeURIComponent(sourceName) }/toggle`, { method: "POST" });
-  if (res.ok) {
+    const res = await fetch(`/api/collectors/${encodeURIComponent(sourceName)}/toggle`, { method: "POST" });
+    if (!res.ok) throw new Error(`Toggle failed (${res.status})`);
     showToast(`Toggled ${sourceName}`, "success");
     loadSourcesHealth();
+  } catch (err) {
+    showToast("Failed to toggle source", "error");
   }
-} catch (err) {
-  showToast("Failed to toggle source", "info");
-}
 };
 
 window.resetCircuit = async function (sourceName) {
@@ -3218,6 +3257,3 @@ document.getElementById("btn-save-exec-policy")?.addEventListener("click", async
     showToast(err.message, "error");
   }
 });
-
-
-

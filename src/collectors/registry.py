@@ -10,11 +10,15 @@ from typing import Any
 
 from src.collectors.arbeitnow_collector import ArbeitnowCollector
 from src.collectors.base_collector import BaseCollector
+from src.collectors.client_lead_collector import ClientLeadCollector
 from src.collectors.hackernews_collector import HackerNewsCollector
 from src.collectors.jobicy_collector import JobicyCollector
 from src.collectors.remotive_collector import RemotiveCollector
 from src.collectors.remoteok_collector import RemoteOKCollector
+from src.collectors.rss_collector import RSSFeedCollector
+from src.collectors.upwork_rss_collector import UpworkRSSCollector
 from src.collectors.weworkremotely_collector import WeWorkRemotelyCollector
+
 
 logger = logging.getLogger(__name__)
 
@@ -188,12 +192,37 @@ def get_default_registry() -> CollectorRegistry:
     Initialize and return the default collector registry pre-loaded with standard collectors.
     """
     registry = CollectorRegistry()
+    # Direct Client & Freelance Lead collectors enabled by default
+    registry.register(ClientLeadCollector(), enabled=True)
+    registry.register(UpworkRSSCollector(), enabled=True)
     registry.register(HackerNewsCollector(), enabled=True)
-    registry.register(RemoteOKCollector(), enabled=True)
-    registry.register(WeWorkRemotelyCollector(), enabled=True)
-    registry.register(RemotiveCollector(), enabled=True)
-    registry.register(JobicyCollector(), enabled=True)
-    registry.register(ArbeitnowCollector(), enabled=True)
+    registry.register(RemoteOKCollector(), enabled=False)
+    registry.register(WeWorkRemotelyCollector(), enabled=False)
+
+    registry.register(
+        WeWorkRemotelyCollector(
+            source_name="WeWorkRemotely Design",
+            feed_url="https://weworkremotely.com/categories/remote-design-jobs.rss",
+        ),
+        enabled=False,
+    )
+    registry.register(
+        WeWorkRemotelyCollector(
+            source_name="WeWorkRemotely Product",
+            feed_url="https://weworkremotely.com/categories/remote-product-jobs.rss",
+        ),
+        enabled=False,
+    )
+    registry.register(RemotiveCollector(), enabled=False)
+    registry.register(JobicyCollector(), enabled=False)
+    registry.register(ArbeitnowCollector(), enabled=False)
+    registry.register(
+        RSSFeedCollector(
+            source_name="Python.org Jobs",
+            feed_url="https://www.python.org/jobs/feed/rss/",
+        ),
+        enabled=False,
+    )
     return registry
 
 
