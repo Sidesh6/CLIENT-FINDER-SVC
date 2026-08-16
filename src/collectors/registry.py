@@ -8,8 +8,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from src.collectors.arbeitnow_collector import ArbeitnowCollector
 from src.collectors.base_collector import BaseCollector
 from src.collectors.hackernews_collector import HackerNewsCollector
+from src.collectors.jobicy_collector import JobicyCollector
+from src.collectors.remotive_collector import RemotiveCollector
 from src.collectors.remoteok_collector import RemoteOKCollector
 from src.collectors.weworkremotely_collector import WeWorkRemotelyCollector
 
@@ -188,7 +191,11 @@ def get_default_registry() -> CollectorRegistry:
     registry.register(HackerNewsCollector(), enabled=True)
     registry.register(RemoteOKCollector(), enabled=True)
     registry.register(WeWorkRemotelyCollector(), enabled=True)
+    registry.register(RemotiveCollector(), enabled=True)
+    registry.register(JobicyCollector(), enabled=True)
+    registry.register(ArbeitnowCollector(), enabled=True)
     return registry
+
 
 
 # Shared singleton instance

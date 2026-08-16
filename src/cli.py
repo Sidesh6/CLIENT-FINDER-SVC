@@ -54,7 +54,8 @@ def cmd_harvest(args: argparse.Namespace) -> int:
     print(f"    New Projects Persisted: {result.new_projects_saved}")
     print(f"    Duplicates Skipped    : {result.duplicates_skipped}")
     print(f"    Opportunities Scored  : {result.opportunities_scored}")
-    print(f"    High Priority Leads   : {result.high_priority_count} (≥{args.min_score})")
+    print(f"    High Priority Leads   : {result.high_priority_count} (>={args.min_score})")
+
     print(f"    Alerts Dispatched     : {result.notifications_sent}")
 
     if result.errors:

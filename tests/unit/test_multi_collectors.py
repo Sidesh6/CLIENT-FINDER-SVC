@@ -8,7 +8,10 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.collectors.arbeitnow_collector import ArbeitnowCollector
+from src.collectors.jobicy_collector import JobicyCollector
 from src.collectors.registry import CollectorRegistry
+from src.collectors.remotive_collector import RemotiveCollector
 from src.collectors.remoteok_collector import RemoteOKCollector
 from src.collectors.rss_collector import RSSFeedCollector
 from src.collectors.weworkremotely_collector import WeWorkRemotelyCollector
@@ -17,6 +20,7 @@ from src.models.project import Project
 from src.proposal.heuristic import HeuristicProposalGenerator
 from src.proposal.schemas import PitchAngle
 from src.utils.http_client import HttpClient, HttpClientError
+
 
 client = TestClient(app)
 
@@ -271,3 +275,108 @@ class TestCollectorApiRoutes:
         res_reset = client.post("/api/collectors/RemoteOK/reset-circuit")
         assert res_reset.status_code == 200
         assert res_reset.json()["circuit_broken"] is False
+
+
+class TestRemotiveCollector:
+    """Tests for Remotive JSON API collector."""
+
+    def test_remotive_collector_parses_jobs(self):
+        mock_http = MagicMock(spec=HttpClient)
+        mock_http.get_json.return_value = {
+            "jobs": [
+                {
+                    "id": 9991,
+                    "title": "Lead Python & AI Engineer",
+                    "company_name": "Cognitive Nexus",
+                    "description": "<p>Looking for a <strong>Python</strong> lead to build RAG systems.</p>",
+                    "url": "https://remotive.com/job/9991",
+                    "tags": ["python", "ai", "llm"],
+                    "job_type": "full_time",
+                    "salary": "$130,000 - $160,000",
+                    "publication_date": "2026-08-15T12:00:00",
+                    "candidate_required_location": "Remote / USA",
+                }
+            ]
+        }
+
+        collector = RemotiveCollector(http_client=mock_http, max_projects=5)
+        projects = collector.collect()
+
+        assert len(projects) == 1
+        p = projects[0]
+        assert "Lead Python & AI Engineer" in p["title"]
+        assert p["client_name"] == "Cognitive Nexus"
+        assert p["source"] == "Remotive"
+        assert p["budget"] == 160000.0
+        assert p["currency"] == "USD"
+        assert "python" in p["skills"]
+        assert "<p>" not in p["description"]
+
+
+class TestJobicyCollector:
+    """Tests for Jobicy JSON API collector."""
+
+    def test_jobicy_collector_parses_jobs(self):
+        mock_http = MagicMock(spec=HttpClient)
+        mock_http.get_json.return_value = {
+            "jobs": [
+                {
+                    "id": 8881,
+                    "jobTitle": "Full-Stack Software Architect",
+                    "companyName": "Skyward Cloud",
+                    "jobDescription": "<div>Architecting modern SaaS microservices.</div>",
+                    "url": "https://jobicy.com/jobs/8881",
+                    "jobType": "Full-Time",
+                    "annualSalaryMin": 120000,
+                    "annualSalaryMax": 150000,
+                    "salaryCurrency": "USD",
+                    "pubDate": "2026-08-15T14:00:00",
+                    "jobGeo": "Anywhere",
+                }
+            ]
+        }
+
+        collector = JobicyCollector(http_client=mock_http, max_projects=5)
+        projects = collector.collect()
+
+        assert len(projects) == 1
+        p = projects[0]
+        assert "Full-Stack Software Architect" in p["title"]
+        assert p["client_name"] == "Skyward Cloud"
+        assert p["source"] == "Jobicy"
+        assert p["budget"] == 150000.0
+        assert p["currency"] == "USD"
+
+
+class TestArbeitnowCollector:
+    """Tests for Arbeitnow JSON API collector."""
+
+    def test_arbeitnow_collector_parses_jobs(self):
+        mock_http = MagicMock(spec=HttpClient)
+        mock_http.get_json.return_value = {
+            "data": [
+                {
+                    "slug": "senior-backend-engineer-berlin-777",
+                    "title": "Senior Backend Engineer",
+                    "company_name": "Fintech Global",
+                    "description": "<p>Backend APIs using FastAPI and PostgreSQL.</p>",
+                    "url": "https://www.arbeitnow.com/view/777",
+                    "tags": ["Python", "FastAPI", "PostgreSQL"],
+                    "job_types": ["Full Time"],
+                    "location": "Remote EU",
+                    "created_at": 1755000000,
+                }
+            ]
+        }
+
+        collector = ArbeitnowCollector(http_client=mock_http, max_projects=5)
+        projects = collector.collect()
+
+        assert len(projects) == 1
+        p = projects[0]
+        assert "Senior Backend Engineer" in p["title"]
+        assert p["client_name"] == "Fintech Global"
+        assert p["source"] == "Arbeitnow"
+        assert "Python" in p["skills"]
+        assert p["currency"] == "EUR"
+

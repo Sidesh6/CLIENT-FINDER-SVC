@@ -57,17 +57,24 @@ class ConsoleNotifier(BaseNotifier):
 
         skills_str = ", ".join(payload.skills) if payload.skills else "None specified"
 
+        border = "=" * 76
         output = (
-            f"\n{ANSI_BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{ANSI_RESET}\n"
-            f"🔔 {rec_str} Score: {score_str} | {payload.title}\n"
-            f"   ├─ Source: {payload.source} | Budget: {payload.budget_display}\n"
-            f"   ├─ Tech Stack: {skills_str}\n"
-            f"   ├─ URL: {payload.source_url}\n"
-            f"   └─ Summary: {payload.explanation}\n"
-            f"{ANSI_BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{ANSI_RESET}"
+            f"\n{ANSI_BOLD}{border}{ANSI_RESET}\n"
+            f"[*] {rec_str} Score: {score_str} | {payload.title}\n"
+            f"   |-- Source: {payload.source} | Budget: {payload.budget_display}\n"
+            f"   |-- Tech Stack: {skills_str}\n"
+            f"   |-- URL: {payload.source_url}\n"
+            f"   +-- Summary: {payload.explanation}\n"
+            f"{ANSI_BOLD}{border}{ANSI_RESET}"
         )
 
-        print(output)
+        try:
+            print(output)
+        except UnicodeEncodeError:
+            safe_output = output.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(
+                sys.stdout.encoding or "utf-8"
+            )
+            print(safe_output)
         return NotificationResult(channel=self.channel, success=True)
 
     def send_digest(self, payloads: list[NotificationPayload]) -> NotificationResult:
@@ -75,12 +82,22 @@ class ConsoleNotifier(BaseNotifier):
         if not self.enabled:
             return NotificationResult(channel=self.channel, success=True)
 
-        print(f"\n📢 OPPORTUNITY DIGEST: {len(payloads)} Matched Opportunities")
-        print("─" * 76)
+        border = "-" * 76
+        print(f"\n[*] OPPORTUNITY DIGEST: {len(payloads)} Matched Opportunities")
+        print(border)
         for idx, p in enumerate(payloads, 1):
-            print(
-                f"{idx:2d}. [{p.overall_score:4.1f}/100] [{p.recommendation:17s}] {p.title[:45]}..."
-            )
-        print("─" * 76)
+            try:
+                print(
+                    f"{idx:2d}. [{p.overall_score:4.1f}/100] [{p.recommendation:17s}] {p.title[:45]}..."
+                )
+            except UnicodeEncodeError:
+                safe_title = p.title.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(
+                    sys.stdout.encoding or "utf-8"
+                )
+                print(
+                    f"{idx:2d}. [{p.overall_score:4.1f}/100] [{p.recommendation:17s}] {safe_title[:45]}..."
+                )
+        print(border)
 
         return NotificationResult(channel=self.channel, success=True)
+

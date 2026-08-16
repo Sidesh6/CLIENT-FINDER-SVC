@@ -22,6 +22,8 @@ class ProjectCleaner:
         for key, value in project.items():
             if isinstance(value, str):
                 value = value.strip()
+            elif key == "project_type" and isinstance(value, list):
+                value = str(value[0]) if value else "Contract"
 
             cleaned_project[key] = value
 
