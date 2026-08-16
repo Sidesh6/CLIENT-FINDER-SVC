@@ -1161,6 +1161,80 @@ def cmd_contract_audit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_executive_status(args: argparse.Namespace) -> int:
+    """Print executive agent status, active policy rules, and velocity KPIs."""
+    from src.executive.telemetry import GLOBAL_EXECUTIVE_TELEMETRY
+
+    tenant_id = args.tenant or "default_tenant"
+    kpis = GLOBAL_EXECUTIVE_TELEMETRY.get_kpis(tenant_id)
+    pol = kpis.active_policies
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — AI Executive Agent Status ({tenant_id})")
+    print("=" * 70)
+    print(f"\n  Autonomy Mode        : {kpis.current_mode.value}")
+    print(f"  Min Score Floor      : {pol.min_score_threshold}")
+    print(f"  Max Scam Risk Floor  : {pol.scam_risk_floor}")
+    print(f"  Auto SOW Generation  : {pol.auto_generate_sow}")
+    print(f"  Auto Deposit Invoice : {pol.auto_issue_deposit_invoice}")
+    print(f"\n  Cycles Executed      : {kpis.total_cycles_run}")
+    print(f"  Proposals Drafted    : {kpis.total_proposals_auto_drafted}")
+    print(f"  Contracts Generated  : {kpis.total_contracts_auto_generated}")
+    print(f"  Developer Time Saved : {kpis.total_time_saved_hours:.1f} hours")
+    print(f"  Velocity Multiplier  : {kpis.pipeline_velocity_multiplier:.1f}x")
+    print("-" * 70)
+    return 0
+
+
+def cmd_executive_run(args: argparse.Namespace) -> int:
+    """Trigger an immediate 7-step autonomous lead acquisition cycle."""
+    from src.executive.coordinator import GLOBAL_EXECUTIVE_COORDINATOR
+
+    tenant_id = args.tenant or "default_tenant"
+    res = GLOBAL_EXECUTIVE_COORDINATOR.run_autonomous_cycle(tenant_id)
+
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Autonomous Executive Cycle Executed ({res.cycle_id})")
+    print("=" * 70)
+    print(f"\n  Duration               : {res.duration_ms:.1f} ms")
+    print(f"  Opportunities Scanned  : {res.opportunities_scanned}")
+    print(f"  Qualified Leads        : {res.qualified_leads}")
+    print(f"  Proposals Auto-Drafted : {res.proposals_drafted}")
+    print(f"  Outreach Enrolled      : {res.outreach_sequences_initiated}")
+    print(f"  Contracts Auto-Drafted : {res.contracts_generated}")
+    print("\n  Actions Executed:")
+    for a in res.actions:
+        print(f"   -> [{a.category.value:<18}] {a.opportunity_title[:32]:<34} | Saved {a.estimated_time_saved_mins:.0f}m")
+    print("-" * 70)
+    return 0
+
+
+def cmd_executive_config(args: argparse.Namespace) -> int:
+    """Update autonomous policy rules from CLI."""
+    from src.executive.schemas import AutonomousPolicyConfig, AutonomyMode
+    from src.executive.telemetry import GLOBAL_EXECUTIVE_TELEMETRY
+
+    tenant_id = args.tenant or "default_tenant"
+    current = GLOBAL_EXECUTIVE_TELEMETRY.get_policy(tenant_id)
+    if args.mode:
+        current.autonomy_mode = AutonomyMode(args.mode)
+    if args.min_score is not None:
+        current.min_score_threshold = args.min_score
+    if args.scam_floor is not None:
+        current.scam_risk_floor = args.scam_floor
+
+    updated = GLOBAL_EXECUTIVE_TELEMETRY.update_policy(tenant_id, current)
+    print("=" * 70)
+    print(f"[*] CLIENT FINDER SVC — Executive Policies Updated ({tenant_id})")
+    print("=" * 70)
+    print(f"\n  Mode            : {updated.autonomy_mode.value}")
+    print(f"  Min Score Floor : {updated.min_score_threshold}")
+    print(f"  Scam Risk Floor : {updated.scam_risk_floor}")
+    print("-" * 70)
+    return 0
+
+
+
 
 
 
@@ -1580,6 +1654,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_ctr_audit = subparsers.add_parser("contract-audit", help="Audit raw contract text for legal traps and risks")
     p_ctr_audit.add_argument("--text", type=str, required=True, help="Raw contract text to audit")
     p_ctr_audit.set_defaults(func=cmd_contract_audit)
+
+    # 38. Executive Status Command
+    p_exec_stat = subparsers.add_parser("executive-status", help="Print AI Executive Agent status, policy rules, and velocity KPIs")
+    p_exec_stat.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_exec_stat.set_defaults(func=cmd_executive_status)
+
+    # 39. Executive Run Command
+    p_exec_run = subparsers.add_parser("executive-run", help="Trigger an immediate 7-step autonomous lead acquisition cycle")
+    p_exec_run.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_exec_run.set_defaults(func=cmd_executive_run)
+
+    # 40. Executive Config Command
+    p_exec_cfg = subparsers.add_parser("executive-config", help="Update autonomous executive policy rules")
+    p_exec_cfg.add_argument("--mode", type=str, choices=["DISABLED", "SEMI_AUTONOMOUS", "FULLY_AUTONOMOUS"], help="Autonomy execution mode")
+    p_exec_cfg.add_argument("--min-score", type=float, help="Minimum lead score floor")
+    p_exec_cfg.add_argument("--scam-floor", type=float, help="Maximum acceptable scam risk floor")
+    p_exec_cfg.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
+    p_exec_cfg.set_defaults(func=cmd_executive_config)
 
     return parser
 

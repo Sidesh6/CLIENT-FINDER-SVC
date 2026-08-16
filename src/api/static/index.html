@@ -70,6 +70,9 @@
         <button id="btn-open-contracts" class="btn btn-ghost">
           <span>📜 Contracts</span>
         </button>
+        <button id="btn-open-executive" class="btn btn-ghost">
+          <span>🤖 Executive Agent</span>
+        </button>
         <button id="btn-open-sources" class="btn btn-ghost">
           <span>📡 Sources Health</span>
         </button>
@@ -1595,6 +1598,86 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 26: AI Executive Agent & Autonomous Lead Acquisition Orchestrator Modal -->
+    <div id="modal-executive" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 950px; width: 95%;">
+        <div class="modal-header">
+          <h3 style="display: flex; align-items: center; gap: 8px;">
+            <span>🤖 AI Executive Agent Studio</span>
+            <span id="exec-mode-badge" style="font-size: 11px; padding: 2px 10px; border-radius: 12px; background: rgba(16,185,129,0.15); color: #10b981; font-weight: 700;">SEMI_AUTONOMOUS</span>
+          </h3>
+          <button id="btn-close-modal-executive" class="btn-close">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 20px;">
+          <!-- KPI Metrics Row -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+            <div class="kpi-card" style="padding: 12px 14px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted);">Cycles Executed</div>
+              <div id="exec-stat-cycles" style="font-size: 20px; font-weight: 800; color: #a78bfa;">0</div>
+            </div>
+            <div class="kpi-card" style="padding: 12px 14px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted);">Proposals Auto-Drafted</div>
+              <div id="exec-stat-proposals" style="font-size: 20px; font-weight: 800; color: #60a5fa;">0</div>
+            </div>
+            <div class="kpi-card" style="padding: 12px 14px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted);">Contracts Auto-Generated</div>
+              <div id="exec-stat-contracts" style="font-size: 20px; font-weight: 800; color: #f59e0b;">0</div>
+            </div>
+            <div class="kpi-card" style="padding: 12px 14px; text-align: center;">
+              <div style="font-size: 11px; color: var(--text-muted);">Developer Time Saved</div>
+              <div id="exec-stat-time-saved" style="font-size: 20px; font-weight: 800; color: #10b981;">0.0 hrs</div>
+            </div>
+          </div>
+
+          <!-- Policy Controls & Manual Trigger -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h4 style="margin: 0;">Autonomous Policy Controls</h4>
+              <button id="btn-run-executive-cycle" class="btn btn-primary">⚡ Run Autonomous Cycle Now</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+              <div>
+                <label style="font-size: 12px; color: var(--text-muted);">Execution Autonomy Mode</label>
+                <select id="exec-policy-mode" class="select-control" style="width: 100%;">
+                  <option value="SEMI_AUTONOMOUS">SEMI_AUTONOMOUS (Draft & Review)</option>
+                  <option value="FULLY_AUTONOMOUS">FULLY_AUTONOMOUS (Auto-Send & Execute)</option>
+                  <option value="DISABLED">DISABLED (Pause Autonomy)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size: 12px; color: var(--text-muted);">Min Lead Score Floor</label>
+                <input type="number" id="exec-policy-min-score" class="text-input" value="75" min="50" max="95">
+              </div>
+              <div>
+                <label style="font-size: 12px; color: var(--text-muted);">Max Scam Risk Floor</label>
+                <input type="number" id="exec-policy-scam-floor" class="text-input" value="35" min="10" max="80">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-top: 12px;">
+              <label style="font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="exec-policy-auto-sow" checked>
+                Auto-generate draft SOW contracts for qualified leads
+              </label>
+              <label style="font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="exec-policy-auto-invoice" checked>
+                Auto-issue 30% kickoff deposit invoices
+              </label>
+            </div>
+            <button id="btn-save-exec-policy" class="btn btn-ghost" style="margin-top: 12px; font-size: 12px; padding: 6px 14px;">💾 Save Autonomy Policies</button>
+          </div>
+
+          <!-- Real-Time Decision Stream -->
+          <div>
+            <h4 style="margin: 0 0 10px 0;">Real-Time Executive Decision Audit Stream</h4>
+            <div id="exec-activity-stream" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;"></div>
+          </div>
         </div>
       </div>
     </div>

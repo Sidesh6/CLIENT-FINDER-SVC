@@ -3070,3 +3070,154 @@ document.getElementById("btn-submit-audit-contract")?.addEventListener("click", 
 });
 
 
+/* ==========================================================================
+   Phase 26: AI Executive Agent & Autonomous Lead Acquisition Orchestrator
+   ========================================================================== */
+
+document.getElementById("btn-open-executive")?.addEventListener("click", () => {
+  const modal = document.getElementById("modal-executive");
+  if (modal) {
+    modal.style.display = "flex";
+    loadExecutiveStatus();
+    loadExecutiveActivityStream();
+  }
+});
+
+document.getElementById("btn-close-modal-executive")?.addEventListener("click", () => {
+  const modal = document.getElementById("modal-executive");
+  if (modal) modal.style.display = "none";
+});
+
+async function loadExecutiveStatus() {
+  try {
+    const res = await fetch("/api/executive/status");
+    if (!res.ok) throw new Error("Failed to load executive status");
+    const data = await res.json();
+
+    const badge = document.getElementById("exec-mode-badge");
+    if (badge) {
+      badge.innerText = data.current_mode;
+      badge.style.color = data.current_mode === "FULLY_AUTONOMOUS" ? "#a78bfa" : data.current_mode === "SEMI_AUTONOMOUS" ? "#10b981" : "#9ca3af";
+    }
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = val;
+    };
+
+    setVal("exec-stat-cycles", data.total_cycles_run || 0);
+    setVal("exec-stat-proposals", data.total_proposals_auto_drafted || 0);
+    setVal("exec-stat-contracts", data.total_contracts_auto_generated || 0);
+    setVal("exec-stat-time-saved", `${data.total_time_saved_hours || 0.0} hrs`);
+
+    const pol = data.active_policies || {};
+    const setElem = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+
+    setElem("exec-policy-mode", pol.autonomy_mode || "SEMI_AUTONOMOUS");
+    setElem("exec-policy-min-score", pol.min_score_threshold || 75);
+    setElem("exec-policy-scam-floor", pol.scam_risk_floor || 35);
+
+    const autoSow = document.getElementById("exec-policy-auto-sow");
+    if (autoSow) autoSow.checked = pol.auto_generate_sow ?? true;
+    const autoInv = document.getElementById("exec-policy-auto-invoice");
+    if (autoInv) autoInv.checked = pol.auto_issue_deposit_invoice ?? true;
+  } catch (err) {
+    console.error("Executive status load error:", err);
+  }
+}
+
+async function loadExecutiveActivityStream() {
+  const container = document.getElementById("exec-activity-stream");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/api/executive/activity-log?limit=30");
+    if (!res.ok) throw new Error("Failed to load activity stream");
+    const logs = await res.json();
+
+    if (!logs || logs.length === 0) {
+      container.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:20px;">No executive decision logs recorded yet.</div>`;
+      return;
+    }
+
+    let html = "";
+    logs.forEach((log) => {
+      const catColor = log.category === "CONTRACT_GENERATION" ? "#f59e0b" : log.category === "OUTREACH_SEQUENCE" ? "#60a5fa" : log.category === "PROPOSAL_SYNTHESIS" ? "#a78bfa" : "#10b981";
+
+      html += `
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid ${catColor}; border-radius: 6px; padding: 10px 14px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; color: ${catColor}; font-size: 10px; text-transform: uppercase;">${escapeHtml(log.category)}</span>
+              <strong style="color: var(--text-primary); font-size: 12px;">${escapeHtml(log.opportunity_title)}</strong>
+            </div>
+            <div style="font-size: 10px; color: var(--text-muted);">${new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &nbsp;·&nbsp; ⚡ +${log.estimated_time_saved_mins}m saved</div>
+          </div>
+          <div style="color: var(--text-secondary); font-size: 11px;">${escapeHtml(log.action_description)}</div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  } catch (err) {
+    container.innerHTML = `<div style="padding:10px;color:#ef4444;">Error loading activity stream: ${err.message}</div>`;
+  }
+}
+
+document.getElementById("btn-run-executive-cycle")?.addEventListener("click", async () => {
+  const btn = document.getElementById("btn-run-executive-cycle");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⏳ Executing 7-Step Acquisition Loop...";
+  }
+
+  try {
+    const res = await fetch("/api/executive/cycle", { method: "POST" });
+    if (!res.ok) throw new Error("Autonomous cycle failed");
+    const data = await res.json();
+
+    showToast(`🤖 Cycle ${data.cycle_id} complete! Qualified: ${data.qualified_leads}, Proposals: ${data.proposals_drafted}, Contracts: ${data.contracts_generated}`);
+    loadExecutiveStatus();
+    loadExecutiveActivityStream();
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "⚡ Run Autonomous Cycle Now";
+    }
+  }
+});
+
+document.getElementById("btn-save-exec-policy")?.addEventListener("click", async () => {
+  const mode = document.getElementById("exec-policy-mode")?.value || "SEMI_AUTONOMOUS";
+  const minScore = parseFloat(document.getElementById("exec-policy-min-score")?.value || "75");
+  const scamFloor = parseFloat(document.getElementById("exec-policy-scam-floor")?.value || "35");
+  const autoSow = document.getElementById("exec-policy-auto-sow")?.checked ?? true;
+  const autoInv = document.getElementById("exec-policy-auto-invoice")?.checked ?? true;
+
+  try {
+    const res = await fetch("/api/executive/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        autonomy_mode: mode,
+        min_score_threshold: minScore,
+        scam_risk_floor: scamFloor,
+        auto_generate_sow: autoSow,
+        auto_issue_deposit_invoice: autoInv,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to save policy config");
+    showToast("💾 Autonomous executive policies updated!");
+    loadExecutiveStatus();
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+});
+
+
+

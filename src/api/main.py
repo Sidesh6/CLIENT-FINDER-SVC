@@ -27,6 +27,7 @@ from src.api.routes import (
     contracts,
     crm,
     events,
+    executive,
     finance,
     export,
     health,
@@ -114,6 +115,7 @@ app.include_router(tenants.router)
 app.include_router(apikeys.router)
 app.include_router(crm.router)
 app.include_router(finance.router)
+app.include_router(executive.router)
 
 # Mount Static Files for Modern Glassmorphic Web Dashboard
 if STATIC_DIR.exists():
