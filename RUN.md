@@ -81,3 +81,18 @@ Run the full automated test suite to ensure all collectors and classifiers are w
 ```bash
 pytest tests/unit/test_freelance_system.py
 ```
+
+---
+
+## Step 7: Export & View Excel Spreadsheet
+
+All qualified freelance clients and decision-maker contact details are automatically synced to Excel:
+
+- **Excel Workbook**: `data/freelance_clients.xlsx`
+- **CSV Mirror**: `data/freelance_clients.csv`
+
+To trigger an on-demand export at any time:
+```bash
+python -m src.cli export-excel --min-score 70
+```
+

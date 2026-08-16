@@ -210,6 +210,14 @@ class PipelineCoordinator:
                             "Notification dispatch failed for project ID %d: %s", pm.id, exc
                         )
 
+            # Step 7: Auto-Sync Direct Freelance Leads to Excel & CSV
+            try:
+                from src.analytics.excel_exporter import GLOBAL_EXCEL_EXPORTER
+
+                GLOBAL_EXCEL_EXPORTER.export(min_score=0.0, direct_clients_only=True)
+            except Exception as exc:
+                logger.warning("Auto-syncing to Excel spreadsheet failed: %s", exc)
+
         result.completed_at = datetime.now(UTC)
         result.duration_seconds = time.perf_counter() - start_time
         result.success = len(result.errors) == 0
@@ -230,6 +238,7 @@ class PipelineCoordinator:
             )
         except Exception:
             pass
+
 
         logger.info(
             "Pipeline cycle completed in %.2fs across %s. Found: %d, Saved: %d, High-Priority: %d, Alerts: %d",

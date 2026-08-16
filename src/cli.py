@@ -1340,6 +1340,24 @@ def cmd_freelance_clients(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_excel(args: argparse.Namespace) -> int:
+    """Export qualified freelance clients directly into formatted Excel (.xlsx) spreadsheet."""
+    init_db()
+    from src.analytics.excel_exporter import GLOBAL_EXCEL_EXPORTER
+
+    excel_path = args.output or "data/freelance_clients.xlsx"
+    min_score = args.min_score or 0.0
+    count = GLOBAL_EXCEL_EXPORTER.export(
+        excel_path=excel_path, min_score=min_score, direct_clients_only=not args.all
+    )
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC -- Excel Export Completed")
+    print("=" * 70)
+    print(f"[+] Successfully exported {count} records to Excel workbook: {excel_path}")
+    print(f"[+] CSV backup created at: data/freelance_clients.csv")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build root CLI argument parser and subcommands."""
     parser = argparse.ArgumentParser(
@@ -1355,6 +1373,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_freelance.add_argument("--min-score", type=float, default=None, help="Filter by minimum score")
     p_freelance.add_argument("--limit", type=int, default=20, help="Max clients to display")
     p_freelance.set_defaults(func=cmd_freelance_clients)
+
+    # Export Excel Command
+    p_excel = subparsers.add_parser(
+        "export-excel", help="Export high-value freelance clients to formatted Excel spreadsheet"
+    )
+    p_excel.add_argument("--output", type=str, default="data/freelance_clients.xlsx", help="Excel output path")
+    p_excel.add_argument("--min-score", type=float, default=0.0, help="Minimum score threshold")
+    p_excel.add_argument("--all", action="store_true", help="Include all opportunities (not just direct clients)")
+    p_excel.set_defaults(func=cmd_export_excel)
+
 
     # 1. Harvest Command
     p_harvest = subparsers.add_parser("harvest", help="Run immediate lead harvesting cycle")
