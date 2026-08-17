@@ -181,10 +181,19 @@ class PeoplePerHourCollector(BaseCollector):
 
             logger.info("PeoplePerHourCollector collected %d freelance project(s).", len(projects))
 
-        except ET.ParseError as exc:
-            logger.error("XML parse error on PeoplePerHour RSS: %s", exc)
-        except HttpClientError as exc:
-            logger.error("HTTP error fetching PeoplePerHour RSS: %s", exc)
+        except (HttpClientError, ET.ParseError) as exc:
+            logger.info("PeoplePerHour RSS unavailable (%s). Falling back to direct web scraping...", exc)
+            try:
+                from src.collectors.web_collector import WebProjectCollector
+
+                web_col = WebProjectCollector(
+                    source_name=self.source_name,
+                    source_url="https://www.peopleperhour.com/freelance-jobs/technology-programming",
+                    max_projects=self.max_projects,
+                )
+                projects = web_col.collect()
+            except Exception as web_exc:
+                logger.warning("PeoplePerHour web scraper fallback error: %s", web_exc)
         except Exception as exc:
             logger.error("Unexpected error during PeoplePerHour collection: %s", exc, exc_info=True)
 

@@ -1244,7 +1244,7 @@ def cmd_sources(args: argparse.Namespace) -> int:
     from src.collectors.registry import DEFAULT_REGISTRY
 
     print("=" * 70)
-    print("[*] CLIENT FINDER SVC — Opportunity Collectors Health")
+    print("[*] CLIENT FINDER SVC -- Opportunity Collectors Health")
     print("=" * 70)
     states = DEFAULT_REGISTRY.get_all_states()
     for s in states:
@@ -1273,6 +1273,53 @@ def cmd_sources_toggle(args: argparse.Namespace) -> int:
     except KeyError:
         print(f"[!] Collector '{args.name}' not found in registry.")
         return 1
+
+
+def cmd_catalog(args: argparse.Namespace) -> int:
+    """List all 100+ supported freelance platforms, niche boards, and developer communities by category."""
+    from src.collectors.catalog import PLATFORM_SOURCES_CATALOG, SourceCategory
+
+    print("=" * 75)
+    print("[*] CLIENT FINDER SVC -- Multi-Platform Universal Sources Directory")
+    print("=" * 75)
+
+    category_filter = args.category.upper() if args.category else None
+    direct_only = args.direct_only
+
+    categories = (
+        [SourceCategory(category_filter)]
+        if category_filter and category_filter in [c.value for c in SourceCategory]
+        else list(SourceCategory)
+    )
+
+    total_displayed = 0
+    for cat in categories:
+        items = [
+            s
+            for s in PLATFORM_SOURCES_CATALOG
+            if s.category == cat and (not direct_only or s.is_direct_client)
+        ]
+        if not items:
+            continue
+
+        print(f"\n[+] CATEGORY: {cat.value.replace('_', ' ')} ({len(items)} platforms)")
+        print("-" * 75)
+        for s in items:
+            total_displayed += 1
+            feed_tag = " [RSS/API Feed]" if s.feed_url or s.api_endpoint else " [Web Directory]"
+            client_tag = " [DIRECT CLIENT]" if s.is_direct_client else ""
+            print(f" - {s.name:<28}{feed_tag:<18}{client_tag}")
+            print(f"   URL        : {s.base_url}")
+            if s.description:
+                print(f"   Description: {s.description}")
+            if s.tags:
+                print(f"   Tags       : {', '.join(s.tags)}")
+            print()
+
+    print("=" * 75)
+    print(f"[+] Total Platforms in Catalog: {len(PLATFORM_SOURCES_CATALOG)} | Displayed: {total_displayed}")
+    print("=" * 75)
+    return 0
 
 
 def cmd_freelance_clients(args: argparse.Namespace) -> int:
@@ -1567,6 +1614,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--disable", action="store_true", default=None, help="Explicitly disable the collector"
     )
     p_toggle.set_defaults(func=cmd_sources_toggle)
+
+    # 12. Catalog Command
+    p_cat = subparsers.add_parser(
+        "catalog", help="List all 100+ supported platforms, freelance marketplaces, and AI boards"
+    )
+    p_cat.add_argument("--category", type=str, default=None, help="Filter by category")
+    p_cat.add_argument("--direct-only", action="store_true", help="Only show direct client platforms")
+    p_cat.set_defaults(func=cmd_catalog)
 
     # 12. Outreach Commands
     p_outreach = subparsers.add_parser(

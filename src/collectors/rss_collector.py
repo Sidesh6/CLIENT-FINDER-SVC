@@ -32,7 +32,8 @@ class RSSFeedCollector(BaseCollector):
         super().__init__(source_name)
         self.feed_url = feed_url
         self.http_client = http_client or HttpClient(
-            timeout=15.0,
+            timeout=8.0,
+            max_retries=1,
             default_headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ClientFinderBot/1.0"
             },

@@ -21,6 +21,7 @@ from src.collectors.remotive_collector import RemotiveCollector
 from src.collectors.remoteok_collector import RemoteOKCollector
 from src.collectors.rss_collector import RSSFeedCollector
 from src.collectors.upwork_rss_collector import UpworkRSSCollector
+from src.collectors.web_collector import WebProjectCollector
 from src.collectors.weworkremotely_collector import WeWorkRemotelyCollector
 
 
@@ -191,12 +192,16 @@ class CollectorRegistry:
         return list(self._states.values())
 
 
+from src.collectors.catalog import PLATFORM_SOURCES_CATALOG
+
+
 def get_default_registry() -> CollectorRegistry:
     """
-    Initialize and return the default collector registry pre-loaded with standard collectors.
+    Initialize and return the default collector registry pre-loaded with standard collectors
+    and all supported multi-platform catalog feeds.
     """
     registry = CollectorRegistry()
-    # Direct Client & Freelance Marketplace collectors enabled by default
+    # 1. Primary Direct Client & Freelance Marketplace collectors enabled by default
     registry.register(ClientLeadCollector(), enabled=True)
     registry.register(UpworkRSSCollector(), enabled=True)
     registry.register(FiverrCollector(), enabled=True)
@@ -204,35 +209,29 @@ def get_default_registry() -> CollectorRegistry:
     registry.register(GuruCollector(), enabled=True)
     registry.register(PeoplePerHourCollector(), enabled=True)
     registry.register(HackerNewsCollector(), enabled=True)
-    
-    # Traditional 9-5 employee job boards disabled by default
+
+    # 2. Standard API & Aggregator collectors
     registry.register(RemoteOKCollector(), enabled=False)
     registry.register(WeWorkRemotelyCollector(), enabled=False)
-
-    registry.register(
-        WeWorkRemotelyCollector(
-            source_name="WeWorkRemotely Design",
-            feed_url="https://weworkremotely.com/categories/remote-design-jobs.rss",
-        ),
-        enabled=False,
-    )
-    registry.register(
-        WeWorkRemotelyCollector(
-            source_name="WeWorkRemotely Product",
-            feed_url="https://weworkremotely.com/categories/remote-product-jobs.rss",
-        ),
-        enabled=False,
-    )
     registry.register(RemotiveCollector(), enabled=False)
     registry.register(JobicyCollector(), enabled=False)
     registry.register(ArbeitnowCollector(), enabled=False)
-    registry.register(
-        RSSFeedCollector(
-            source_name="Python.org Jobs",
-            feed_url="https://www.python.org/jobs/feed/rss/",
-        ),
-        enabled=False,
-    )
+
+    # 3. Dynamically register all multi-platform catalog sources (both RSS feeds and web directories)
+    for s_def in PLATFORM_SOURCES_CATALOG:
+        if s_def.name not in registry.list_sources():
+            if s_def.feed_url:
+                col = RSSFeedCollector(
+                    source_name=s_def.name,
+                    feed_url=s_def.feed_url,
+                )
+            else:
+                col = WebProjectCollector(
+                    source_name=s_def.name,
+                    source_url=s_def.base_url,
+                )
+            registry.register(col, enabled=True)
+
     return registry
 
 

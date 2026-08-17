@@ -3,6 +3,7 @@ Automated Pipeline Coordinator.
 Orchestrates collection, cleaning, extraction, persistence, deduplication, scoring, and notification dispatch.
 """
 
+import concurrent.futures
 import logging
 import time
 from collections.abc import Sequence
@@ -94,23 +95,32 @@ class PipelineCoordinator:
 
         raw_items: list[dict[str, Any]] = []
 
-        # Step 1: Data Collection & Health Telemetry
-        for col in active_collectors:
+        # Step 1: Concurrent Data Collection & Health Telemetry across all platforms
+        def _fetch_collector(col: BaseCollector) -> tuple[str, list[dict[str, Any]], str | None]:
             col_name = getattr(col, "source_name", getattr(col, "name", str(col)))
-            if col_name not in result.sources_used:
-                result.sources_used.append(col_name)
             try:
                 if hasattr(col, "max_projects"):
                     col.max_projects = limit_per_collector
                 items = col.collect()
-                logger.info("Collector '%s' retrieved %d items.", col_name, len(items))
-                self.registry.record_success(col_name, len(items))
-                raw_items.extend(items)
+                return col_name, items or [], None
             except Exception as exc:
-                err_msg = f"Collector '{col_name}' failed: {exc}"
-                logger.error(err_msg)
-                self.registry.record_failure(col_name, str(exc))
-                result.errors.append(err_msg)
+                return col_name, [], str(exc)
+
+        max_workers = min(25, max(4, len(active_collectors)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_col = {executor.submit(_fetch_collector, col): col for col in active_collectors}
+            for future in concurrent.futures.as_completed(future_to_col):
+                col_name, items, err = future.result()
+                if col_name not in result.sources_used:
+                    result.sources_used.append(col_name)
+                if err:
+                    err_msg = f"Collector '{col_name}' failed: {err}"
+                    logger.warning(err_msg)
+                    self.registry.record_failure(col_name, err)
+                    result.errors.append(err_msg)
+                else:
+                    self.registry.record_success(col_name, len(items))
+                    raw_items.extend(items)
 
         result.collected_count = len(raw_items)
 

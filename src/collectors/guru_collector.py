@@ -192,10 +192,19 @@ class GuruCollector(BaseCollector):
 
             logger.info("GuruCollector collected %d freelance project(s).", len(projects))
 
-        except ET.ParseError as exc:
-            logger.error("XML parse error on Guru RSS: %s", exc)
-        except HttpClientError as exc:
-            logger.error("HTTP error fetching Guru RSS: %s", exc)
+        except (HttpClientError, ET.ParseError) as exc:
+            logger.info("Guru RSS unavailable (%s). Falling back to direct web scraping...", exc)
+            try:
+                from src.collectors.web_collector import WebProjectCollector
+
+                web_col = WebProjectCollector(
+                    source_name=self.source_name,
+                    source_url="https://www.guru.com/d/jobs/c/programming-development/",
+                    max_projects=self.max_projects,
+                )
+                projects = web_col.collect()
+            except Exception as web_exc:
+                logger.warning("Guru web scraper fallback error: %s", web_exc)
         except Exception as exc:
             logger.error("Unexpected error during Guru collection: %s", exc, exc_info=True)
 

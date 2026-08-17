@@ -205,10 +205,19 @@ class UpworkRSSCollector(BaseCollector):
 
             logger.info("UpworkRSSCollector collected %d freelance project(s).", len(projects))
 
-        except ET.ParseError as exc:
-            logger.error("XML parse error on Upwork RSS: %s", exc)
-        except HttpClientError as exc:
-            logger.error("HTTP error fetching Upwork RSS: %s", exc)
+        except (HttpClientError, ET.ParseError) as exc:
+            logger.info("Upwork RSS unavailable (%s). Falling back to web search scraping...", exc)
+            try:
+                from src.collectors.web_collector import WebProjectCollector
+
+                web_col = WebProjectCollector(
+                    source_name=self.source_name,
+                    source_url="https://www.upwork.com/freelance-jobs/python/",
+                    max_projects=self.max_projects,
+                )
+                projects = web_col.collect()
+            except Exception as web_exc:
+                logger.warning("Upwork web scraper fallback error: %s", web_exc)
         except Exception as exc:
             logger.error("Unexpected error during Upwork RSS collection: %s", exc, exc_info=True)
 
