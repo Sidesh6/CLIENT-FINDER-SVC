@@ -96,7 +96,10 @@ class FreelanceClientClassifier:
         rejection_reasons: list[str] = []
 
         # Sources that are inherently 100% direct client requests
-        is_client_lead_source = source in ("Client Leads", "Upwork", "Hacker News") or project.get("is_direct_client", False)
+        is_client_lead_source = (
+            source in ("Client Leads", "Upwork", "Fiverr", "Freelancer", "Guru", "PeoplePerHour", "Hacker News")
+            or project.get("is_direct_client", False)
+        )
 
         # Check disqualifiers
         for pattern, reason in self.EMPLOYEE_DISQUALIFIERS:

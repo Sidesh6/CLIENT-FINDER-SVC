@@ -1358,6 +1358,61 @@ def cmd_export_excel(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_clean_mock_data(args: argparse.Namespace) -> int:
+    """Purge all legacy example.com / mock project records from SQLite database."""
+    init_db()
+    from src.analytics.excel_exporter import GLOBAL_EXCEL_EXPORTER
+    from src.database.connection import SessionLocal
+    from src.database.models import ApplicationModel, OpportunityModel, ProjectModel
+
+    print("=" * 70)
+    print("[*] CLIENT FINDER SVC -- Purging Legacy Mock Records")
+    print("=" * 70)
+
+    with SessionLocal() as session:
+        from sqlalchemy import delete
+
+        del_apps = session.execute(
+            delete(ApplicationModel).where(
+                ApplicationModel.project_id.in_(
+                    session.query(ProjectModel.id).filter(
+                        (ProjectModel.source_url.like("%example.com%"))
+                        | (ProjectModel.source == "Example Source")
+                    )
+                )
+            )
+        ).rowcount
+
+        del_opps = session.execute(
+            delete(OpportunityModel).where(
+                OpportunityModel.project_id.in_(
+                    session.query(ProjectModel.id).filter(
+                        (ProjectModel.source_url.like("%example.com%"))
+                        | (ProjectModel.source == "Example Source")
+                    )
+                )
+            )
+        ).rowcount
+
+        del_projs = session.execute(
+            delete(ProjectModel).where(
+                (ProjectModel.source_url.like("%example.com%"))
+                | (ProjectModel.source == "Example Source")
+            )
+        ).rowcount
+
+        session.commit()
+
+    print(f"[+] Deleted {del_apps} mock applications.")
+    print(f"[+] Deleted {del_opps} mock opportunities.")
+    print(f"[+] Deleted {del_projs} mock projects with example.com URLs.")
+
+    # Re-export clean CSV/Excel
+    exported = GLOBAL_EXCEL_EXPORTER.export()
+    print(f"[+] Re-exported {exported} pristine freelance client leads to CSV/Excel.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build root CLI argument parser and subcommands."""
     parser = argparse.ArgumentParser(
@@ -1370,8 +1425,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_freelance = subparsers.add_parser(
         "freelance-clients", help="List direct freelance clients and founder gigs (excluding employee jobs)"
     )
-    p_freelance.add_argument("--min-score", type=float, default=None, help="Filter by minimum score")
-    p_freelance.add_argument("--limit", type=int, default=20, help="Max clients to display")
+    p_freelance.add_argument("--min-score", type=float, default=75, help="Filter by minimum score")
+    p_freelance.add_argument("--limit", type=int, default=None, help="Max clients to display")
     p_freelance.set_defaults(func=cmd_freelance_clients)
 
     # Export Excel Command
@@ -1775,6 +1830,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_exec_cfg.add_argument("--scam-floor", type=float, help="Maximum acceptable scam risk floor")
     p_exec_cfg.add_argument("--tenant", type=str, default=None, help="Tenant workspace ID")
     p_exec_cfg.set_defaults(func=cmd_executive_config)
+
+    # 41. Clean Mock Data Command
+    p_clean = subparsers.add_parser("clean-mock-data", help="Purge all legacy example.com / mock project records from database")
+    p_clean.set_defaults(func=cmd_clean_mock_data)
 
     return parser
 

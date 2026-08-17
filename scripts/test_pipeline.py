@@ -1,15 +1,15 @@
 from src.ai.extractor import ProjectExtractor
-from src.collectors.example_collector import ExampleCollector
+from src.collectors.client_lead_collector import ClientLeadCollector
 from src.processors.cleaner import ProjectCleaner
 
 
 def main():
-    # 1. Collect
-    collector = ExampleCollector()
+    # 1. Collect direct client leads
+    collector = ClientLeadCollector(max_projects=5)
 
     raw_projects = collector.collect()
 
-    print(f"Collected {len(raw_projects)} projects")
+    print(f"Collected {len(raw_projects)} direct client projects")
 
     # 2. Clean
     cleaner = ProjectCleaner()
@@ -28,11 +28,10 @@ def main():
         projects.append(extracted_project)
 
     # 4. Display
-    print("\nVALIDATED PROJECTS")
+    print("\nVALIDATED DIRECT FREELANCE CLIENTS")
 
     for project in projects:
         print("\n------------------------------")
-
         print(f"Title: {project.title}")
         print(f"Source: {project.source}")
         print(f"Budget: {project.budget} {project.currency}")

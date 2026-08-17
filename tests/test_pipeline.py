@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.ai.extractor import ProjectExtractor
-from src.collectors.example_collector import ExampleCollector
+from src.collectors.base_collector import BaseCollector
 from src.collectors.hackernews_collector import HackerNewsCollector
 from src.models.project import Project
 from src.processors.cleaner import ProjectCleaner
@@ -202,8 +202,27 @@ class TestProjectModel:
 class TestEndToEndPipeline:
     """Tests for the complete discovery pipeline: Collector -> Cleaner -> Extractor -> Project."""
 
-    def test_example_collector_pipeline(self):
-        collector = ExampleCollector()
+    def test_freelance_collector_pipeline(self):
+        class MockPipelineCollector(BaseCollector):
+            def __init__(self):
+                super().__init__("Direct Client Source")
+
+            def collect(self):
+                return [
+                    {
+                        "title": "AI Backend MVP Development",
+                        "description": "Build an AI MVP backend using Python, FastAPI and RAG.",
+                        "source": self.source_name,
+                        "source_url": "https://freelance-board.org/project/123",
+                        "client_name": "Direct Client",
+                        "budget": 2000,
+                        "currency": "USD",
+                        "project_type": "AI Development",
+                        "skills": ["Python", "FastAPI", "RAG"],
+                    }
+                ]
+
+        collector = MockPipelineCollector()
         cleaner = ProjectCleaner()
         extractor = ProjectExtractor()
 
@@ -218,7 +237,7 @@ class TestEndToEndPipeline:
         for proj in validated_projects:
             assert isinstance(proj, Project)
             assert proj.title
-            assert proj.source == "Example Source"
+            assert proj.source == "Direct Client Source"
             assert str(proj.source_url).startswith("https://")
 
     def test_hackernews_collector_pipeline(self):

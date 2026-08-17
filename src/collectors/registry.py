@@ -11,8 +11,12 @@ from typing import Any
 from src.collectors.arbeitnow_collector import ArbeitnowCollector
 from src.collectors.base_collector import BaseCollector
 from src.collectors.client_lead_collector import ClientLeadCollector
+from src.collectors.fiverr_collector import FiverrCollector
+from src.collectors.freelancer_collector import FreelancerCollector
+from src.collectors.guru_collector import GuruCollector
 from src.collectors.hackernews_collector import HackerNewsCollector
 from src.collectors.jobicy_collector import JobicyCollector
+from src.collectors.peopleperhour_collector import PeoplePerHourCollector
 from src.collectors.remotive_collector import RemotiveCollector
 from src.collectors.remoteok_collector import RemoteOKCollector
 from src.collectors.rss_collector import RSSFeedCollector
@@ -192,10 +196,16 @@ def get_default_registry() -> CollectorRegistry:
     Initialize and return the default collector registry pre-loaded with standard collectors.
     """
     registry = CollectorRegistry()
-    # Direct Client & Freelance Lead collectors enabled by default
+    # Direct Client & Freelance Marketplace collectors enabled by default
     registry.register(ClientLeadCollector(), enabled=True)
     registry.register(UpworkRSSCollector(), enabled=True)
+    registry.register(FiverrCollector(), enabled=True)
+    registry.register(FreelancerCollector(), enabled=True)
+    registry.register(GuruCollector(), enabled=True)
+    registry.register(PeoplePerHourCollector(), enabled=True)
     registry.register(HackerNewsCollector(), enabled=True)
+    
+    # Traditional 9-5 employee job boards disabled by default
     registry.register(RemoteOKCollector(), enabled=False)
     registry.register(WeWorkRemotelyCollector(), enabled=False)
 

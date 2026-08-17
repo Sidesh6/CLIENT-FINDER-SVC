@@ -86,7 +86,15 @@ class FreelanceExcelExporter:
                 "title": p.title,
                 "description": p.description,
                 "source": p.source,
-                "is_direct_client": p.source in ("Client Leads", "Upwork", "Hacker News"),
+                "is_direct_client": p.source in (
+                    "Client Leads",
+                    "Upwork",
+                    "Fiverr",
+                    "Freelancer",
+                    "Guru",
+                    "PeoplePerHour",
+                    "Hacker News",
+                ),
             })
 
 
@@ -126,7 +134,10 @@ class FreelanceExcelExporter:
                 "Discovered At": created_str,
             })
 
-        self._write_excel(excel_target, rows)
+        try:
+            self._write_excel(excel_target, rows)
+        except PermissionError:
+            logger.warning("Could not write %s (file is open in another program). Writing CSV only.", excel_target)
         self._write_csv(csv_target, rows)
         logger.info("Exported %d freelance leads to %s and %s", len(rows), excel_target, csv_target)
         return len(rows)

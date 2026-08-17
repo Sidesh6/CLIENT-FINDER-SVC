@@ -214,9 +214,11 @@ class PipelineCoordinator:
             try:
                 from src.analytics.excel_exporter import GLOBAL_EXCEL_EXPORTER
 
-                GLOBAL_EXCEL_EXPORTER.export(min_score=0.0, direct_clients_only=True)
+                synced_count = GLOBAL_EXCEL_EXPORTER.export(min_score=0.0, direct_clients_only=True)
+                print(f"[+] Auto-synced {synced_count} freelance clients into data/freelance_clients.xlsx")
             except Exception as exc:
                 logger.warning("Auto-syncing to Excel spreadsheet failed: %s", exc)
+
 
         result.completed_at = datetime.now(UTC)
         result.duration_seconds = time.perf_counter() - start_time
