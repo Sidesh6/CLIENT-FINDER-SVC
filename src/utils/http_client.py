@@ -4,6 +4,9 @@ from typing import Any
 
 import httpx
 
+from src.utils.identity_rotator import GLOBAL_SCRAPER_IDENTITY_ROTATOR
+from src.utils.rate_limiter import GLOBAL_SCRAPER_RATE_LIMITER
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +39,7 @@ class HttpStatusError(HttpClientError):
 
 class HttpClient:
     """
-    Robust HTTP client with built-in retries, timeouts, rate limiting, and logging.
+    Robust HTTP client with built-in retries, timeouts, rate limiting, and identity rotation (Fix 4).
     """
 
     def __init__(
@@ -47,11 +50,15 @@ class HttpClient:
         rate_limit_delay: float = 0.0,
         user_agent: str = "ClientFinder/1.0 (Opportunity Discovery Service)",
         default_headers: dict[str, str] | None = None,
+        rotate_identities: bool = False,
+        respect_domain_limits: bool = True,
     ):
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_backoff_factor = retry_backoff_factor
         self.rate_limit_delay = rate_limit_delay
+        self.rotate_identities = rotate_identities
+        self.respect_domain_limits = respect_domain_limits
         self._last_request_time: float = 0.0
 
         headers = {
@@ -62,12 +69,19 @@ class HttpClient:
             headers.update(default_headers)
         self.headers = headers
 
-    def _apply_rate_limiting(self) -> None:
-        """Throttle requests according to rate_limit_delay if configured."""
+    def _apply_rate_limiting(self, url: str = "") -> None:
+        """Throttle requests according to rate_limit_delay and per-domain limits."""
         if self.rate_limit_delay > 0:
             elapsed = time.time() - self._last_request_time
             if elapsed < self.rate_limit_delay:
                 time.sleep(self.rate_limit_delay - elapsed)
+
+        if self.respect_domain_limits and url:
+            can_req, wait_secs = GLOBAL_SCRAPER_RATE_LIMITER.can_request(url)
+            if not can_req and wait_secs > 0:
+                time.sleep(min(wait_secs, 2.0))
+            GLOBAL_SCRAPER_RATE_LIMITER.record_request(url)
+
         self._last_request_time = time.time()
 
     def request(
@@ -81,13 +95,18 @@ class HttpClient:
         """
         Execute an HTTP request with retry logic and error handling.
         """
-        request_headers = {**self.headers, **(headers or {})}
+        rot_headers = (
+            GLOBAL_SCRAPER_IDENTITY_ROTATOR.get_headers()
+            if self.rotate_identities
+            else {}
+        )
+        request_headers = {**self.headers, **rot_headers, **(headers or {})}
         attempt = 0
         backoff = 1.0
 
         while attempt <= self.max_retries:
             attempt += 1
-            self._apply_rate_limiting()
+            self._apply_rate_limiting(url)
             start_time = time.time()
 
             try:
